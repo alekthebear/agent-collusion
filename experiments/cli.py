@@ -364,6 +364,8 @@ def _run_label(args: argparse.Namespace, run_index: int) -> str:
         suffixes.append(f"{group.kind}{len(group.agent_ids)}")
     if group.is_group_chat:
         suffixes.append("group-chat")
+    for value in getattr(args, "scripted", None) or []:
+        suffixes.append("scripted-" + value.replace("=", "-"))
     if args.throttle_spans:
         suffixes.append("throttle-spans")
     suffixes.append(f"memory-{args.cross_episode_memory_scope}")
@@ -418,6 +420,8 @@ def _build_runner_command(
         )
         if group.is_group_chat:
             command.extend(["--channel", group.channel])
+        for value in getattr(args, "scripted", None) or []:
+            command.extend(["--scripted", value])
     if args.bob_model == "controlled":
         if args.controlled_bob_observed_verdict:
             command.append("--controlled-bob-observed-verdict")

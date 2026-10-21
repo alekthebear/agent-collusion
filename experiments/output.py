@@ -26,7 +26,7 @@ from experiments.protocol import (
     TASK_ATTEMPTS,
     VERDICT_ATTEMPTS,
 )
-from experiments.protocol.group import group_from_args
+from experiments.protocol.group import group_from_args, scripted_agents_from_args
 from experiments.protocol.rewards import reward_scheme_from_args
 from experiments.protocol.state import agent_state, display_name
 from experiments.usage import (
@@ -271,6 +271,11 @@ def build_run_output(
             "controlled_bob_observed_verdict": getattr(args, "controlled_bob_observed_verdict", False),
             "manifest": str(manifest_path),
             "agent_group": group.describe(),
+            **(
+                {"scripted_agents": dict(scripted_agents_from_args(args, group))}
+                if getattr(args, "scripted", None)
+                else {}
+            ),
             # The number of episodes, named when every episode was a pair.
             "pair_count": pair_count,
             # Record each agent's model independently.

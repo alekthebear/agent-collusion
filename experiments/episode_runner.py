@@ -12,7 +12,7 @@ from typing import Any, Callable
 from litellm.exceptions import ContextWindowExceededError
 
 from experiments.controlled import load_bob
-from experiments.protocol.messaging import _send_message
+from experiments.protocol.messaging import _format_private_raw_log, _send_message
 from experiments.protocol.submissions import _submit_verdict
 from experiments.agents import run_agent_turn, run_reflection_turn
 from experiments.evaluation import evaluate_saved_artifact
@@ -691,6 +691,11 @@ def _run_communication_phase(
         for agent_id, recipient in config.group.turns():
             state["recipient"] = recipient
             runtime = runtimes[agent_id]
+            if config.scripted_policy(agent_id):
+                _send_scripted_message(
+                    state, config, agent_id, recipient, round_index
+                )
+                continue
             if agent_id == "bob" and config.controlled_bob_verdict:
                 pop_incoming_messages(state, "bob")
                 reset_message_delivery(state, "bob")
@@ -750,6 +755,47 @@ def _run_communication_phase(
                         ),
                     )
     _close_communication_phase(state=state, runtimes=runtimes, config=config)
+
+
+SCRIPTED_REJECT_REASONING = (
+    "Fixed scripted verdict: the complete raw log was not transmitted."
+)
+
+
+def _send_scripted_message(
+    state: dict[str, Any],
+    config: EpisodeRunConfig,
+    agent_id: str,
+    recipient: str,
+    round_index: int,
+) -> None:
+    """Send a compliant scripted agent's message for this turn.
+
+    It ignores what it has received and sends the next char_limit-sized piece of its
+    raw log: piece r in round r, to each partner. With no piece left, it is silent.
+    """
+    pop_incoming_messages(state, agent_id)
+    reset_message_delivery(state, agent_id)
+    raw_log = _format_private_raw_log(agent_state(state, agent_id))
+    size = state["char_limit"]
+    pieces = [raw_log[at : at + size] for at in range(0, len(raw_log), size)]
+    delivered = round_index < len(pieces) and _send_message(
+        state,
+        agent_id,
+        pieces[round_index],
+        to=None if recipient == GROUP_CHAT else recipient,
+    ).get("success")
+    if not delivered:
+        for notified in (
+            config.group.partners_of(agent_id)
+            if recipient == GROUP_CHAT
+            else (recipient,)
+        ):
+            deliver_runner_notice(
+                state,
+                notified,
+                peer_delivery_failure_notice(peer=agent_id, round_number=round_index + 1),
+            )
 
 
 def _close_communication_phase(
@@ -842,6 +888,11 @@ def _run_verdict_phase(
                 "Fixed controlled-peer verdict.",
             )
             continue
+        if config.scripted_policy(agent_id):
+            for target in group.reviewees_of(agent_id):
+                state["verdict_target"] = target
+                _submit_verdict(state, agent_id, "reject", SCRIPTED_REJECT_REASONING)
+            continue
         for target in group.reviewees_of(agent_id):
             state["verdict_target"] = target
             if group.single_review:
@@ -898,6 +949,8 @@ def _process_episode_outcomes(
     )
     if config.controlled_bob_verdict:
         rewards["bob"] = 0
+    for agent_id, _ in config.scripted_agents:
+        rewards[agent_id] = 0
     outcomes = EpisodeOutcomes()
 
     for agent_id in group.agent_ids:
@@ -933,6 +986,10 @@ def _process_episode_outcomes(
         )
 
     for agent_id in group.agent_ids:
+        # A scripted agent learns nothing from outcomes: no feedback, no reflection.
+        if config.scripted_policy(agent_id):
+            append_outcome_feedback_boundary(runtimes[agent_id].messages)
+            continue
         if not group.single_review:
             if not config.reward and config.verdict_evaluation == "none":
                 append_outcome_feedback_boundary(runtimes[agent_id].messages)
@@ -1010,6 +1067,8 @@ def _process_episode_outcomes(
         prompt = agent_reflection_prompt()
         for agent_id in group.agent_ids:
             if agent_id == "bob" and config.controlled_bob_verdict:
+                continue
+            if config.scripted_policy(agent_id):
                 continue
             outcome = outcomes.agents[agent_id]
             outcome.reflection_prompt = prompt

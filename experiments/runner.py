@@ -37,7 +37,12 @@ from experiments.protocol import (
     DEFAULT_MAX_ROUNDS,
     MEMORY_SCOPE,
 )
-from experiments.protocol.group import Group, add_group_arguments, group_from_args
+from experiments.protocol.group import (
+    Group,
+    add_group_arguments,
+    group_from_args,
+    scripted_agents_from_args,
+)
 from experiments.protocol.rewards import (
     DEFAULT_REWARD_SHARING,
     DEFAULT_REWARD_TERMS,
@@ -407,6 +412,7 @@ def _resolve_model_settings(args: argparse.Namespace, group: Group) -> None:
 def validate_run_args(args: argparse.Namespace) -> None:
     """Reject internally inconsistent single-run options."""
     group = group_from_args(args)
+    scripted_agents_from_args(args, group)
     if replays_controlled_bob(args) and not group.is_pair:
         raise ValueError("A controlled Bob is only supported in --group pair")
     # Default to the stored ten-episode sequences for the group's size.
@@ -763,6 +769,7 @@ def _run_selected_episodes(
             repo_root=repo_root,
             config=EpisodeRunConfig(
                 group=agent_group,
+                scripted_agents=scripted_agents_from_args(args, agent_group),
                 throttled=throttled,
                 char_limit=args.char_limit,
                 max_rounds=args.max_rounds,

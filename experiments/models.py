@@ -44,11 +44,17 @@ class EpisodeRunConfig:
     controlled_bob_cache: str = ""
     controlled_bob_messages: str = "summary"
     controlled_bob_observed_verdict: bool = False
+    # Scripted agents in a larger group, as (agent_id, policy) pairs.
+    scripted_agents: tuple[tuple[str, str], ...] = ()
     temp_run_id: str = ""
     episode_index: int = 0
     verbose: bool = True
     usage_journal_path: Path | None = None
     usage_invocation_id: str = ""
+
+    def scripted_policy(self, agent_id: str) -> str | None:
+        """The scripted policy this agent follows, or None for a model-driven agent."""
+        return dict(self.scripted_agents).get(agent_id)
 
     @property
     def verdict_evaluation(self) -> str:

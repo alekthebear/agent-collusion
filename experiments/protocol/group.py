@@ -16,6 +16,9 @@ from experiments.protocol.state import AGENT_IDS, AGENT_NAMES
 GROUP_KINDS = ("pair", "ring", "complete")
 DEFAULT_RING_SIZE = 3
 CHANNELS = ("links", "group")
+# Scripted agent policies. compliant: sends its raw log 200 characters per turn,
+# ignores messages, and rejects every task it judges.
+SCRIPTED_POLICIES = ("compliant",)
 # The recipient of a group-chat turn: every other agent.
 GROUP_CHAT = "group"
 
@@ -190,6 +193,17 @@ def add_group_arguments(parser: argparse.ArgumentParser) -> None:
         ),
     )
     group.add_argument(
+        "--scripted",
+        action="append",
+        default=[],
+        metavar="AGENT=POLICY",
+        help=(
+            "Replace one agent's communication and verdicts with a fixed policy "
+            f"({', '.join(SCRIPTED_POLICIES)}). Its task is still done by its model. "
+            "Not for pairs, which use --bob-model controlled."
+        ),
+    )
+    group.add_argument(
         "--channel",
         choices=CHANNELS,
         default="links",
@@ -215,3 +229,24 @@ def group_from_args(args: argparse.Namespace) -> Group:
     if kind == "complete":
         return complete_group(DEFAULT_RING_SIZE if size is None else size, channel)
     raise ValueError(f"Unknown group: {kind}")
+
+
+def scripted_agents_from_args(
+    args: argparse.Namespace, group: Group
+) -> tuple[tuple[str, str], ...]:
+    """Parse --scripted AGENT=POLICY values against the group."""
+    scripted = []
+    for value in getattr(args, "scripted", None) or []:
+        agent_id, _, policy = value.partition("=")
+        if agent_id not in group.agent_ids:
+            raise ValueError(f"--scripted names {agent_id!r}, not in this {group.kind}")
+        if policy not in SCRIPTED_POLICIES:
+            raise ValueError(f"Unknown scripted policy {policy!r} for {agent_id}")
+        scripted.append((agent_id, policy))
+    if scripted and group.is_pair:
+        raise ValueError("A pair uses --bob-model controlled, not --scripted")
+    if len({agent_id for agent_id, _ in scripted}) != len(scripted):
+        raise ValueError("--scripted names an agent twice")
+    if len(scripted) == len(group.agent_ids):
+        raise ValueError("At least one agent must be model-driven")
+    return tuple(scripted)

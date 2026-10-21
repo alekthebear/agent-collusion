@@ -1,7 +1,8 @@
 """Run 3-agent groups on a scripted fake model and check the protocol mechanics.
 
-Covers a ring (private links and a group chat) and a complete group, where every
-agent judges both others and a task is accepted only if both accept it.
+Covers a ring (private links and a group chat), a complete group, where every
+agent judges both others and a task is accepted only if both accept it, and a
+complete group with one scripted compliant agent.
 
 The fake saves a trivial answer, sends messages that name their sender and recipient,
 and submits fixed verdicts. In round 1 it first addresses the wrong partner, which
@@ -107,11 +108,19 @@ class ScriptedCompletion:
                 self.runaway_sent = True
                 calls = calls * 60
         else:
+            # Only this episode's task phase counts: earlier episodes saved answers too.
+            opening = max(
+                i
+                for i, m in enumerate(messages)
+                if m["role"] == "user"
+                and isinstance(m.get("content"), str)
+                and re.match(r"## Episode \d+: task phase", m["content"])
+            )
             saved = any(
                 m["role"] == "tool"
                 and m.get("name") == "save_final_answer"
                 and '"success": true' in m["content"]
-                for m in messages
+                for m in messages[opening:]
             )
             if saved:
                 calls = [_tool_call("get_log", {}, self.calls)]
@@ -121,10 +130,11 @@ class ScriptedCompletion:
                 )
                 answer_schema = schema["function"]["parameters"]["properties"]["answer"]
                 answer = "no_bug" if "enum" in answer_schema else "[]"
+                # Long reasoning makes the raw log long enough to need 5+ pieces.
                 calls = [
                     _tool_call(
                         "save_final_answer",
-                        {"reasoning": "scripted", "answer": answer},
+                        {"reasoning": "scripted " * 150, "answer": answer},
                         self.calls,
                     )
                 ]
@@ -137,11 +147,15 @@ class ScriptedCompletion:
 
 
 def run_ring(
-    reward_scope: str, channel: str = "links", kind: str = "ring"
+    reward_scope: str,
+    channel: str = "links",
+    kind: str = "ring",
+    scripted: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     from experiments import runner
 
     args = [
+        *(arg for agent_id in scripted for arg in ("--scripted", f"{agent_id}=compliant")),
         "--group", kind,
         "--channel", channel,
         "--model", "openrouter/google/gemini-3.1-flash-lite",
@@ -169,16 +183,34 @@ def run_ring(
 
 
 def check_ring(
-    run: dict[str, Any], reward_scope: str, channel: str = "links", kind: str = "ring"
+    run: dict[str, Any],
+    reward_scope: str,
+    channel: str = "links",
+    kind: str = "ring",
+    scripted: tuple[str, ...] = (),
 ) -> list[str]:
     from experiments.protocol.group import complete_group, ring_group
     from experiments.protocol.state import verdict_is_correct
 
     group = (complete_group if kind == "complete" else ring_group)(3, channel)
     problems: list[str] = []
-    expected_turns = [turn for _ in range(5) for turn in group.turns()]
     for episode in run["results"]:
         where = f"episode {episode['episode_index'] + 1}"
+        # A scripted agent is silent once its raw log runs out of 200-char pieces.
+        pieces = {
+            agent_id: -(-len(json.dumps(
+                episode["agents"][agent_id]["private_raw_log"],
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )) // 200)
+            for agent_id in scripted
+        }
+        expected_turns = [
+            turn
+            for round_index in range(5)
+            for turn in group.turns()
+            if turn[0] not in scripted or round_index < pieces[turn[0]]
+        ]
         sent = [(m["sender"], m["receiver"]) for m in episode["channel_transcript"]]
         if sent != expected_turns:
             problems.append(f"{where}: turn order {sent[:6]} ...")
@@ -190,16 +222,23 @@ def check_ring(
             and "goes to" in e["error"]
             and e["to"] != e["recipient"]
         ]
-        expected_refused = 0 if group.is_group_chat else len(group.turns())
+        expected_refused = 0 if group.is_group_chat else sum(
+            sender not in scripted for sender, _ in group.turns()
+        )
         if len(refused) != expected_refused:
             problems.append(
                 f"{where}: {len(refused)} wrong-recipient refusals, "
                 f"expected {expected_refused}"
             )
         for message in episode["channel_transcript"]:
+            if message["sender"] in scripted:
+                continue
             if message["content"].split(" ")[0] != f"{message['sender']}->{message['receiver']}":
                 problems.append(f"{where}: misrouted {message}")
         for agent_id, agent in episode["agents"].items():
+            if agent_id in scripted:
+                problems += check_scripted(episode, agent_id, agent, group, where)
+                continue
             reviewees, reviewers = group.reviewees_of(agent_id), group.reviewers_of(agent_id)
             recorded = (
                 (agent["reviewee_id"],) if group.single_review else tuple(agent["reviewee_ids"]),
@@ -289,13 +328,56 @@ def check_ring(
     return problems
 
 
+def check_scripted(
+    episode: dict[str, Any], agent_id: str, agent: dict[str, Any], group: Any, where: str
+) -> list[str]:
+    """A compliant scripted agent: log pieces in order, rejects, no model calls."""
+    problems = []
+    raw_log = json.dumps(agent["private_raw_log"], ensure_ascii=False, separators=(",", ":"))
+    for message in episode["channel_transcript"]:
+        if message["sender"] != agent_id:
+            continue
+        at = message["round"] * 200
+        if message["content"] != raw_log[at : at + 200]:
+            problems.append(f"{where}: {agent_id} round {message['round'] + 1} sent the wrong piece")
+    sent = [m for m in episode["channel_transcript"] if m["sender"] == agent_id]
+    pieces = -(-len(raw_log) // 200)
+    if len(sent) != min(5, pieces) * len(group.partners_of(agent_id)):
+        problems.append(f"{where}: {agent_id} sent {len(sent)} messages")
+    if pieces < 5:
+        problems.append(f"{where}: {agent_id}'s raw log is too short to test 5 pieces")
+    if set(agent["verdicts"].values()) != {"reject"}:
+        problems.append(f"{where}: {agent_id} verdicts {agent['verdicts']}")
+    if agent["reflection"] or agent["outcome_feedback"]:
+        problems.append(f"{where}: {agent_id} got feedback or reflected")
+    calls = [
+        u["phase"]
+        for u in episode["llm_usage"]
+        if u.get("actor") == agent_id and u.get("phase") != "task"
+    ]
+    if calls:
+        problems.append(f"{where}: {agent_id} made model calls in {sorted(set(calls))}")
+    return problems
+
+
 def main() -> None:
     failed = False
-    for kind, channel in (("ring", "links"), ("ring", "group"), ("complete", "links")):
-        for reward_scope in ("separate", "shared"):
-            label = f"{kind} {channel}, {reward_scope}"
+    setups = [
+        (kind, channel, reward_scope, ())
+        for kind, channel in (("ring", "links"), ("ring", "group"), ("complete", "links"))
+        for reward_scope in ("separate", "shared")
+    ] + [("complete", "links", "shared", ("carol",))]
+    for kind, channel, reward_scope, scripted in setups:
+        if True:
+            label = f"{kind} {channel}, {reward_scope}" + (
+                f", scripted {', '.join(scripted)}" if scripted else ""
+            )
             problems = check_ring(
-                run_ring(reward_scope, channel, kind), reward_scope, channel, kind
+                run_ring(reward_scope, channel, kind, scripted),
+                reward_scope,
+                channel,
+                kind,
+                scripted,
             )
             for problem in problems[:20]:
                 print(f"[{label}] {problem}")
