@@ -31,6 +31,7 @@ AGENTS = ("alice", "bob", "carol")
 # Fixed verdicts, so the reward checks see accepts and rejects.
 VERDICTS = {"alice": "accept", "bob": "reject", "carol": "accept"}
 _RECIPIENT = re.compile(r"send your message to (\w+) \(round (\d+) of")
+_GROUP_POST = re.compile(r"post your message to the group chat \(round (\d+) of")
 
 
 def _tool_call(name: str, arguments: dict[str, Any], index: int) -> dict[str, Any]:
@@ -68,17 +69,25 @@ class ScriptedCompletion:
             instruction = next(
                 m["content"] for m in reversed(messages) if m["role"] == "user"
             )
-            recipient, round_number = _RECIPIENT.search(instruction).groups()
-            recipient = recipient.lower()
-            retrying = messages[-1]["role"] == "tool" and "goes to" in messages[-1]["content"]
-            to = recipient
-            if round_number == "1" and not retrying:
-                # Address the other partner first; the runner must refuse it.
-                to = next(a for a in AGENTS if a not in (actor, recipient))
-            text = f"{actor}->{to} r{round_number}"
-            calls = [
-                _tool_call("send_message", {"to": to, "content": text}, self.calls)
-            ]
+            post = _GROUP_POST.search(instruction)
+            if post:
+                text = f"{actor}->group r{post.group(1)}"
+                calls = [_tool_call("send_message", {"content": text}, self.calls)]
+            else:
+                recipient, round_number = _RECIPIENT.search(instruction).groups()
+                recipient = recipient.lower()
+                retrying = (
+                    messages[-1]["role"] == "tool"
+                    and "goes to" in messages[-1]["content"]
+                )
+                to = recipient
+                if round_number == "1" and not retrying:
+                    # Address the other partner first; the runner must refuse it.
+                    to = next(a for a in AGENTS if a not in (actor, recipient))
+                text = f"{actor}->{to} r{round_number}"
+                calls = [
+                    _tool_call("send_message", {"to": to, "content": text}, self.calls)
+                ]
             if not self.failure_sent:
                 # A failed generation: repeated calls, flagged "error" by the provider.
                 self.failure_sent = True
@@ -124,11 +133,12 @@ class ScriptedCompletion:
         )
 
 
-def run_ring(reward_scope: str) -> dict[str, Any]:
+def run_ring(reward_scope: str, channel: str = "links") -> dict[str, Any]:
     from experiments import runner
 
     args = [
         "--group", "ring",
+        "--channel", channel,
         "--model", "openrouter/google/gemini-3.1-flash-lite",
         "--reasoning-effort", "low",
         "--reward-scope", reward_scope,
@@ -153,11 +163,11 @@ def run_ring(reward_scope: str) -> dict[str, Any]:
         return load_run(run_path)
 
 
-def check_ring(run: dict[str, Any], reward_scope: str) -> list[str]:
+def check_ring(run: dict[str, Any], reward_scope: str, channel: str = "links") -> list[str]:
     from experiments.protocol.group import ring_group
     from experiments.protocol.state import verdict_is_correct
 
-    group = ring_group(3)
+    group = ring_group(3, channel)
     problems: list[str] = []
     expected_turns = [turn for _ in range(5) for turn in group.turns()]
     for episode in run["results"]:
@@ -173,8 +183,12 @@ def check_ring(run: dict[str, Any], reward_scope: str) -> list[str]:
             and "goes to" in e["error"]
             and e["to"] != e["recipient"]
         ]
-        if len(refused) != len(group.turns()):
-            problems.append(f"{where}: {len(refused)} wrong-recipient refusals, expected 6")
+        expected_refused = 0 if group.is_group_chat else len(group.turns())
+        if len(refused) != expected_refused:
+            problems.append(
+                f"{where}: {len(refused)} wrong-recipient refusals, "
+                f"expected {expected_refused}"
+            )
         for message in episode["channel_transcript"]:
             if message["content"].split(" ")[0] != f"{message['sender']}->{message['receiver']}":
                 problems.append(f"{where}: misrouted {message}")
@@ -188,7 +202,13 @@ def check_ring(run: dict[str, Any], reward_scope: str) -> list[str]:
             # Every delivered message names its sender and recipient; only ones
             # addressed to this agent may reach it.
             for sender, recipient in group.turns():
-                if recipient != agent_id and f"{sender}->{recipient} r" in seen:
+                if group.is_group_chat:
+                    # Every other agent's posts reach this agent, its own never do.
+                    for round_number in range(1, 6):
+                        post = f"{sender}->group r{round_number}"
+                        if (post in seen) != (sender != agent_id):
+                            problems.append(f"{where}: {agent_id} visibility of {post}")
+                elif recipient != agent_id and f"{sender}->{recipient} r" in seen:
                     problems.append(f"{where}: {agent_id} saw {sender}->{recipient}")
             if f"[from={reviewee}]" not in seen or f"[from={reviewer}]" not in seen:
                 problems.append(f"{where}: {agent_id} missed a partner's messages")
@@ -239,12 +259,16 @@ def check_ring(run: dict[str, Any], reward_scope: str) -> list[str]:
 
 def main() -> None:
     failed = False
-    for reward_scope in ("separate", "shared"):
-        problems = check_ring(run_ring(reward_scope), reward_scope)
-        for problem in problems[:20]:
-            print(f"[{reward_scope}] {problem}")
-        failed = failed or bool(problems)
-        print(f"[{reward_scope}] {'FAILED' if problems else 'ring checks pass'}")
+    for channel in ("links", "group"):
+        for reward_scope in ("separate", "shared"):
+            label = f"{channel}, {reward_scope}"
+            problems = check_ring(
+                run_ring(reward_scope, channel), reward_scope, channel
+            )
+            for problem in problems[:20]:
+                print(f"[{label}] {problem}")
+            failed = failed or bool(problems)
+            print(f"[{label}] {'FAILED' if problems else 'ring checks pass'}")
     if failed:
         sys.exit(1)
 

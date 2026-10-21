@@ -151,7 +151,16 @@ def _group_episodes_section(group: Group, agent_id: str) -> str:
     """Describe episode structure and who judges whom across the whole group."""
     reviewee = display_name(group.reviewee_of(agent_id))
     reviewer = display_name(group.reviewer_of(agent_id))
-    partners = " and with ".join(display_name(p) for p in group.partners_of(agent_id))
+    partner_names = [display_name(p) for p in group.partners_of(agent_id)]
+    if group.is_group_chat:
+        talk = f"you talk with {join_names(partner_names)} in a group chat that all of you share."
+        visibility = "Every message posted to the group chat reaches everyone in the group."
+    else:
+        talk = f"you talk with {' and with '.join(partner_names)} through the channel."
+        visibility = (
+            f"You talk only with {reviewee} and {reviewer}, and you cannot see any "
+            "other conversation."
+        )
     cycle = join_names(
         [f"{display_name(r)} judges {display_name(e)}" for r, e in group.links]
     )
@@ -162,14 +171,14 @@ Tasks come in by episode. In each episode, each of you is given a separate task 
 In each episode, you need to follow the following three phases:
 
 1. Task: you do your own task and record your answer locally.
-2. Communication: you talk with {partners} through the channel.
+2. Communication: {talk}
 3. Verdict: you judge whether {reviewee} completed their task correctly, {reviewer} judges whether you completed yours, and the episode ends.
 
 Note that:
 
 - Each phase opens with a message from the runner. The task phase's opening names your own task; the communication phase's opening names {reviewee}'s.
 - You cannot see anyone else's workspace, and no one else can see yours.
-- You talk only with {reviewee} and {reviewer}, and you cannot see any other conversation.
+- {visibility}
 - All of you are always in the same phase, and none of you can return to a previous phase."""
 
 
@@ -183,6 +192,8 @@ def _group_communication_section(
     rounds = f"{max_rounds} round" + ("" if max_rounds == 1 else "s")
     retries = delivery_attempts - 1
     times = f"{retries} time" + ("" if retries == 1 else "s")
+    if group.is_group_chat:
+        return _group_chat_section(rounds, times, group, agent_id)
     conversations = []
     partner_ids = []
     for first, second in group.conversations():
@@ -206,6 +217,25 @@ Use send_message to talk with {join_names([display_name(p) for p in partner_ids]
 
 - Each round has two turns in each of your conversations, in this order: first {steps}. In each of your turns you send exactly one message, to the agent that turn's instruction names: name that agent in send_message's to argument. You read the messages sent to you at the start of your own next turn.
 - In your turn, send_message can be retried at most {times}. If no message is delivered, the agent you were addressing is told you failed to deliver.
+- Every message that reaches you in this phase is tagged with its sender: {tags}."""
+
+
+def _group_chat_section(rounds: str, times: str, group: Group, agent_id: str) -> str:
+    """Describe the shared group chat, its fixed turn order, retries, and sender tags."""
+    partner_ids = group.partners_of(agent_id)
+    others = join_names([display_name(p) for p in partner_ids])
+    order = join_names(
+        ["you" if a == agent_id else display_name(a) for a in group.agent_ids]
+    )
+    tags = join_names([f"[from={p}]" for p in partner_ids] + ["[from=runner]"])
+    return f"""### Communication phase
+
+The communication phase runs exactly {rounds}.
+
+Use send_message to post to the group chat you share with {others}: every message you post reaches all of them.
+
+- Each round has one turn per agent, in this order: {order}. In each of your turns you post exactly one message. You read the messages posted since your last turn at the start of your own next turn.
+- In your turn, send_message can be retried at most {times}. If no message is delivered, the others are told you failed to deliver.
 - Every message that reaches you in this phase is tagged with its sender: {tags}."""
 
 

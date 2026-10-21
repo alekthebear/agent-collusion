@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 from experiments.protocol.errors import error_string
+from experiments.protocol.group import GROUP_CHAT
 from experiments.protocol.state import _log_event, agent_state, display_name
 
 
@@ -16,8 +17,9 @@ def _send_message(
 ) -> dict[str, Any]:
     """Deliver one message to the turn's recipient.
 
-    In a larger group the sender names the recipient with ``to``, which must be the
-    agent the turn is for; a pair has one possible recipient and no ``to``.
+    With private links in a larger group, the sender names the recipient with
+    ``to``, which must be the agent the turn is for. A pair has one possible
+    recipient, and a group-chat post reaches every other agent; neither takes ``to``.
     """
     slot = agent_state(state, actor)
     group = state["group"]
@@ -25,6 +27,8 @@ def _send_message(
     if slot["delivered"]:
         if group.is_pair:
             error = f"{actor} already sent its one message for this round"
+        elif recipient == GROUP_CHAT:
+            error = "you already sent this turn's message. Each turn carries one message."
         else:
             error = (
                 f"you already sent this turn's message, to "
@@ -40,7 +44,7 @@ def _send_message(
             to=to,
         )
 
-    if not group.is_pair and to != recipient:
+    if not group.is_pair and recipient != GROUP_CHAT and to != recipient:
         named = display_name(to) if to in group.agent_ids else repr(to)
         return _reject_message(
             state=state,
@@ -80,7 +84,13 @@ def _send_message(
     }
     payload["message_type"] = message_type
     # Deliver immediately so the recipient can reply within the same round.
-    agent_state(state, recipient)["inbox"].append(payload)
+    recipients = (
+        [a for a in group.agent_ids if a != actor]
+        if recipient == GROUP_CHAT
+        else [recipient]
+    )
+    for agent_id in recipients:
+        agent_state(state, agent_id)["inbox"].append(dict(payload))
 
     result = {"success": True, "chars_sent": len(content)}
     event = {
@@ -91,7 +101,7 @@ def _send_message(
         "content": content,
     }
     event["message_type"] = message_type
-    if not group.is_pair:
+    if not group.is_pair and recipient != GROUP_CHAT:
         event["to"] = to
     _log_event(state, event)
     return result
@@ -117,7 +127,7 @@ def _reject_message(
         "content": content,
     }
     event["message_type"] = message_type
-    if not state["group"].is_pair:
+    if not state["group"].is_pair and state["recipient"] != GROUP_CHAT:
         # What the sender asked for, beside the turn's actual recipient.
         event["to"] = to
     _log_event(state, event)

@@ -824,9 +824,10 @@ def run_agent_turn(
         peer=state["group"].reviewee_of(actor),
         recipients=(
             ()
-            if state["group"].is_pair
+            if state["group"].is_pair or state["group"].is_group_chat
             else state["group"].partners_of(actor)
         ),
+        group_chat=state["group"].is_group_chat,
     )
     extra = get_litellm_completion_kwargs(
         model,
@@ -904,9 +905,10 @@ def run_reflection_turn(
         peer=state["group"].reviewee_of(actor),
         recipients=(
             ()
-            if state["group"].is_pair
+            if state["group"].is_pair or state["group"].is_group_chat
             else state["group"].partners_of(actor)
         ),
+        group_chat=state["group"].is_group_chat,
     )
     extra = get_litellm_completion_kwargs(model, reasoning_effort)
     response, choice_message, content, _ = _complete_with_retries(

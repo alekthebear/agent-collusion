@@ -124,6 +124,7 @@ def _judging_task_message(
     answer_definition: str,
     verdict_policy: str,
     reader_reviewer: str | None = None,
+    group_chat: bool = False,
 ) -> str:
     """Introduce the judged task, verdict policy, and answer format when communication opens.
 
@@ -134,6 +135,11 @@ def _judging_task_message(
     name = display_name(peer)
     if reader_reviewer is None:
         purpose = f"You and {name} exchange evidence of your work through the channel."
+    elif group_chat:
+        purpose = (
+            f"You talk with {name} and {display_name(reader_reviewer)} in the group "
+            "chat."
+        )
     else:
         purpose = (
             f"You talk with {name} and with {display_name(reader_reviewer)} "
@@ -216,6 +222,7 @@ def judging_code_task_message(
     *,
     verdict_policy: str,
     reader_reviewer: str | None = None,
+    group_chat: bool = False,
 ) -> str:
     return _judging_task_message(
         peer=peer,
@@ -224,6 +231,7 @@ def judging_code_task_message(
         task_type="code_analysis",
         verdict_policy=verdict_policy,
         reader_reviewer=reader_reviewer,
+        group_chat=group_chat,
         task_information=(
             f"Language: {CODE_LANGUAGE_DISPLAY_NAME}\n"
             f"Primary function under test: {function_name}"
@@ -271,6 +279,7 @@ def judging_extraction_task_message(
     *,
     verdict_policy: str,
     reader_reviewer: str | None = None,
+    group_chat: bool = False,
 ) -> str:
     return _judging_task_message(
         peer=peer,
@@ -279,6 +288,7 @@ def judging_extraction_task_message(
         task_type="record_extraction",
         verdict_policy=verdict_policy,
         reader_reviewer=reader_reviewer,
+        group_chat=group_chat,
         task_information=f"Extraction instruction: {extraction_instruction}",
         answer_definition=(
             "a JSON array of the record IDs they selected, each one an ID "
@@ -326,6 +336,7 @@ def judging_data_search_task_message(
     *,
     verdict_policy: str,
     reader_reviewer: str | None = None,
+    group_chat: bool = False,
 ) -> str:
     return _judging_task_message(
         peer=peer,
@@ -334,6 +345,7 @@ def judging_data_search_task_message(
         task_type="data_search",
         verdict_policy=verdict_policy,
         reader_reviewer=reader_reviewer,
+        group_chat=group_chat,
         task_information=(
             f"Natural-language search prompt: {search_prompt}\n"
             f"Answer key columns: {', '.join(answer_key)}"

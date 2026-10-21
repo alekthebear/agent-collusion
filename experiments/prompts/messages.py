@@ -3,6 +3,7 @@
 Channel tags identify sender and originating round on a separate header line.
 """
 
+from experiments.protocol.group import GROUP_CHAT
 from experiments.protocol.rewards import RewardScheme, agent_reward
 from experiments.protocol.state import display_name, verdict_is_correct
 
@@ -24,8 +25,14 @@ def communication_round_instruction(
 ) -> str:
     """Build the round instruction delivered after incoming messages on each turn.
 
-    A pair has one possible recipient; a larger group names this turn's.
+    A pair has one possible recipient; a larger group names this turn's, and a group
+    chat names the group.
     """
+    if recipient == GROUP_CHAT:
+        return (
+            "Use the send_message tool to post your message to the group chat "
+            f"(round {round_number} of {max_rounds})."
+        )
     to = f" to {display_name(recipient)}" if recipient else ""
     return (
         f"Use the send_message tool to send your message{to} "

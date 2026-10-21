@@ -61,6 +61,7 @@ from experiments.protocol import (
     TASK_ATTEMPTS,
     VERDICT_ATTEMPTS,
 )
+from experiments.protocol.group import GROUP_CHAT
 from experiments.protocol.rewards import episode_rewards
 from experiments.protocol.state import (
     agent_state,
@@ -373,6 +374,7 @@ def _prepare_agent_task(
     reader_reviewer = (
         None if group.is_pair else group.reviewer_of(group.reviewer_of(agent_id))
     )
+    group_chat = group.is_group_chat
     # Use a shared, 1-based episode number in agent-facing prompts.
     episode_number = config.episode_index + 1
     task_id = str(task["task_id"])
@@ -414,6 +416,7 @@ def _prepare_agent_task(
                 function_name=function_name,
                 verdict_policy=config.verdict_policy,
                 reader_reviewer=reader_reviewer,
+                group_chat=group_chat,
             ),
             verdict_prompt=verdict_prompt,
         )
@@ -439,6 +442,7 @@ def _prepare_agent_task(
                 extraction_instruction=instruction,
                 verdict_policy=config.verdict_policy,
                 reader_reviewer=reader_reviewer,
+                group_chat=group_chat,
             ),
             verdict_prompt=verdict_prompt,
         )
@@ -468,6 +472,7 @@ def _prepare_agent_task(
                 answer_key=answer_key,
                 verdict_policy=config.verdict_policy,
                 reader_reviewer=reader_reviewer,
+                group_chat=group_chat,
             ),
             verdict_prompt=verdict_prompt,
         )
@@ -717,16 +722,21 @@ def _run_communication_phase(
                 usage_records=usage_records,
                 config=config,
             )
-            # Queue a silence notice for the recipient's next turn.
+            # Queue a silence notice for each recipient's next turn.
             if not delivered:
-                deliver_runner_notice(
-                    state,
-                    recipient,
-                    peer_delivery_failure_notice(
-                        peer=agent_id,
-                        round_number=round_index + 1,
-                    ),
-                )
+                for notified in (
+                    config.group.partners_of(agent_id)
+                    if recipient == GROUP_CHAT
+                    else (recipient,)
+                ):
+                    deliver_runner_notice(
+                        state,
+                        notified,
+                        peer_delivery_failure_notice(
+                            peer=agent_id,
+                            round_number=round_index + 1,
+                        ),
+                    )
     _close_communication_phase(state=state, runtimes=runtimes, config=config)
 
 
