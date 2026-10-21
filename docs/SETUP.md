@@ -12,11 +12,11 @@ below wherever the setting applies.
 
 | Tag | Knob | Values | Varied in |
 |---|---|---|---|
-| **[K1]** | Group structure | pair (A↔B), ring of 3 (A→B→C→A) | E0/E0b vs E1/E2 |
+| **[K1]** | Group structure | pair (A↔B), ring of 3 (A→B→C→A), complete group of 3 (everyone judges everyone; `--group complete`) | E0/E0b vs E1/E2; E4 |
 | **[K2]** | Reward scope | shared (also paid for your own verdict), separate (paid only for the verdict on you) | E0 vs E0b, E1 vs E2 |
-| **[K3]** | Channel | messages only along review links, group chat | E3 |
-| **[K4]** | Reviewers per agent | 1, or several with a 2-of-3 acceptance rule | E4 |
-| **[K5]** | Scripted agents | none, one compliant holdout, one rule-breaker | E4, E5 |
+| **[K3]** | Channel | messages only along review links, group chat (`--channel group`) | E3 |
+| **[K4]** | Reviewers per agent | 1, or 2 where a task is accepted only if both accept | E4 |
+| **[K5]** | Scripted agents | none, one compliant holdout (`--scripted carol=compliant`), one rule-breaker (not built yet) | E4, E5 |
 | **[K6]** | Model | `gemini-3.1-flash-lite` for now; one cheap model from another provider later | later |
 | **[F1]** | What the group structure agents are told | the full ring, not just their own links | — |
 | **[F2]** | Feedback visibility | only the verdicts that count toward the agent's reward | — |
