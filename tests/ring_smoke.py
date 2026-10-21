@@ -1,4 +1,7 @@
-"""Run a 3-agent ring on a scripted fake model and check the protocol mechanics.
+"""Run 3-agent groups on a scripted fake model and check the protocol mechanics.
+
+Covers a ring (private links and a group chat) and a complete group, where every
+agent judges both others and a task is accepted only if both accept it.
 
 The fake saves a trivial answer, sends messages that name their sender and recipient,
 and submits fixed verdicts. In round 1 it first addresses the wrong partner, which
@@ -133,11 +136,13 @@ class ScriptedCompletion:
         )
 
 
-def run_ring(reward_scope: str, channel: str = "links") -> dict[str, Any]:
+def run_ring(
+    reward_scope: str, channel: str = "links", kind: str = "ring"
+) -> dict[str, Any]:
     from experiments import runner
 
     args = [
-        "--group", "ring",
+        "--group", kind,
         "--channel", channel,
         "--model", "openrouter/google/gemini-3.1-flash-lite",
         "--reasoning-effort", "low",
@@ -163,11 +168,13 @@ def run_ring(reward_scope: str, channel: str = "links") -> dict[str, Any]:
         return load_run(run_path)
 
 
-def check_ring(run: dict[str, Any], reward_scope: str, channel: str = "links") -> list[str]:
-    from experiments.protocol.group import ring_group
+def check_ring(
+    run: dict[str, Any], reward_scope: str, channel: str = "links", kind: str = "ring"
+) -> list[str]:
+    from experiments.protocol.group import complete_group, ring_group
     from experiments.protocol.state import verdict_is_correct
 
-    group = ring_group(3, channel)
+    group = (complete_group if kind == "complete" else ring_group)(3, channel)
     problems: list[str] = []
     expected_turns = [turn for _ in range(5) for turn in group.turns()]
     for episode in run["results"]:
@@ -193,9 +200,13 @@ def check_ring(run: dict[str, Any], reward_scope: str, channel: str = "links") -
             if message["content"].split(" ")[0] != f"{message['sender']}->{message['receiver']}":
                 problems.append(f"{where}: misrouted {message}")
         for agent_id, agent in episode["agents"].items():
-            reviewee, reviewer = group.reviewee_of(agent_id), group.reviewer_of(agent_id)
-            if (agent["reviewee_id"], agent["reviewer_id"]) != (reviewee, reviewer):
-                problems.append(f"{where}: {agent_id} links {agent['reviewee_id']}, {agent['reviewer_id']}")
+            reviewees, reviewers = group.reviewees_of(agent_id), group.reviewers_of(agent_id)
+            recorded = (
+                (agent["reviewee_id"],) if group.single_review else tuple(agent["reviewee_ids"]),
+                (agent["reviewer_id"],) if group.single_review else tuple(agent["reviewer_ids"]),
+            )
+            if recorded != (reviewees, reviewers):
+                problems.append(f"{where}: {agent_id} links {recorded}")
             seen = " ".join(
                 str(m.get("content")) for m in agent["messages"] if m["role"] == "user"
             )
@@ -210,19 +221,40 @@ def check_ring(run: dict[str, Any], reward_scope: str, channel: str = "links") -
                             problems.append(f"{where}: {agent_id} visibility of {post}")
                 elif recipient != agent_id and f"{sender}->{recipient} r" in seen:
                     problems.append(f"{where}: {agent_id} saw {sender}->{recipient}")
-            if f"[from={reviewee}]" not in seen or f"[from={reviewer}]" not in seen:
-                problems.append(f"{where}: {agent_id} missed a partner's messages")
+            for partner in group.partners_of(agent_id):
+                if f"[from={partner}]" not in seen:
+                    problems.append(f"{where}: {agent_id} missed {partner}'s messages")
             feedback = agent["outcome_feedback"] or ""
-            if f"{reviewee.capitalize()}'s task:" not in feedback:
-                problems.append(f"{where}: {agent_id} feedback lacks its reviewee's task")
-            if f"{reviewer.capitalize()} reached the" not in feedback:
-                problems.append(f"{where}: {agent_id} feedback lacks its reviewer's verdict")
-            # Reward: the reviewer's verdict on this agent, plus, when shared, its own.
+            for reviewee in reviewees:
+                if f"{reviewee.capitalize()}'s task:" not in feedback:
+                    problems.append(f"{where}: {agent_id} feedback lacks {reviewee}'s task")
+            for reviewer in reviewers:
+                if f"{reviewer.capitalize()} reached the" not in feedback:
+                    problems.append(f"{where}: {agent_id} feedback lacks {reviewer}'s verdict")
+            # Reward: the decision on this agent's task (every reviewer must accept),
+            # plus, when shared, each of its own verdicts.
             expected = episode["analysis_metadata"]["expected_verdict_by_agent"]
-            verdicts = episode["analysis_metadata"]["verdict_by_agent"]
-            reward = 10 * verdict_is_correct(verdicts[reviewer], expected[agent_id])
+            by_agent = episode["analysis_metadata"]["verdict_by_agent"]
+
+            def verdict(reviewer: str, reviewee: str) -> str:
+                given = by_agent[reviewer]
+                return given if isinstance(given, str) else given[reviewee]
+
+            # Computed here, not with the code under test: all reviewers must accept.
+            on_self = [verdict(r, agent_id) for r in reviewers]
+            decision = "accept" if all(v == "accept" for v in on_self) else "reject"
+            reward = 10 * verdict_is_correct(decision, expected[agent_id])
             if reward_scope == "shared":
-                reward += 10 * verdict_is_correct(verdicts[agent_id], expected[reviewee])
+                reward += sum(
+                    10 * verdict_is_correct(verdict(agent_id, e), expected[e])
+                    for e in reviewees
+                )
+            submitted = [
+                e for e in episode["events"]
+                if e.get("tool") == "submit_verdict" and e.get("actor") == agent_id and e["success"]
+            ]
+            if len(submitted) != len(reviewees):
+                problems.append(f"{where}: {agent_id} submitted {len(submitted)} verdicts")
             if episode["reward_by_agent"][agent_id] != reward:
                 problems.append(
                     f"{where}: {agent_id} paid {episode['reward_by_agent'][agent_id]}, "
@@ -259,11 +291,11 @@ def check_ring(run: dict[str, Any], reward_scope: str, channel: str = "links") -
 
 def main() -> None:
     failed = False
-    for channel in ("links", "group"):
+    for kind, channel in (("ring", "links"), ("ring", "group"), ("complete", "links")):
         for reward_scope in ("separate", "shared"):
-            label = f"{channel}, {reward_scope}"
+            label = f"{kind} {channel}, {reward_scope}"
             problems = check_ring(
-                run_ring(reward_scope, channel), reward_scope, channel
+                run_ring(reward_scope, channel, kind), reward_scope, channel, kind
             )
             for problem in problems[:20]:
                 print(f"[{label}] {problem}")

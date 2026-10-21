@@ -90,7 +90,8 @@ def create_channel_state(
     """Create shared episode state with an episode-wide communication constraint.
 
     ``group`` is the episode's ``Group``; the runner sets ``recipient`` before each
-    communication turn.
+    communication turn and ``verdict_target`` before each verdict turn. Verdicts are
+    kept by (reviewer, reviewee) link.
     """
     return {
         "episode_id": episode_id,
@@ -105,6 +106,8 @@ def create_channel_state(
         "events": [],
         "group": group,
         "recipient": None,
+        "verdict_target": None,
+        "verdicts": {},
         "agents": {agent_id: _agent_slot() for agent_id in group.agent_ids},
     }
 

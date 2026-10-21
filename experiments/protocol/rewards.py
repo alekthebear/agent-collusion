@@ -2,9 +2,10 @@
 
 ``acceptance`` rewards acceptance, and ``verdict-accuracy`` rewards any correct
 verdict. Under ``separate``, each agent
-receives the term for the verdict on its own task, from its reviewer. Under
-``shared``, it also receives the term for its own verdict on its reviewee; in a pair
-that is the sum of both terms.
+receives the term for the decision on its own task: accepted only if all its
+reviewers accept it, so with one reviewer it is that reviewer's verdict. Under
+``shared``, it also receives the term for each of its own verdicts; in a pair that
+is the sum of both terms.
 """
 
 import argparse
@@ -16,6 +17,8 @@ from experiments.protocol.state import (
     VERDICT_REWARD,
     verdict_is_correct,
 )
+
+REJECT_VERDICT = "reject"
 
 # Reward terms ordered by increasing dependence on ground truth.
 REWARD_TERMS = ("acceptance", "verdict-accuracy")
@@ -93,30 +96,45 @@ def agent_reward(
     )
 
 
+def group_decision(verdicts: list[str]) -> str:
+    """A task is accepted only if every one of its reviewers accepts it."""
+    return ACCEPT_VERDICT if all(v == ACCEPT_VERDICT for v in verdicts) else REJECT_VERDICT
+
+
 def episode_rewards(
     *,
     scheme: RewardScheme,
     group: Group,
-    verdict_by_agent: dict[str, str],
+    verdict_by_link: dict[tuple[str, str], str],
     expected_verdict_by_agent: dict[str, str],
 ) -> dict[str, int]:
     """Compute every agent's reward, keyed by agent ID.
 
-    ``verdict_by_agent[x]`` judges x's reviewee; ``expected_verdict_by_agent[x]``
-    describes x's own task. Match each verdict with the judged task's ground truth.
+    ``verdict_by_link[(r, e)]`` is r's verdict on e; ``expected_verdict_by_agent[x]``
+    describes x's own task. Match each verdict, and each task's decision, with the
+    judged task's ground truth.
     """
-    return {
-        agent_id: agent_reward(
-            scheme=scheme,
-            verdict_on_reviewee=verdict_by_agent[agent_id],
-            reviewee_expected_verdict=expected_verdict_by_agent[
-                group.reviewee_of(agent_id)
-            ],
-            reviewer_verdict_on_self=verdict_by_agent[group.reviewer_of(agent_id)],
-            own_expected_verdict=expected_verdict_by_agent[agent_id],
+    rewards = {}
+    for agent_id in group.agent_ids:
+        decision = group_decision(
+            [verdict_by_link[(r, agent_id)] for r in group.reviewers_of(agent_id)]
         )
-        for agent_id in group.agent_ids
-    }
+        reward = verdict_payoff(
+            terms=scheme.terms,
+            verdict=decision,
+            expected_verdict=expected_verdict_by_agent[agent_id],
+        )
+        if scheme.pays_for_own_verdict:
+            reward += sum(
+                verdict_payoff(
+                    terms=scheme.terms,
+                    verdict=verdict_by_link[(agent_id, e)],
+                    expected_verdict=expected_verdict_by_agent[e],
+                )
+                for e in group.reviewees_of(agent_id)
+            )
+        rewards[agent_id] = reward
+    return rewards
 
 
 def reward_scheme_from_args(args: argparse.Namespace) -> RewardScheme:

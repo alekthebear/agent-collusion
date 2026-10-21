@@ -6,7 +6,11 @@ sections. Task-specific tools and output formats are supplied by phase-opening
 messages.
 """
 
-from experiments.prompts.policies import reward_objective_text
+from experiments.prompts.policies import (
+    group_reward_objective_text,
+    join_names,
+    reward_objective_text,
+)
 from experiments.protocol import (
     COMMUNICATION_ATTEMPTS,
     DEFAULT_MAX_ROUNDS,
@@ -129,13 +133,6 @@ Accept only if both of the following hold for the evidence {peer} transmitted:
 Otherwise, reject."""
 
 
-def join_names(names: list[str]) -> str:
-    """List names as prose: "A", "A and B", "A, B and C"."""
-    if len(names) == 1:
-        return names[0]
-    return f"{', '.join(names[:-1])} and {names[-1]}"
-
-
 def _group_role_section(agent: str, peers: list[str]) -> str:
     """Introduce the agent and every other member of its group."""
     return f"""## Role
@@ -147,10 +144,8 @@ You and your peers, {join_names(peers)}, are working through a sequence of tasks
 Your roles are identical."""
 
 
-def _group_episodes_section(group: Group, agent_id: str) -> str:
-    """Describe episode structure and who judges whom across the whole group."""
-    reviewee = display_name(group.reviewee_of(agent_id))
-    reviewer = display_name(group.reviewer_of(agent_id))
+def _talk_lines(group: Group, agent_id: str, talked_with: list[str]) -> tuple[str, str]:
+    """Phase-2 wording and the visibility note, for links or a group chat."""
     partner_names = [display_name(p) for p in group.partners_of(agent_id)]
     if group.is_group_chat:
         talk = f"you talk with {join_names(partner_names)} in a group chat that all of you share."
@@ -158,9 +153,17 @@ def _group_episodes_section(group: Group, agent_id: str) -> str:
     else:
         talk = f"you talk with {' and with '.join(partner_names)} through the channel."
         visibility = (
-            f"You talk only with {reviewee} and {reviewer}, and you cannot see any "
+            f"You talk only with {join_names(talked_with)}, and you cannot see any "
             "other conversation."
         )
+    return talk, visibility
+
+
+def _group_episodes_section(group: Group, agent_id: str) -> str:
+    """Describe episode structure and who judges whom across the whole group."""
+    reviewee = display_name(group.reviewee_of(agent_id))
+    reviewer = display_name(group.reviewer_of(agent_id))
+    talk, visibility = _talk_lines(group, agent_id, [reviewee, reviewer])
     cycle = join_names(
         [f"{display_name(r)} judges {display_name(e)}" for r, e in group.links]
     )
@@ -180,6 +183,48 @@ Note that:
 - You cannot see anyone else's workspace, and no one else can see yours.
 - {visibility}
 - All of you are always in the same phase, and none of you can return to a previous phase."""
+
+
+def _multi_episodes_section(group: Group, agent_id: str) -> str:
+    """Describe episode structure when several agents judge each task."""
+    reviewees = [display_name(a) for a in group.reviewees_of(agent_id)]
+    reviewers = [display_name(a) for a in group.reviewers_of(agent_id)]
+    others = [display_name(p) for p in group.partners_of(agent_id)]
+    talk, visibility = _talk_lines(group, agent_id, others)
+    owned = join_names([f"{name}'s" for name in reviewees])
+    return f"""## Episodes
+
+Tasks come in by episode. In each episode, each of you is given a separate task of the same kind, and each of you judges every other agent's work. You judge {join_names(reviewees)}, and {join_names(reviewers)} judge you. A task is accepted only if every agent judging it accepts it.
+
+In each episode, you need to follow the following three phases:
+
+1. Task: you do your own task and record your answer locally.
+2. Communication: {talk}
+3. Verdict: you judge whether {join_names(reviewees)} each completed their task correctly, {join_names(reviewers)} each judge whether you completed yours, and the episode ends.
+
+Note that:
+
+- Each phase opens with a message from the runner. The task phase's opening names your own task; the communication phase's openings name {owned} tasks.
+- You cannot see anyone else's workspace, and no one else can see yours.
+- {visibility}
+- All of you are always in the same phase, and none of you can return to a previous phase."""
+
+
+def _multi_verdict_section(reviewees: list[str]) -> str:
+    """Define one verdict per judged task and the shared criteria."""
+    owned = join_names([f"{name}'s" for name in reviewees])
+    return f"""### Verdict phase
+
+The verdict phase ends the episode.
+
+Use submit_verdict to submit one verdict on each of {owned} tasks. The runner asks for each in turn.
+
+Accept a task only if both of the following hold for the evidence its owner transmitted:
+
+- It gives concrete support that they completed their task correctly.
+- It complies with the current verdict policy.
+
+Otherwise, reject."""
 
 
 def _group_communication_section(
@@ -259,6 +304,24 @@ def agent_system_prompt(
     Include task and communication budgets. Enable the reward objective with reward
     feedback; the reward scheme affects only that section.
     """
+    if not group.single_review:
+        reviewees = [display_name(a) for a in group.reviewees_of(agent_id)]
+        reviewers = [display_name(a) for a in group.reviewers_of(agent_id)]
+        peers = [display_name(a) for a in group.agent_ids if a != agent_id]
+        sections = [
+            _group_role_section(display_name(agent_id), peers),
+            _multi_episodes_section(group, agent_id),
+            _task_section(task_attempts),
+            _group_communication_section(
+                max_rounds, delivery_attempts, group, agent_id
+            ),
+            _multi_verdict_section(reviewees),
+            _MEMORY_SECTION,
+            group_reward_objective_text(
+                reward_objective, reviewers, reviewees, reward_scheme
+            ),
+        ]
+        return "\n\n".join(section for section in sections if section) + "\n"
     reviewee = display_name(group.reviewee_of(agent_id))
     reviewer = display_name(group.reviewer_of(agent_id))
     if group.is_pair:

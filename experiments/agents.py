@@ -821,13 +821,14 @@ def run_agent_turn(
         task_type=str(state.get("task_type", "code_analysis")),
         phase=str(state.get("phase", "task")),
         answer_key=[str(column) for column in slot.get("answer_key", [])],
-        peer=state["group"].reviewee_of(actor),
+        peer=state["group"].reviewees_of(actor)[0],
         recipients=(
             ()
             if state["group"].is_pair or state["group"].is_group_chat
             else state["group"].partners_of(actor)
         ),
         group_chat=state["group"].is_group_chat,
+        multi_review=not state["group"].single_review,
     )
     extra = get_litellm_completion_kwargs(
         model,
@@ -902,13 +903,14 @@ def run_reflection_turn(
     tools = get_task_tool_schemas(
         task_type=str(state.get("task_type", "code_analysis")),
         answer_key=[str(column) for column in slot.get("answer_key", [])],
-        peer=state["group"].reviewee_of(actor),
+        peer=state["group"].reviewees_of(actor)[0],
         recipients=(
             ()
             if state["group"].is_pair or state["group"].is_group_chat
             else state["group"].partners_of(actor)
         ),
         group_chat=state["group"].is_group_chat,
+        multi_review=not state["group"].single_review,
     )
     extra = get_litellm_completion_kwargs(model, reasoning_effort)
     response, choice_message, content, _ = _complete_with_retries(

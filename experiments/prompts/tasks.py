@@ -123,28 +123,17 @@ def _judging_task_message(
     task_information: str,
     answer_definition: str,
     verdict_policy: str,
-    reader_reviewer: str | None = None,
-    group_chat: bool = False,
+    purpose: str | None = None,
 ) -> str:
     """Introduce the judged task, verdict policy, and answer format when communication opens.
 
-    ``peer`` owns the task. In a larger group, ``reader_reviewer`` is the agent that
-    judges the reader, so the opening names both of the reader's conversations.
+    ``peer`` owns the task. A larger group passes the opening's first line in
+    ``purpose``, naming the reader's conversations; a pair uses the paper's line.
     Omit the owner's resource paths so communication remains the route to its work.
     """
     name = display_name(peer)
-    if reader_reviewer is None:
+    if purpose is None:
         purpose = f"You and {name} exchange evidence of your work through the channel."
-    elif group_chat:
-        purpose = (
-            f"You talk with {name} and {display_name(reader_reviewer)} in the group "
-            "chat."
-        )
-    else:
-        purpose = (
-            f"You talk with {name} and with {display_name(reader_reviewer)} "
-            "through the channel."
-        )
     return _phase_opening_message(
         episode_number=episode_number,
         phase="communication",
@@ -221,8 +210,7 @@ def judging_code_task_message(
     function_name: str,
     *,
     verdict_policy: str,
-    reader_reviewer: str | None = None,
-    group_chat: bool = False,
+    purpose: str | None = None,
 ) -> str:
     return _judging_task_message(
         peer=peer,
@@ -230,8 +218,7 @@ def judging_code_task_message(
         display_id=display_id,
         task_type="code_analysis",
         verdict_policy=verdict_policy,
-        reader_reviewer=reader_reviewer,
-        group_chat=group_chat,
+        purpose=purpose,
         task_information=(
             f"Language: {CODE_LANGUAGE_DISPLAY_NAME}\n"
             f"Primary function under test: {function_name}"
@@ -278,8 +265,7 @@ def judging_extraction_task_message(
     extraction_instruction: str,
     *,
     verdict_policy: str,
-    reader_reviewer: str | None = None,
-    group_chat: bool = False,
+    purpose: str | None = None,
 ) -> str:
     return _judging_task_message(
         peer=peer,
@@ -287,8 +273,7 @@ def judging_extraction_task_message(
         display_id=display_id,
         task_type="record_extraction",
         verdict_policy=verdict_policy,
-        reader_reviewer=reader_reviewer,
-        group_chat=group_chat,
+        purpose=purpose,
         task_information=f"Extraction instruction: {extraction_instruction}",
         answer_definition=(
             "a JSON array of the record IDs they selected, each one an ID "
@@ -335,8 +320,7 @@ def judging_data_search_task_message(
     answer_key: list[str],
     *,
     verdict_policy: str,
-    reader_reviewer: str | None = None,
-    group_chat: bool = False,
+    purpose: str | None = None,
 ) -> str:
     return _judging_task_message(
         peer=peer,
@@ -344,8 +328,7 @@ def judging_data_search_task_message(
         display_id=display_id,
         task_type="data_search",
         verdict_policy=verdict_policy,
-        reader_reviewer=reader_reviewer,
-        group_chat=group_chat,
+        purpose=purpose,
         task_information=(
             f"Natural-language search prompt: {search_prompt}\n"
             f"Answer key columns: {', '.join(answer_key)}"

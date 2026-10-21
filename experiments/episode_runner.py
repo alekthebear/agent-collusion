@@ -41,6 +41,7 @@ from experiments.prompts.messages import (
     AUTO_FORCED_REJECT_REASONING,
     agent_outcome_feedback_message,
     agent_reflection_prompt,
+    group_outcome_feedback_message,
     communication_round_instruction,
     communication_round_tag,
     incoming_channel_message,
@@ -61,10 +62,11 @@ from experiments.protocol import (
     TASK_ATTEMPTS,
     VERDICT_ATTEMPTS,
 )
-from experiments.protocol.group import GROUP_CHAT
-from experiments.protocol.rewards import episode_rewards
+from experiments.protocol.group import GROUP_CHAT, Group
+from experiments.protocol.rewards import episode_rewards, group_decision
 from experiments.protocol.state import (
     agent_state,
+    display_name,
     create_channel_state,
     deliver_runner_notice,
     pop_incoming_messages,
@@ -148,8 +150,8 @@ def _spent_an_attempt(turn_result: dict[str, Any], phase: str) -> bool:
     return True
 
 
-def _has_verdict(state: dict[str, Any], agent_id: str) -> bool:
-    return agent_state(state, agent_id)["verdict_submission"] is not None
+def _has_verdict(state: dict[str, Any], agent_id: str, target: str) -> bool:
+    return (agent_id, target) in state["verdicts"]
 
 
 def log_progress(msg: str, verbose: bool) -> None:
@@ -354,6 +356,25 @@ def _temporary_task_dir_name(
     return f"{prefix}_ep{episode_index:03d}_{digest}"
 
 
+def _judging_purpose(group: Group, owner: str) -> str | None:
+    """The first line of the communication opening that presents ``owner``'s task.
+
+    A pair keeps the paper's line. In a ring, the one reader is the owner's reviewer,
+    and the line names both of that reader's partners. When several agents read the
+    same opening, it names no one.
+    """
+    if group.is_pair:
+        return None
+    if not group.single_review:
+        where = "in the group chat" if group.is_group_chat else "through the channel"
+        return f"You talk with the other agents {where}."
+    name = display_name(owner)
+    reader_reviewer = display_name(group.reviewer_of(group.reviewer_of(owner)))
+    if group.is_group_chat:
+        return f"You talk with {name} and {reader_reviewer} in the group chat."
+    return f"You talk with {name} and with {reader_reviewer} through the channel."
+
+
 def _prepare_agent_task(
     *,
     agent_id: str,
@@ -370,11 +391,7 @@ def _prepare_agent_task(
     agent that judges that reader.
     """
     slot = agent_state(state, agent_id)
-    group = config.group
-    reader_reviewer = (
-        None if group.is_pair else group.reviewer_of(group.reviewer_of(agent_id))
-    )
-    group_chat = group.is_group_chat
+    purpose = _judging_purpose(config.group, agent_id)
     # Use a shared, 1-based episode number in agent-facing prompts.
     episode_number = config.episode_index + 1
     task_id = str(task["task_id"])
@@ -415,8 +432,7 @@ def _prepare_agent_task(
                 display_id=display_id,
                 function_name=function_name,
                 verdict_policy=config.verdict_policy,
-                reader_reviewer=reader_reviewer,
-                group_chat=group_chat,
+                purpose=purpose,
             ),
             verdict_prompt=verdict_prompt,
         )
@@ -441,8 +457,7 @@ def _prepare_agent_task(
                 display_id=display_id,
                 extraction_instruction=instruction,
                 verdict_policy=config.verdict_policy,
-                reader_reviewer=reader_reviewer,
-                group_chat=group_chat,
+                purpose=purpose,
             ),
             verdict_prompt=verdict_prompt,
         )
@@ -471,8 +486,7 @@ def _prepare_agent_task(
                 search_prompt=search_prompt,
                 answer_key=answer_key,
                 verdict_policy=config.verdict_policy,
-                reader_reviewer=reader_reviewer,
-                group_chat=group_chat,
+                purpose=purpose,
             ),
             verdict_prompt=verdict_prompt,
         )
@@ -633,17 +647,15 @@ def _open_communication_phase(
     prepared: PreparedEpisode,
     runtimes: dict[str, AgentRuntime],
 ) -> None:
-    """Give each agent its reviewee's task and the verdict policy before round 1."""
+    """Give each agent its reviewees' tasks and the verdict policy before round 1."""
     group = prepared.state["group"]
     for agent_id, runtime in runtimes.items():
         # Place the memory boundary before the judged brief so reduced memory retains it.
         runtime.messages.append(communication_phase_start_message())
-        runtime.messages.append(
-            {
-                "role": "user",
-                "content": prepared.agents[group.reviewee_of(agent_id)].judging_prompt,
-            }
-        )
+        for reviewee in group.reviewees_of(agent_id):
+            runtime.messages.append(
+                {"role": "user", "content": prepared.agents[reviewee].judging_prompt}
+            )
 
 
 def _run_communication_phase(
@@ -755,16 +767,17 @@ def _close_communication_phase(
         )
 
 
-def _record_forced_verdict(state: dict[str, Any], agent_id: str) -> None:
+def _record_forced_verdict(state: dict[str, Any], agent_id: str, target: str) -> None:
     """Assign reject to an agent that exhausted its attempts without a verdict."""
-    slot = agent_state(state, agent_id)
-    target = state["group"].reviewee_of(agent_id)
-    slot["verdict_submission"] = {
+    submission = {
         "verdict": "reject",
         "reasoning": AUTO_FORCED_REJECT_REASONING,
         "target": target,
         "forced": True,
     }
+    state["verdicts"][(agent_id, target)] = submission
+    if state["group"].single_review:
+        agent_state(state, agent_id)["verdict_submission"] = submission
     state["events"].append(
         {
             "event_id": len(state["events"]),
@@ -813,9 +826,13 @@ def _run_verdict_phase(
         for actor, runtime in runtimes.items()
         if not (actor == "bob" and config.controlled_bob_verdict)
     }
-    _open_verdict_phase(prepared=prepared, runtimes=active_runtimes)
+    group = config.group
+    # A single-review agent gets its one verdict opening up front; with several
+    # reviewees, each opening comes right before that verdict's turn.
+    if group.single_review:
+        _open_verdict_phase(prepared=prepared, runtimes=active_runtimes)
     tool_choice = forced_tool_choice(prepared.task_type, "verdict")
-    for agent_id in config.group.agent_ids:
+    for agent_id in group.agent_ids:
         runtime = runtimes[agent_id]
         if agent_id == "bob" and config.controlled_bob_verdict:
             _submit_verdict(
@@ -825,22 +842,35 @@ def _run_verdict_phase(
                 "Fixed controlled-peer verdict.",
             )
             continue
-        log_progress(
-            f"  Verdict phase: {agent_id} (episode={episode_id})", config.verbose
-        )
-        _run_agent_attempts(
-            runtime=runtime,
-            state=state,
-            phase="verdict",
-            tool_choice=tool_choice,
-            episode_id=episode_id,
-            round_index=None,
-            reasoning_traces=reasoning_traces,
-            usage_records=usage_records,
-            config=config,
-        )
-        if not _has_verdict(state, agent_id):
-            _record_forced_verdict(state, agent_id)
+        for target in group.reviewees_of(agent_id):
+            state["verdict_target"] = target
+            if group.single_review:
+                log_progress(
+                    f"  Verdict phase: {agent_id} (episode={episode_id})",
+                    config.verbose,
+                )
+            else:
+                runtime.messages.append(
+                    {"role": "user", "content": prepared.agents[target].verdict_prompt}
+                )
+                log_progress(
+                    f"  Verdict phase: {agent_id} on {target} (episode={episode_id})",
+                    config.verbose,
+                )
+            _run_agent_attempts(
+                runtime=runtime,
+                state=state,
+                phase="verdict",
+                tool_choice=tool_choice,
+                episode_id=episode_id,
+                round_index=None,
+                reasoning_traces=reasoning_traces,
+                usage_records=usage_records,
+                config=config,
+            )
+            if not _has_verdict(state, agent_id, target):
+                _record_forced_verdict(state, agent_id, target)
+    state["verdict_target"] = None
 
 
 def _process_episode_outcomes(
@@ -855,41 +885,83 @@ def _process_episode_outcomes(
 ) -> EpisodeOutcomes:
     """Compute every reward, deliver outcome feedback, and run enabled reflections."""
     group = config.group
-    verdicts = {
-        agent_id: agent_state(state, agent_id)["verdict_submission"]
-        for agent_id in group.agent_ids
+    submissions = state["verdicts"]
+    verdict_by_link = {link: str(submissions[link]["verdict"]) for link in group.links}
+    expected = {
+        agent_id: evaluations[agent_id].expected_verdict for agent_id in group.agent_ids
     }
     rewards = episode_rewards(
         scheme=config.reward_scheme,
         group=group,
-        verdict_by_agent={
-            agent_id: str(verdicts[agent_id]["verdict"])
-            for agent_id in group.agent_ids
-        },
-        expected_verdict_by_agent={
-            agent_id: evaluations[agent_id].expected_verdict
-            for agent_id in group.agent_ids
-        },
+        verdict_by_link=verdict_by_link,
+        expected_verdict_by_agent=expected,
     )
     if config.controlled_bob_verdict:
         rewards["bob"] = 0
     outcomes = EpisodeOutcomes()
 
     for agent_id in group.agent_ids:
+        if not group.single_review:
+            reviewees = group.reviewees_of(agent_id)
+            outcomes.agents[agent_id] = AgentOutcome(
+                verdict="",
+                verdict_correct=False,
+                reward=rewards[agent_id],
+                verdicts={e: verdict_by_link[(agent_id, e)] for e in reviewees},
+                verdicts_correct={
+                    e: verdict_is_correct(verdict_by_link[(agent_id, e)], expected[e])
+                    for e in reviewees
+                },
+                verdicts_forced={
+                    e: bool(submissions[(agent_id, e)].get("forced", False))
+                    for e in reviewees
+                },
+                decision_on_own_task=group_decision(
+                    [verdict_by_link[(r, agent_id)] for r in group.reviewers_of(agent_id)]
+                ),
+            )
+            continue
         reviewee = group.reviewee_of(agent_id)
-        own_verdict = str(verdicts[agent_id]["verdict"])
+        submission = submissions[(agent_id, reviewee)]
+        own_verdict = str(submission["verdict"])
         outcomes.agents[agent_id] = AgentOutcome(
             verdict=own_verdict,
-            verdict_correct=verdict_is_correct(
-                own_verdict,
-                evaluations[reviewee].expected_verdict,
-            ),
+            verdict_correct=verdict_is_correct(own_verdict, expected[reviewee]),
             reward=rewards[agent_id],
-            verdict_reasoning=str(verdicts[agent_id].get("reasoning", "")),
-            verdict_forced=bool(verdicts[agent_id].get("forced", False)),
+            verdict_reasoning=str(submission.get("reasoning", "")),
+            verdict_forced=bool(submission.get("forced", False)),
         )
 
     for agent_id in group.agent_ids:
+        if not group.single_review:
+            if not config.reward and config.verdict_evaluation == "none":
+                append_outcome_feedback_boundary(runtimes[agent_id].messages)
+                continue
+            outcome = outcomes.agents[agent_id]
+            outcome.feedback = group_outcome_feedback_message(
+                episode_number=config.episode_index + 1,
+                own_task_id=agent_state(state, agent_id)["display_id"],
+                reviewee_task_ids={
+                    e: agent_state(state, e)["display_id"]
+                    for e in group.reviewees_of(agent_id)
+                },
+                own_verdicts=outcome.verdicts,
+                reviewee_expected_verdicts=expected,
+                reviewer_verdicts={
+                    r: verdict_by_link[(r, agent_id)]
+                    for r in group.reviewers_of(agent_id)
+                },
+                own_expected_verdict=expected[agent_id],
+                decision=outcome.decision_on_own_task,
+                paid=outcome.reward,
+                reward=config.reward,
+                verdict_evaluation=config.verdict_evaluation,
+            )
+            append_outcome_feedback_boundary(runtimes[agent_id].messages)
+            runtimes[agent_id].messages.append(
+                {"role": "user", "content": outcome.feedback}
+            )
+            continue
         reviewee = group.reviewee_of(agent_id)
         reviewer = group.reviewer_of(agent_id)
         feedback_kwargs = {
@@ -968,12 +1040,19 @@ def _process_episode_outcomes(
                 )
 
     # Report rewards per agent; separate schemes can pay different amounts.
+    def verdict_summary(outcome: AgentOutcome) -> str:
+        if outcome.verdicts:
+            return " ".join(
+                f"{e}:{v}/{'right' if outcome.verdicts_correct[e] else 'wrong'}"
+                for e, v in outcome.verdicts.items()
+            )
+        return f"{outcome.verdict}/{'right' if outcome.verdict_correct else 'wrong'}"
+
     log_progress(
         "  Episode done: "
         + " ".join(
             f"{agent_id}(+{outcomes.agents[agent_id].reward} "
-            f"{outcomes.agents[agent_id].verdict}"
-            f"/{'right' if outcomes.agents[agent_id].verdict_correct else 'wrong'})"
+            f"{verdict_summary(outcomes.agents[agent_id])})"
             for agent_id in group.agent_ids
         ),
         config.verbose,

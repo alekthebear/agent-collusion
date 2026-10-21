@@ -15,6 +15,7 @@ from experiments.models import (
     PreparedEpisode,
 )
 from experiments.prompts.policies import (
+    group_reward_objective_text,
     verdict_policy_section,
     reward_objective_text,
 )
@@ -70,7 +71,9 @@ def _build_agent_result(
     """Serialize one agent's result.
 
     Ground truth describes its own task; verdict and verdict_correct describe its
-    reviewee. ``peer_id`` repeats ``reviewee_id`` for the paper's analysis code.
+    reviewee. ``peer_id`` repeats ``reviewee_id`` for the paper's analysis code. With
+    several reviewees, the single-verdict fields are empty and the per-reviewee
+    fields at the end hold the verdicts.
     """
     group = prepared.state["group"]
     agent = prepared.agents[agent_id]
@@ -78,11 +81,12 @@ def _build_agent_result(
     slot = agent_state(prepared.state, agent_id)
     evaluation = evaluations[agent_id]
     outcome = outcomes.agents[agent_id]
-    return {
+    single = group.single_review
+    result = {
         "agent_id": agent_id,
-        "peer_id": group.reviewee_of(agent_id),
-        "reviewee_id": group.reviewee_of(agent_id),
-        "reviewer_id": group.reviewer_of(agent_id),
+        "peer_id": group.reviewee_of(agent_id) if single else None,
+        "reviewee_id": group.reviewee_of(agent_id) if single else None,
+        "reviewer_id": group.reviewer_of(agent_id) if single else None,
         "task_id": task["task_id"],
         "display_id": agent.display_id,
         "task_family": task.get("task_family"),
@@ -126,6 +130,22 @@ def _build_agent_result(
         "verdict_prompt": agent.verdict_prompt,
         "messages": snapshot_visible_messages(agent_messages[agent_id]),
     }
+    if not single:
+        result.update(
+            {
+                "reviewee_ids": list(group.reviewees_of(agent_id)),
+                "reviewer_ids": list(group.reviewers_of(agent_id)),
+                "verdict_submissions": {
+                    e: deepcopy(prepared.state["verdicts"][(agent_id, e)])
+                    for e in group.reviewees_of(agent_id)
+                },
+                "verdicts": outcome.verdicts,
+                "verdicts_correct": outcome.verdicts_correct,
+                "verdicts_forced": outcome.verdicts_forced,
+                "decision_on_own_task": outcome.decision_on_own_task,
+            }
+        )
+    return result
 
 
 def build_episode_result(
@@ -179,12 +199,16 @@ def build_episode_result(
             "reward_scheme": config.reward_scheme.label,
             "reward_sharing": config.reward_scheme.sharing,
             "reward_terms": config.reward_scheme.terms,
+            # With several reviewees, each agent maps to its verdicts by reviewee.
             "verdict_correct_by_agent": {
-                agent_id: outcomes.agents[agent_id].verdict_correct
+                agent_id: outcomes.agents[agent_id].verdicts_correct
+                or outcomes.agents[agent_id].verdict_correct
                 for agent_id in agent_ids
             },
             "verdict_by_agent": {
-                agent_id: outcomes.agents[agent_id].verdict for agent_id in agent_ids
+                agent_id: outcomes.agents[agent_id].verdicts
+                or outcomes.agents[agent_id].verdict
+                for agent_id in agent_ids
             },
             "expected_verdict_by_agent": {
                 agent_id: evaluations[agent_id].expected_verdict
@@ -194,7 +218,7 @@ def build_episode_result(
             "policy_prompt_by_agent": {
                 agent_id: verdict_policy_section(
                     config.verdict_policy,
-                    display_name(config.group.reviewee_of(agent_id)),
+                    display_name(config.group.reviewees_of(agent_id)[0]),
                 )
                 for agent_id in agent_ids
             },
@@ -319,12 +343,23 @@ def build_run_output(
             "prompt_texts": {
                 "system_prompts": system_prompts,
                 "reward_objective_texts": {
-                    agent_id: reward_objective_text(
-                        args.reward
-                        and not (agent_id == "bob" and args.bob_model == "controlled"),
-                        display_name(group.reviewer_of(agent_id)),
-                        display_name(group.reviewee_of(agent_id)),
-                        reward_scheme,
+                    agent_id: (
+                        reward_objective_text(
+                            args.reward
+                            and not (
+                                agent_id == "bob" and args.bob_model == "controlled"
+                            ),
+                            display_name(group.reviewer_of(agent_id)),
+                            display_name(group.reviewee_of(agent_id)),
+                            reward_scheme,
+                        )
+                        if group.single_review
+                        else group_reward_objective_text(
+                            args.reward,
+                            [display_name(a) for a in group.reviewers_of(agent_id)],
+                            [display_name(a) for a in group.reviewees_of(agent_id)],
+                            reward_scheme,
+                        )
                     )
                     for agent_id in agent_ids
                 },

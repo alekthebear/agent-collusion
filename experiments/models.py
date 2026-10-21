@@ -112,6 +112,13 @@ class AgentOutcome:
     feedback: str | None = None
     reflection: str | None = None
     reflection_prompt: str | None = None
+    # With several reviewees (complete groups), verdicts are keyed by the judged
+    # agent and the single-verdict fields above stay empty.
+    verdicts: dict[str, str] = field(default_factory=dict)
+    verdicts_correct: dict[str, bool] = field(default_factory=dict)
+    verdicts_forced: dict[str, bool] = field(default_factory=dict)
+    # Accepted only if every reviewer accepted this agent's task.
+    decision_on_own_task: str = ""
 
 
 @dataclass

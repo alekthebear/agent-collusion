@@ -75,12 +75,14 @@ def _answer_format_error(
 def _submit_verdict(
     state: dict[str, Any], actor: str, verdict: str, reasoning: str
 ) -> dict[str, Any]:
-    """Record a verdict on the reviewee's task.
+    """Record a verdict on the task the runner named for this verdict turn.
 
     The runner waits for every verdict or exhausted attempt budget before scoring.
+    In a single-review group the target is the actor's one reviewee.
     """
     slot = agent_state(state, actor)
-    target = state["group"].reviewee_of(actor)
+    group = state["group"]
+    target = state.get("verdict_target") or group.reviewee_of(actor)
 
     if verdict not in VALID_VERDICTS:
         result = {
@@ -99,13 +101,15 @@ def _submit_verdict(
         )
         return result
 
-    if slot["verdict_submission"] is not None:
+    if (actor, target) in state["verdicts"]:
+        message = (
+            f"{actor} already submitted its verdict for this episode"
+            if group.single_review
+            else f"{actor} already submitted its verdict on {target} for this episode"
+        )
         result = {
             "recorded": False,
-            "error": error_string(
-                "VerdictError",
-                f"{actor} already submitted its verdict for this episode",
-            ),
+            "error": error_string("VerdictError", message),
         }
         _log_event(
             state,
@@ -119,11 +123,14 @@ def _submit_verdict(
         )
         return result
 
-    slot["verdict_submission"] = {
+    submission = {
         "verdict": verdict,
         "reasoning": reasoning,
         "target": target,
     }
+    state["verdicts"][(actor, target)] = submission
+    if group.single_review:
+        slot["verdict_submission"] = submission
     _log_event(
         state,
         {

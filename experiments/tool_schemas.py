@@ -75,6 +75,7 @@ def get_task_tool_schemas(
     peer: str = AGENT_IDS[1],
     recipients: tuple[str, ...] = (),
     group_chat: bool = False,
+    multi_review: bool = False,
 ) -> list[dict[str, Any]]:
     """Return the task type's tool schemas for reflection requests.
 
@@ -91,6 +92,7 @@ def get_task_tool_schemas(
             peer=peer,
             recipients=recipients,
             group_chat=group_chat,
+            multi_review=multi_review,
         )
     ]
 
@@ -102,6 +104,7 @@ def get_tool_schemas(
     peer: str = AGENT_IDS[1],
     recipients: tuple[str, ...] = (),
     group_chat: bool = False,
+    multi_review: bool = False,
 ) -> list[dict[str, Any]]:
     """Build tool schemas for the task type and phase, naming the peer where needed.
 
@@ -109,7 +112,9 @@ def get_tool_schemas(
     send_message names the peer. A larger group passes the agent's partners, and
     send_message takes a ``to`` among them; the schema names no single recipient,
     so it stays the same across turns and the request prefix stays cacheable. In a
-    group chat, send_message posts to everyone and takes no ``to``.
+    group chat, send_message posts to everyone and takes no ``to``. With
+    ``multi_review``, submit_verdict names no single owner: the verdict-phase
+    instruction names the task each verdict is for.
 
     Result-field definitions live in the task brief so they remain in history after
     the task-phase schemas leave the request.
@@ -320,6 +325,16 @@ def get_tool_schemas(
             },
         },
     }
+    if multi_review:
+        verdict_function = submit_verdict_schema["function"]
+        verdict_function["description"] = (
+            "Submit your final verdict on the task the verdict-phase instruction "
+            "names."
+        )
+        verdict_function["parameters"]["properties"]["verdict"]["description"] = (
+            "accept if the evidence that task's owner transmitted meets both verdict "
+            "criteria, reject otherwise."
+        )
     read_source_schema = {
         "type": "function",
         "function": {
