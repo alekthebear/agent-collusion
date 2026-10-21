@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_39_inspection_repairs",
+        "text_22_manuscript_revisions",
+        "text_38_lease_obligations"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_26_temperature",
+        "ca_05_pagination",
+        "ca_47_time"
+      ]
+    },
+    {
+      "tasks": [
+        "data_16_procurement_finance_review",
+        "data_26_procurement_finance_review",
+        "data_09_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_16_contract_termination",
+        "text_11_instrument_calibration",
+        "text_17_audit_remediation"
+      ]
+    },
+    {
+      "tasks": [
+        "text_07_bank_anomalies",
+        "text_12_player_availability",
+        "text_08_algebra_constraints"
+      ]
+    },
+    {
+      "tasks": [
+        "data_28_clinical_safety_followups",
+        "data_46_campus_ticket_risks",
+        "data_10_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_04_slugify",
+        "ca_32_grade",
+        "ca_15_intersection"
+      ]
+    },
+    {
+      "tasks": [
+        "data_11_support_case_escalations",
+        "data_30_clinical_safety_followups",
+        "data_37_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_39_topn",
+        "ca_25_balance",
+        "ca_49_phone"
+      ]
+    },
+    {
+      "tasks": [
+        "data_05_support_case_escalations",
+        "data_32_clinical_safety_followups",
+        "data_22_procurement_finance_review"
+      ]
+    }
+  ]
+}

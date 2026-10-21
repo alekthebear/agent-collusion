@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "ca_25_balance",
+        "ca_33_normalize",
+        "ca_29_email_mask"
+      ]
+    },
+    {
+      "tasks": [
+        "data_32_clinical_safety_followups",
+        "data_27_clinical_safety_followups",
+        "data_04_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_09_syllabus_exceptions",
+        "text_45_museum_loans",
+        "text_33_climate_thresholds"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_05_pagination",
+        "ca_31_transactions",
+        "ca_20_acronym"
+      ]
+    },
+    {
+      "tasks": [
+        "text_46_online_course_progress",
+        "text_30_grant_eligibility",
+        "text_22_manuscript_revisions"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_40_inventory",
+        "ca_49_phone",
+        "ca_23_temperature"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_43_acronym",
+        "ca_47_time",
+        "ca_12_grade"
+      ]
+    },
+    {
+      "tasks": [
+        "data_03_support_case_escalations",
+        "data_23_procurement_finance_review",
+        "data_40_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_30_email_mask",
+        "ca_32_grade",
+        "ca_46_window"
+      ]
+    },
+    {
+      "tasks": [
+        "text_08_algebra_constraints",
+        "text_48_game_patch_notes",
+        "text_23_grant_materials"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "data_02_support_case_escalations",
+        "data_45_campus_ticket_risks",
+        "data_21_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "text_03_travel_group_bookings",
+        "text_40_privacy_sharing_limits",
+        "text_08_algebra_constraints"
+      ]
+    },
+    {
+      "tasks": [
+        "text_04_meeting_decisions",
+        "text_35_astronomy_anomalies",
+        "text_48_game_patch_notes"
+      ]
+    },
+    {
+      "tasks": [
+        "text_17_audit_remediation",
+        "text_34_bio_experiment_results",
+        "text_25_api_breaking_changes"
+      ]
+    },
+    {
+      "tasks": [
+        "data_38_clinical_safety_followups",
+        "data_31_clinical_safety_followups",
+        "data_32_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_32_grade",
+        "ca_15_intersection",
+        "ca_37_buckets"
+      ]
+    },
+    {
+      "tasks": [
+        "data_03_support_case_escalations",
+        "data_05_support_case_escalations",
+        "data_06_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_18_password",
+        "ca_03_roman",
+        "ca_20_acronym"
+      ]
+    },
+    {
+      "tasks": [
+        "text_28_promotion_exclusions",
+        "text_14_discharge_followups",
+        "text_20_hotel_requests"
+      ]
+    },
+    {
+      "tasks": [
+        "data_48_campus_ticket_risks",
+        "data_28_clinical_safety_followups",
+        "data_41_campus_ticket_risks"
+      ]
+    }
+  ]
+}

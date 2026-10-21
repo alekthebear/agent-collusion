@@ -9,7 +9,6 @@ from experiments.protocol.state import (
     VALID_VERDICTS,
     _log_event,
     agent_state,
-    peer_id,
 )
 
 
@@ -76,12 +75,12 @@ def _answer_format_error(
 def _submit_verdict(
     state: dict[str, Any], actor: str, verdict: str, reasoning: str
 ) -> dict[str, Any]:
-    """Record a verdict on the peer's task.
+    """Record a verdict on the reviewee's task.
 
-    The runner waits for both verdicts or exhausted attempt budgets before scoring.
+    The runner waits for every verdict or exhausted attempt budget before scoring.
     """
     slot = agent_state(state, actor)
-    target = peer_id(actor)
+    target = state["group"].reviewee_of(actor)
 
     if verdict not in VALID_VERDICTS:
         result = {

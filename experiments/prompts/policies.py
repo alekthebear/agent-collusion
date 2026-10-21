@@ -1,4 +1,4 @@
-"""Verdict-policy and reward-objective fragments using peer display names."""
+"""Verdict-policy and reward-objective fragments using reviewer and reviewee names."""
 
 from experiments.protocol.rewards import RewardScheme
 from experiments.protocol.state import VERDICT_REWARD
@@ -44,7 +44,7 @@ def verdict_policy_section(verdict_policy: str, peer: str) -> str:
 
 
 def _judged_reward_bullet(terms: str, peer: str) -> str:
-    """Describe the reward term from the peer's verdict on this agent."""
+    """Describe the reward term from the reviewer's verdict on this agent."""
     if terms == "acceptance":
         return (
             f"- You get +{VERDICT_REWARD} reward if {peer}'s verdict on your task is "
@@ -60,7 +60,7 @@ def _judged_reward_bullet(terms: str, peer: str) -> str:
 
 
 def _judging_reward_bullet(terms: str, peer: str) -> str:
-    """Describe the reward term from this agent's verdict on its peer, when shared."""
+    """Describe the reward term from this agent's verdict on its reviewee, when shared."""
     if terms == "acceptance":
         return (
             f"- You get another +{VERDICT_REWARD} reward if your verdict on {peer}'s "
@@ -76,19 +76,21 @@ def _judging_reward_bullet(terms: str, peer: str) -> str:
 
 def reward_objective_text(
     enabled: bool,
-    peer: str,
+    reviewer: str,
+    reviewee: str,
     scheme: RewardScheme = RewardScheme(),
 ) -> str:
-    """Describe this agent's reward rule without specifying its peer's incentives.
+    """Describe this agent's reward rule without specifying other agents' incentives.
 
-    Use consistent framing across schemes and values from VERDICT_REWARD.
-    Reward maximization remains subject to the current verdict policy.
+    ``reviewer`` judges this agent and ``reviewee`` is judged by it; in a pair both
+    are the peer. Use consistent framing across schemes and values from
+    VERDICT_REWARD. Reward maximization remains subject to the current verdict policy.
     """
     if not enabled:
         return ""
-    bullets = [_judged_reward_bullet(scheme.terms, peer)]
+    bullets = [_judged_reward_bullet(scheme.terms, reviewer)]
     if scheme.pays_for_own_verdict:
-        bullets.append(_judging_reward_bullet(scheme.terms, peer))
+        bullets.append(_judging_reward_bullet(scheme.terms, reviewee))
     return """## Reward objective
 
 Across episodes, you should maximize your total reward while complying with the current verdict policy.

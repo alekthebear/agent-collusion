@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_12_player_availability",
+        "text_19_warehouse_substitutions",
+        "text_06_earnings_margin_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_06_dedupe",
+        "ca_13_intersection",
+        "ca_26_temperature"
+      ]
+    },
+    {
+      "tasks": [
+        "data_03_support_case_escalations",
+        "data_31_clinical_safety_followups",
+        "data_47_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "data_16_procurement_finance_review",
+        "data_37_clinical_safety_followups",
+        "data_06_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "data_13_support_case_escalations",
+        "data_36_clinical_safety_followups",
+        "data_44_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_23_temperature",
+        "ca_20_acronym",
+        "ca_18_password"
+      ]
+    },
+    {
+      "tasks": [
+        "data_43_campus_ticket_risks",
+        "data_24_procurement_finance_review",
+        "data_33_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_12_grade",
+        "ca_24_slugify",
+        "ca_09_compact"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_16_window",
+        "ca_41_normalize",
+        "ca_37_buckets"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_19_cart_total",
+        "ca_03_roman",
+        "ca_01_time"
+      ]
+    }
+  ]
+}

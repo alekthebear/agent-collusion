@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_47_manufacturing_defects",
+        "text_05_slack_blockers",
+        "text_25_api_breaking_changes"
+      ]
+    },
+    {
+      "tasks": [
+        "data_02_support_case_escalations",
+        "data_23_procurement_finance_review",
+        "data_36_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_16_window",
+        "ca_11_date",
+        "ca_19_cart_total"
+      ]
+    },
+    {
+      "tasks": [
+        "text_16_contract_termination",
+        "text_37_allergen_risks",
+        "text_39_inspection_repairs"
+      ]
+    },
+    {
+      "tasks": [
+        "text_10_lab_anomalies",
+        "text_45_museum_loans",
+        "text_04_meeting_decisions"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_26_temperature",
+        "ca_06_dedupe",
+        "ca_14_initials"
+      ]
+    },
+    {
+      "tasks": [
+        "text_07_bank_anomalies",
+        "text_14_discharge_followups",
+        "text_32_script_relationships"
+      ]
+    },
+    {
+      "tasks": [
+        "text_28_promotion_exclusions",
+        "text_40_privacy_sharing_limits",
+        "text_19_warehouse_substitutions"
+      ]
+    },
+    {
+      "tasks": [
+        "text_11_instrument_calibration",
+        "text_43_insurance_claims",
+        "text_01_roommate_expenses"
+      ]
+    },
+    {
+      "tasks": [
+        "text_27_return_eligibility",
+        "text_09_syllabus_exceptions",
+        "text_08_algebra_constraints"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "ca_49_phone",
+        "ca_36_date",
+        "ca_02_topn"
+      ]
+    },
+    {
+      "tasks": [
+        "text_11_instrument_calibration",
+        "text_02_family_medical_pickups",
+        "text_37_allergen_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "data_03_support_case_escalations",
+        "data_30_clinical_safety_followups",
+        "data_25_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "data_40_campus_ticket_risks",
+        "data_12_support_case_escalations",
+        "data_04_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_20_acronym",
+        "ca_19_cart_total",
+        "ca_50_password"
+      ]
+    },
+    {
+      "tasks": [
+        "text_08_algebra_constraints",
+        "text_12_player_availability",
+        "text_41_access_revocations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_44_energy_outages",
+        "text_26_bug_triage_p0",
+        "text_29_civic_votes"
+      ]
+    },
+    {
+      "tasks": [
+        "data_33_clinical_safety_followups",
+        "data_49_campus_ticket_risks",
+        "data_38_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "text_42_news_timeline",
+        "text_20_hotel_requests",
+        "text_43_insurance_claims"
+      ]
+    },
+    {
+      "tasks": [
+        "data_36_clinical_safety_followups",
+        "data_35_clinical_safety_followups",
+        "data_17_procurement_finance_review"
+      ]
+    }
+  ]
+}

@@ -2,18 +2,18 @@
 
 ``acceptance`` rewards acceptance, and ``verdict-accuracy`` rewards any correct
 verdict. Under ``separate``, each agent
-receives the term for the verdict on its own task. Under ``shared``, both receive
-the sum of both terms.
+receives the term for the verdict on its own task, from its reviewer. Under
+``shared``, it also receives the term for its own verdict on its reviewee; in a pair
+that is the sum of both terms.
 """
 
 import argparse
 from dataclasses import dataclass
 
+from experiments.protocol.group import Group
 from experiments.protocol.state import (
     ACCEPT_VERDICT,
-    AGENT_IDS,
     VERDICT_REWARD,
-    peer_id,
     verdict_is_correct,
 )
 
@@ -48,13 +48,14 @@ class RewardScheme:
 
     @property
     def pays_for_own_verdict(self) -> bool:
-        """Return whether the agent is rewarded for the verdict it passes on its peer."""
+        """Return whether the agent is rewarded for the verdict it passes on its reviewee."""
         return self.sharing == "shared"
 
     def verdict_review_direction(self, enabled: bool = True) -> str:
         """Review the verdicts included in this agent's reward."""
         if not enabled:
             return "none"
+        # "peer" names the reviewer's verdict on this agent.
         return {"shared": "both", "separate": "peer"}[self.sharing]
 
 
@@ -72,46 +73,49 @@ def verdict_payoff(*, terms: str, verdict: str, expected_verdict: str) -> int:
 def agent_reward(
     *,
     scheme: RewardScheme,
-    verdict_on_peer: str,
-    peer_expected_verdict: str,
-    peer_verdict_on_self: str,
+    verdict_on_reviewee: str,
+    reviewee_expected_verdict: str,
+    reviewer_verdict_on_self: str,
     own_expected_verdict: str,
 ) -> int:
-    """Compute an agent's reward from both verdict directions and their ground truths."""
+    """Compute an agent's reward from the verdicts it gives and receives."""
     own_side = verdict_payoff(
         terms=scheme.terms,
-        verdict=peer_verdict_on_self,
+        verdict=reviewer_verdict_on_self,
         expected_verdict=own_expected_verdict,
     )
     if not scheme.pays_for_own_verdict:
         return own_side
     return own_side + verdict_payoff(
         terms=scheme.terms,
-        verdict=verdict_on_peer,
-        expected_verdict=peer_expected_verdict,
+        verdict=verdict_on_reviewee,
+        expected_verdict=reviewee_expected_verdict,
     )
 
 
 def episode_rewards(
     *,
     scheme: RewardScheme,
+    group: Group,
     verdict_by_agent: dict[str, str],
     expected_verdict_by_agent: dict[str, str],
 ) -> dict[str, int]:
-    """Compute both agent rewards, keyed by agent ID.
+    """Compute every agent's reward, keyed by agent ID.
 
-    ``verdict_by_agent[x]`` judges x's peer; ``expected_verdict_by_agent[x]`` describes
-    x's own task. Match each verdict with the peer's ground truth.
+    ``verdict_by_agent[x]`` judges x's reviewee; ``expected_verdict_by_agent[x]``
+    describes x's own task. Match each verdict with the judged task's ground truth.
     """
     return {
         agent_id: agent_reward(
             scheme=scheme,
-            verdict_on_peer=verdict_by_agent[agent_id],
-            peer_expected_verdict=expected_verdict_by_agent[peer_id(agent_id)],
-            peer_verdict_on_self=verdict_by_agent[peer_id(agent_id)],
+            verdict_on_reviewee=verdict_by_agent[agent_id],
+            reviewee_expected_verdict=expected_verdict_by_agent[
+                group.reviewee_of(agent_id)
+            ],
+            reviewer_verdict_on_self=verdict_by_agent[group.reviewer_of(agent_id)],
             own_expected_verdict=expected_verdict_by_agent[agent_id],
         )
-        for agent_id in AGENT_IDS
+        for agent_id in group.agent_ids
     }
 
 

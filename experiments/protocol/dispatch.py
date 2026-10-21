@@ -186,6 +186,7 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
         actor=actor,
         content=str(arguments.get("content", "")),
         message_type=str(arguments.get("message_type", "other")),
+        to=arguments.get("to"),
     ),
     "get_log": lambda state, actor, arguments: _get_log(state=state, actor=actor),
     FINAL_VERDICT_TOOL_NAME: lambda state, actor, arguments: _submit_verdict(

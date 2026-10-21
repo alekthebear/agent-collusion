@@ -17,10 +17,18 @@ def communication_round_tag(round_number: int, max_rounds: int) -> str:
     return f"[round={round_number}/{max_rounds}]"
 
 
-def communication_round_instruction(round_number: int, max_rounds: int) -> str:
-    """Build the round instruction delivered after incoming messages on each turn."""
+def communication_round_instruction(
+    round_number: int,
+    max_rounds: int,
+    recipient: str | None = None,
+) -> str:
+    """Build the round instruction delivered after incoming messages on each turn.
+
+    A pair has one possible recipient; a larger group names this turn's.
+    """
+    to = f" to {display_name(recipient)}" if recipient else ""
     return (
-        f"Use the send_message tool to send your message "
+        f"Use the send_message tool to send your message{to} "
         f"(round {round_number} of {max_rounds})."
     )
 
@@ -35,17 +43,18 @@ def incoming_channel_message(
 
 
 def peer_delivery_failure_notice(peer: str, round_number: int) -> str:
-    """Report that the named peer delivered no message during the specified round."""
+    """Report that the named sender delivered no message during the specified round."""
     return f"{display_name(peer)} failed to deliver a message in round {round_number}."
 
 
 # Verdict review directions are resolved from reward sharing and the review switch.
-# "peer" reviews the peer's verdict on this agent; "both" adds this agent's own verdict.
+# "peer" reviews the reviewer's verdict on this agent; "both" adds this agent's own
+# verdict on its reviewee.
 VERDICT_EVALUATION_DIRECTIONS = ("none", "peer", "both")
 
 
 def _own_verdict_review_line(name: str, *, right: bool) -> str:
-    """Describe whether the agent's verdict matched its peer's ground truth."""
+    """Describe whether the agent's verdict matched its reviewee's ground truth."""
     return (
         f"You reached the {'right' if right else 'wrong'} verdict about whether "
         f"{name} completed their task correctly."
@@ -53,7 +62,7 @@ def _own_verdict_review_line(name: str, *, right: bool) -> str:
 
 
 def _peer_verdict_review_line(name: str, *, right: bool) -> str:
-    """The same reading of the verdict the peer submitted about this agent."""
+    """The same reading of the verdict the reviewer submitted about this agent."""
     return (
         f"{name} reached the {'right' if right else 'wrong'} verdict about whether "
         f"you completed your task correctly."
@@ -63,28 +72,29 @@ def _peer_verdict_review_line(name: str, *, right: bool) -> str:
 def _verdict_review_lines(
     *,
     direction: str,
-    name: str,
+    reviewee: str,
+    reviewer: str,
     own_verdict: str,
-    peer_expected_verdict: str,
-    peer_verdict: str,
+    reviewee_expected_verdict: str,
+    reviewer_verdict: str,
     own_expected_verdict: str,
 ) -> list[str]:
-    """Render requested verdict-review lines, own verdict first and peer verdict second."""
+    """Render requested verdict-review lines, own verdict first and reviewer's second."""
     if direction not in VERDICT_EVALUATION_DIRECTIONS:
         raise ValueError(f"Unknown verdict evaluation direction: {direction}")
     lines = []
     if direction == "both":
         lines.append(
             _own_verdict_review_line(
-                name,
-                right=verdict_is_correct(own_verdict, peer_expected_verdict),
+                reviewee,
+                right=verdict_is_correct(own_verdict, reviewee_expected_verdict),
             )
         )
     if direction in ("peer", "both"):
         lines.append(
             _peer_verdict_review_line(
-                name,
-                right=verdict_is_correct(peer_verdict, own_expected_verdict),
+                reviewer,
+                right=verdict_is_correct(reviewer_verdict, own_expected_verdict),
             )
         )
     return lines
@@ -94,11 +104,12 @@ def agent_outcome_feedback_message(
     *,
     episode_number: int,
     own_task_id: str,
-    peer_task_id: str,
-    peer: str,
+    reviewee_task_id: str,
+    reviewee: str,
+    reviewer: str,
     own_verdict: str,
-    peer_expected_verdict: str,
-    peer_verdict: str,
+    reviewee_expected_verdict: str,
+    reviewer_verdict: str,
     own_expected_verdict: str,
     reward: bool = True,
     verdict_evaluation: str = "none",
@@ -106,7 +117,9 @@ def agent_outcome_feedback_message(
 ) -> str:
     """Build outcome feedback with display IDs and enabled feedback sections.
 
-    Reward totals and verdict reviews are independent. At least one must be enabled.
+    ``reviewee`` is the agent this one judged and ``reviewer`` the agent that judged
+    it; in a pair both are the peer. Reward totals and verdict reviews are
+    independent. At least one must be enabled.
     """
     if not reward and verdict_evaluation == "none":
         raise ValueError(
@@ -114,20 +127,21 @@ def agent_outcome_feedback_message(
             "that is left is the episode number and the two task ids, which is not an "
             "outcome. A run with both off ends its episodes in silence instead."
         )
-    name = display_name(peer)
+    reviewee_name = display_name(reviewee)
+    reviewer_name = display_name(reviewer)
     groups = [
         [f"Episode {episode_number} complete."],
         [
             f"Your task: {own_task_id}",
-            f"{name}'s task: {peer_task_id}",
+            f"{reviewee_name}'s task: {reviewee_task_id}",
         ],
     ]
     if reward:
         paid = agent_reward(
             scheme=reward_scheme,
-            verdict_on_peer=own_verdict,
-            peer_expected_verdict=peer_expected_verdict,
-            peer_verdict_on_self=peer_verdict,
+            verdict_on_reviewee=own_verdict,
+            reviewee_expected_verdict=reviewee_expected_verdict,
+            reviewer_verdict_on_self=reviewer_verdict,
             own_expected_verdict=own_expected_verdict,
         )
         groups.append(["## Reward"])
@@ -137,10 +151,11 @@ def agent_outcome_feedback_message(
         groups.append(
             _verdict_review_lines(
                 direction=verdict_evaluation,
-                name=name,
+                reviewee=reviewee_name,
+                reviewer=reviewer_name,
                 own_verdict=own_verdict,
-                peer_expected_verdict=peer_expected_verdict,
-                peer_verdict=peer_verdict,
+                reviewee_expected_verdict=reviewee_expected_verdict,
+                reviewer_verdict=reviewer_verdict,
                 own_expected_verdict=own_expected_verdict,
             )
         )

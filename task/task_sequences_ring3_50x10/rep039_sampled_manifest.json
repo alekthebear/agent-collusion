@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "ca_34_cart_total",
+        "ca_48_pagination",
+        "ca_09_compact"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_37_buckets",
+        "ca_28_ranges",
+        "ca_03_roman"
+      ]
+    },
+    {
+      "tasks": [
+        "text_25_api_breaking_changes",
+        "text_33_climate_thresholds",
+        "text_17_audit_remediation"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_44_inventory",
+        "ca_31_transactions",
+        "ca_19_cart_total"
+      ]
+    },
+    {
+      "tasks": [
+        "text_12_player_availability",
+        "text_38_lease_obligations",
+        "text_41_access_revocations"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_46_window",
+        "ca_15_intersection",
+        "ca_39_topn"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_07_compact",
+        "ca_14_initials",
+        "ca_04_slugify"
+      ]
+    },
+    {
+      "tasks": [
+        "text_39_inspection_repairs",
+        "text_07_bank_anomalies",
+        "text_44_energy_outages"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_17_csv",
+        "ca_29_email_mask",
+        "ca_26_temperature"
+      ]
+    },
+    {
+      "tasks": [
+        "data_27_clinical_safety_followups",
+        "data_12_support_case_escalations",
+        "data_50_campus_ticket_risks"
+      ]
+    }
+  ]
+}

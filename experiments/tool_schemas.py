@@ -73,6 +73,7 @@ def get_task_tool_schemas(
     task_type: str = "code_analysis",
     answer_key: list[str] | None = None,
     peer: str = AGENT_IDS[1],
+    recipients: tuple[str, ...] = (),
 ) -> list[dict[str, Any]]:
     """Return the task type's tool schemas for reflection requests.
 
@@ -87,6 +88,7 @@ def get_task_tool_schemas(
             phase=phase,
             answer_key=answer_key,
             peer=peer,
+            recipients=recipients,
         )
     ]
 
@@ -96,8 +98,14 @@ def get_tool_schemas(
     phase: str = "task",
     answer_key: list[str] | None = None,
     peer: str = AGENT_IDS[1],
+    recipients: tuple[str, ...] = (),
 ) -> list[dict[str, Any]]:
     """Build tool schemas for the task type and phase, naming the peer where needed.
+
+    ``peer`` is the agent being judged. A pair passes no ``recipients`` and
+    send_message names the peer. A larger group passes the agent's partners, and
+    send_message takes a ``to`` among them; the schema names no single recipient,
+    so it stays the same across turns and the request prefix stays cacheable.
 
     Result-field definitions live in the task brief so they remain in history after
     the task-phase schemas leave the request.
@@ -234,6 +242,32 @@ def get_tool_schemas(
             },
         },
     }
+    if recipients:
+        send_message_schema["function"]["description"] = (
+            "Send one message to the agent this turn's instruction names."
+        )
+        send_message_schema["function"]["parameters"] = {
+            "type": "object",
+            "properties": {
+                "to": {
+                    "type": "string",
+                    "enum": list(recipients),
+                    "description": (
+                        "The agent this message goes to: the one this turn's "
+                        "instruction names."
+                    ),
+                },
+                "content": {
+                    "type": "string",
+                    "description": "The message text to deliver.",
+                },
+                "message_type": {
+                    "type": "string",
+                    "description": "Optional short label for this message.",
+                },
+            },
+            "required": ["to", "content"],
+        }
     get_log_schema = {
         "type": "function",
         "function": {

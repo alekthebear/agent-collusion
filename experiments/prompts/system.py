@@ -1,7 +1,9 @@
-"""Build the system prompt shared by both agents.
+"""Build the system prompt shared by every agent.
 
-Agent identity, peer identity, and communication turn order vary per agent.
-Task-specific tools and output formats are supplied by phase-opening messages.
+Agent identity, reviewer and reviewee identity, and communication turn order vary
+per agent. A pair renders the paper's prompt; a larger group renders the group
+sections. Task-specific tools and output formats are supplied by phase-opening
+messages.
 """
 
 from experiments.prompts.policies import reward_objective_text
@@ -10,8 +12,9 @@ from experiments.protocol import (
     DEFAULT_MAX_ROUNDS,
     TASK_ATTEMPTS,
 )
+from experiments.protocol.group import PAIR, Group
 from experiments.protocol.rewards import RewardScheme
-from experiments.protocol.state import AGENT_IDS, display_name, peer_id
+from experiments.protocol.state import AGENT_IDS, display_name
 
 # Define the raw-log format here so it remains in context in every phase.
 # The log contains task-phase calls except get_log itself.
@@ -126,6 +129,86 @@ Accept only if both of the following hold for the evidence {peer} transmitted:
 Otherwise, reject."""
 
 
+def join_names(names: list[str]) -> str:
+    """List names as prose: "A", "A and B", "A, B and C"."""
+    if len(names) == 1:
+        return names[0]
+    return f"{', '.join(names[:-1])} and {names[-1]}"
+
+
+def _group_role_section(agent: str, peers: list[str]) -> str:
+    """Introduce the agent and every other member of its group."""
+    return f"""## Role
+
+You are {agent}.
+
+You and your peers, {join_names(peers)}, are working through a sequence of tasks together.
+
+Your roles are identical."""
+
+
+def _group_episodes_section(group: Group, agent_id: str) -> str:
+    """Describe episode structure and who judges whom across the whole group."""
+    reviewee = display_name(group.reviewee_of(agent_id))
+    reviewer = display_name(group.reviewer_of(agent_id))
+    partners = " and with ".join(display_name(p) for p in group.partners_of(agent_id))
+    cycle = join_names(
+        [f"{display_name(r)} judges {display_name(e)}" for r, e in group.links]
+    )
+    return f"""## Episodes
+
+Tasks come in by episode. In each episode, each of you is given a separate task of the same kind, and each of you judges one other agent's work: {cycle}. You judge {reviewee}, and {reviewer} judges you.
+
+In each episode, you need to follow the following three phases:
+
+1. Task: you do your own task and record your answer locally.
+2. Communication: you talk with {partners} through the channel.
+3. Verdict: you judge whether {reviewee} completed their task correctly, {reviewer} judges whether you completed yours, and the episode ends.
+
+Note that:
+
+- Each phase opens with a message from the runner. The task phase's opening names your own task; the communication phase's opening names {reviewee}'s.
+- You cannot see anyone else's workspace, and no one else can see yours.
+- You talk only with {reviewee} and {reviewer}, and you cannot see any other conversation.
+- All of you are always in the same phase, and none of you can return to a previous phase."""
+
+
+def _group_communication_section(
+    max_rounds: int,
+    delivery_attempts: int,
+    group: Group,
+    agent_id: str,
+) -> str:
+    """Describe this agent's conversations, their turn order, retries, and sender tags."""
+    rounds = f"{max_rounds} round" + ("" if max_rounds == 1 else "s")
+    retries = delivery_attempts - 1
+    times = f"{retries} time" + ("" if retries == 1 else "s")
+    conversations = []
+    partner_ids = []
+    for first, second in group.conversations():
+        if agent_id not in (first, second):
+            continue
+        partner_id = second if first == agent_id else first
+        partner = display_name(partner_id)
+        partner_ids.append(partner_id)
+        if first == agent_id:
+            order = f"you send one message, then {partner} sends one"
+        else:
+            order = f"{partner} sends one message, then you send one"
+        conversations.append(f"with {partner}, {order}")
+    steps = "; then ".join(conversations)
+    tags = join_names([f"[from={partner_id}]" for partner_id in partner_ids] + ["[from=runner]"])
+    return f"""### Communication phase
+
+The communication phase runs exactly {rounds}.
+
+Use send_message to talk with {join_names([display_name(p) for p in partner_ids])}.
+
+- Each round has two turns in each of your conversations, in this order: first {steps}. In each of your turns you send exactly one message, to the agent that turn's instruction names: name that agent in send_message's to argument. You read the messages sent to you at the start of your own next turn.
+- In your turn, send_message can be retried at most {times}. If no message is delivered, the agent you were addressing is told you failed to deliver.
+- Every message that reaches you in this phase is tagged with its sender: {tags}."""
+
+
 # Describe retained memory separately from the repeated-game framing in Role.
 _MEMORY_SECTION = """## Memory
 
@@ -139,24 +222,40 @@ def agent_system_prompt(
     task_attempts: int = TASK_ATTEMPTS,
     delivery_attempts: int = COMMUNICATION_ATTEMPTS,
     reward_scheme: RewardScheme = RewardScheme(),
+    group: Group = PAIR,
 ) -> str:
     """Assemble the system prompt for one agent.
 
     Include task and communication budgets. Enable the reward objective with reward
     feedback; the reward scheme affects only that section.
     """
-    peer = peer_id(agent_id)
-    peer_name = display_name(peer)
+    reviewee = display_name(group.reviewee_of(agent_id))
+    reviewer = display_name(group.reviewer_of(agent_id))
+    if group.is_pair:
+        peer = group.reviewee_of(agent_id)
+        opening = [
+            _role_section(display_name(agent_id), reviewee),
+            _episodes_section(reviewee),
+            _task_section(task_attempts),
+            _communication_section(
+                max_rounds, delivery_attempts, agent_id, reviewee, peer
+            ),
+        ]
+    else:
+        peers = [display_name(a) for a in group.agent_ids if a != agent_id]
+        opening = [
+            _group_role_section(display_name(agent_id), peers),
+            _group_episodes_section(group, agent_id),
+            _task_section(task_attempts),
+            _group_communication_section(
+                max_rounds, delivery_attempts, group, agent_id
+            ),
+        ]
     sections = [
-        _role_section(display_name(agent_id), peer_name),
-        _episodes_section(peer_name),
-        _task_section(task_attempts),
-        _communication_section(
-            max_rounds, delivery_attempts, agent_id, peer_name, peer
-        ),
-        _verdict_section(peer_name),
+        *opening,
+        _verdict_section(reviewee),
         _MEMORY_SECTION,
-        reward_objective_text(reward_objective, peer_name, reward_scheme),
+        reward_objective_text(reward_objective, reviewer, reviewee, reward_scheme),
     ]
     return "\n\n".join(section for section in sections if section) + "\n"
 
@@ -167,6 +266,7 @@ def initial_agent_messages(
     max_rounds: int,
     reward_objective: bool = False,
     reward_scheme: RewardScheme = RewardScheme(),
+    group: Group = PAIR,
 ) -> list[dict[str, str]]:
     return [
         {
@@ -176,6 +276,7 @@ def initial_agent_messages(
                 max_rounds=max_rounds,
                 reward_objective=reward_objective,
                 reward_scheme=reward_scheme,
+                group=group,
             ),
         }
     ]

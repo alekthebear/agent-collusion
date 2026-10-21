@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "ca_37_buckets",
+        "ca_45_ranges",
+        "ca_46_window"
+      ]
+    },
+    {
+      "tasks": [
+        "text_01_roommate_expenses",
+        "text_32_script_relationships",
+        "text_34_bio_experiment_results"
+      ]
+    },
+    {
+      "tasks": [
+        "data_47_campus_ticket_risks",
+        "data_35_clinical_safety_followups",
+        "data_08_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_35_astronomy_anomalies",
+        "text_44_energy_outages",
+        "text_22_manuscript_revisions"
+      ]
+    },
+    {
+      "tasks": [
+        "data_03_support_case_escalations",
+        "data_45_campus_ticket_risks",
+        "data_22_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "data_13_support_case_escalations",
+        "data_15_procurement_finance_review",
+        "data_04_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_21_flight_compensation",
+        "text_31_novel_promises",
+        "text_16_contract_termination"
+      ]
+    },
+    {
+      "tasks": [
+        "data_18_procurement_finance_review",
+        "data_20_procurement_finance_review",
+        "data_09_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "data_43_campus_ticket_risks",
+        "data_05_support_case_escalations",
+        "data_28_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "text_02_family_medical_pickups",
+        "text_18_shipment_delays",
+        "text_10_lab_anomalies"
+      ]
+    }
+  ]
+}

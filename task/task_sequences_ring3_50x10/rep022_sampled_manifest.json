@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "ca_32_grade",
+        "ca_19_cart_total",
+        "ca_01_time"
+      ]
+    },
+    {
+      "tasks": [
+        "data_30_clinical_safety_followups",
+        "data_37_clinical_safety_followups",
+        "data_27_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "data_40_campus_ticket_risks",
+        "data_02_support_case_escalations",
+        "data_31_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "text_06_earnings_margin_risks",
+        "text_25_api_breaking_changes",
+        "text_15_lab_results_recheck"
+      ]
+    },
+    {
+      "tasks": [
+        "data_45_campus_ticket_risks",
+        "data_13_support_case_escalations",
+        "data_46_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_04_slugify",
+        "ca_42_buckets",
+        "ca_46_window"
+      ]
+    },
+    {
+      "tasks": [
+        "text_32_script_relationships",
+        "text_05_slack_blockers",
+        "text_01_roommate_expenses"
+      ]
+    },
+    {
+      "tasks": [
+        "text_43_insurance_claims",
+        "text_17_audit_remediation",
+        "text_09_syllabus_exceptions"
+      ]
+    },
+    {
+      "tasks": [
+        "text_22_manuscript_revisions",
+        "text_50_podcast_sponsor_terms",
+        "text_03_travel_group_bookings"
+      ]
+    },
+    {
+      "tasks": [
+        "data_36_clinical_safety_followups",
+        "data_07_support_case_escalations",
+        "data_44_campus_ticket_risks"
+      ]
+    }
+  ]
+}

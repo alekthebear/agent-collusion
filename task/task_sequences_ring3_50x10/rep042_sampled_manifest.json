@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_22_manuscript_revisions",
+        "text_21_flight_compensation",
+        "text_06_earnings_margin_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_18_password",
+        "ca_43_acronym",
+        "ca_05_pagination"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_32_grade",
+        "ca_15_intersection",
+        "ca_08_phone"
+      ]
+    },
+    {
+      "tasks": [
+        "text_10_lab_anomalies",
+        "text_16_contract_termination",
+        "text_33_climate_thresholds"
+      ]
+    },
+    {
+      "tasks": [
+        "data_01_support_case_escalations",
+        "data_16_procurement_finance_review",
+        "data_26_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_29_email_mask",
+        "ca_37_buckets",
+        "ca_35_transactions"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_07_compact",
+        "ca_34_cart_total",
+        "ca_28_ranges"
+      ]
+    },
+    {
+      "tasks": [
+        "text_15_lab_results_recheck",
+        "text_02_family_medical_pickups",
+        "text_46_online_course_progress"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_27_initials",
+        "ca_44_inventory",
+        "ca_47_time"
+      ]
+    },
+    {
+      "tasks": [
+        "text_19_warehouse_substitutions",
+        "text_08_algebra_constraints",
+        "text_34_bio_experiment_results"
+      ]
+    }
+  ]
+}

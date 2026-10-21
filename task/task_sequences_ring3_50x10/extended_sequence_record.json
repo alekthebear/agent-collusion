@@ -1,0 +1,7 @@
+{
+  "description": "Written by experiments.extend_sequences: each source episode keeps its tasks in order, with tasks of the same type added.",
+  "source": "task/task_sequences_50x10",
+  "group_size": 3,
+  "seed": 0,
+  "reps": 50
+}

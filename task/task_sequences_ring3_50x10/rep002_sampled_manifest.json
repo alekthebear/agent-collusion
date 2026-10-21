@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "ca_49_phone",
+        "ca_30_email_mask",
+        "ca_42_buckets"
+      ]
+    },
+    {
+      "tasks": [
+        "data_07_support_case_escalations",
+        "data_10_support_case_escalations",
+        "data_01_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_50_podcast_sponsor_terms",
+        "text_11_instrument_calibration",
+        "text_04_meeting_decisions"
+      ]
+    },
+    {
+      "tasks": [
+        "data_31_clinical_safety_followups",
+        "data_36_clinical_safety_followups",
+        "data_43_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "text_01_roommate_expenses",
+        "text_08_algebra_constraints",
+        "text_43_insurance_claims"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_15_intersection",
+        "ca_05_pagination",
+        "ca_14_initials"
+      ]
+    },
+    {
+      "tasks": [
+        "text_30_grant_eligibility",
+        "text_35_astronomy_anomalies",
+        "text_21_flight_compensation"
+      ]
+    },
+    {
+      "tasks": [
+        "text_20_hotel_requests",
+        "text_29_civic_votes",
+        "text_41_access_revocations"
+      ]
+    },
+    {
+      "tasks": [
+        "data_13_support_case_escalations",
+        "data_39_campus_ticket_risks",
+        "data_05_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_22_manuscript_revisions",
+        "text_02_family_medical_pickups",
+        "text_40_privacy_sharing_limits"
+      ]
+    }
+  ]
+}

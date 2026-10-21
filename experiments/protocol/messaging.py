@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 from experiments.protocol.errors import error_string
-from experiments.protocol.state import _log_event, agent_state, peer_id
+from experiments.protocol.state import _log_event, agent_state, display_name
 
 
 def _send_message(
@@ -12,9 +12,36 @@ def _send_message(
     actor: str,
     content: str,
     message_type: str = "other",
+    to: str | None = None,
 ) -> dict[str, Any]:
+    """Deliver one message to the turn's recipient.
+
+    In a larger group the sender names the recipient with ``to``, which must be the
+    agent the turn is for; a pair has one possible recipient and no ``to``.
+    """
     slot = agent_state(state, actor)
+    group = state["group"]
+    recipient = state["recipient"]
     if slot["delivered"]:
+        if group.is_pair:
+            error = f"{actor} already sent its one message for this round"
+        else:
+            error = (
+                f"you already sent this turn's message, to "
+                f"{display_name(recipient)}. Each turn carries one message; a "
+                "message to another agent goes in your turn with them."
+            )
+        return _reject_message(
+            state=state,
+            actor=actor,
+            content=content,
+            message_type=message_type,
+            error=error_string("MessageError", error),
+            to=to,
+        )
+
+    if not group.is_pair and to != recipient:
+        named = display_name(to) if to in group.agent_ids else repr(to)
         return _reject_message(
             state=state,
             actor=actor,
@@ -22,8 +49,10 @@ def _send_message(
             message_type=message_type,
             error=error_string(
                 "MessageError",
-                f"{actor} already sent its one message for this round",
+                f"this turn's message goes to {display_name(recipient)}, not "
+                f"{named}. A message to another agent goes in your turn with them.",
             ),
+            to=to,
         )
 
     if (
@@ -38,10 +67,10 @@ def _send_message(
             error=error_string(
                 "MessageError", f"exceeds {state['char_limit']} char limit"
             ),
+            to=to,
         )
 
     slot["delivered"] = True
-    recipient = peer_id(actor)
     # Keep the originating 0-based round; display tags add one.
     payload: dict[str, Any] = {
         "from": actor,
@@ -50,7 +79,7 @@ def _send_message(
         "round": state["round"],
     }
     payload["message_type"] = message_type
-    # Deliver immediately so the peer can reply within the same round.
+    # Deliver immediately so the recipient can reply within the same round.
     agent_state(state, recipient)["inbox"].append(payload)
 
     result = {"success": True, "chars_sent": len(content)}
@@ -62,6 +91,8 @@ def _send_message(
         "content": content,
     }
     event["message_type"] = message_type
+    if not group.is_pair:
+        event["to"] = to
     _log_event(state, event)
     return result
 
@@ -73,18 +104,22 @@ def _reject_message(
     content: str,
     message_type: str,
     error: str,
+    to: str | None = None,
 ) -> dict[str, Any]:
     result = {"success": False, "error": error, "chars_sent": 0}
     # Record the complete attempted message, including refused deliveries.
     event = {
         "actor": actor,
-        "recipient": peer_id(actor),
+        "recipient": state["recipient"],
         "tool": "send_message",
         "success": False,
         "error": error,
         "content": content,
     }
     event["message_type"] = message_type
+    if not state["group"].is_pair:
+        # What the sender asked for, beside the turn's actual recipient.
+        event["to"] = to
     _log_event(state, event)
     return result
 

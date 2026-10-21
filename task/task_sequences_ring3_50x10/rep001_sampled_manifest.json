@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "data_15_procurement_finance_review",
+        "data_36_clinical_safety_followups",
+        "data_44_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_39_topn",
+        "ca_16_window",
+        "ca_03_roman"
+      ]
+    },
+    {
+      "tasks": [
+        "text_46_online_course_progress",
+        "text_17_audit_remediation",
+        "text_08_algebra_constraints"
+      ]
+    },
+    {
+      "tasks": [
+        "data_19_procurement_finance_review",
+        "data_25_procurement_finance_review",
+        "data_45_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_18_password",
+        "ca_10_dedupe",
+        "ca_27_initials"
+      ]
+    },
+    {
+      "tasks": [
+        "data_42_campus_ticket_risks",
+        "data_09_support_case_escalations",
+        "data_26_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_34_cart_total",
+        "ca_07_compact",
+        "ca_45_ranges"
+      ]
+    },
+    {
+      "tasks": [
+        "data_22_procurement_finance_review",
+        "data_37_clinical_safety_followups",
+        "data_29_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "data_24_procurement_finance_review",
+        "data_38_clinical_safety_followups",
+        "data_04_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_16_contract_termination",
+        "text_39_inspection_repairs",
+        "text_28_promotion_exclusions"
+      ]
+    }
+  ]
+}

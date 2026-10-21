@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "data_33_clinical_safety_followups",
+        "data_20_procurement_finance_review",
+        "data_05_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_08_algebra_constraints",
+        "text_21_flight_compensation",
+        "text_39_inspection_repairs"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_08_phone",
+        "ca_04_slugify",
+        "ca_43_acronym"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_20_acronym",
+        "ca_37_buckets",
+        "ca_40_inventory"
+      ]
+    },
+    {
+      "tasks": [
+        "data_48_campus_ticket_risks",
+        "data_03_support_case_escalations",
+        "data_01_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_35_transactions",
+        "ca_33_normalize",
+        "ca_09_compact"
+      ]
+    },
+    {
+      "tasks": [
+        "text_32_script_relationships",
+        "text_40_privacy_sharing_limits",
+        "text_24_reviewer_must_respond"
+      ]
+    },
+    {
+      "tasks": [
+        "data_43_campus_ticket_risks",
+        "data_36_clinical_safety_followups",
+        "data_23_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_11_date",
+        "ca_47_time",
+        "ca_28_ranges"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_05_pagination",
+        "ca_22_balance",
+        "ca_17_csv"
+      ]
+    }
+  ]
+}

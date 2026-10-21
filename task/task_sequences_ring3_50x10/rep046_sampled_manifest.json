@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_50_podcast_sponsor_terms",
+        "text_43_insurance_claims",
+        "text_11_instrument_calibration"
+      ]
+    },
+    {
+      "tasks": [
+        "data_50_campus_ticket_risks",
+        "data_08_support_case_escalations",
+        "data_38_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_24_slugify",
+        "ca_37_buckets",
+        "ca_34_cart_total"
+      ]
+    },
+    {
+      "tasks": [
+        "data_44_campus_ticket_risks",
+        "data_40_campus_ticket_risks",
+        "data_17_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "text_10_lab_anomalies",
+        "text_45_museum_loans",
+        "text_37_allergen_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "text_04_meeting_decisions",
+        "text_40_privacy_sharing_limits",
+        "text_48_game_patch_notes"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_13_intersection",
+        "ca_47_time",
+        "ca_48_pagination"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_35_transactions",
+        "ca_25_balance",
+        "ca_28_ranges"
+      ]
+    },
+    {
+      "tasks": [
+        "text_41_access_revocations",
+        "text_46_online_course_progress",
+        "text_08_algebra_constraints"
+      ]
+    },
+    {
+      "tasks": [
+        "data_31_clinical_safety_followups",
+        "data_46_campus_ticket_risks",
+        "data_07_support_case_escalations"
+      ]
+    }
+  ]
+}

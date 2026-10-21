@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "data_06_support_case_escalations",
+        "data_41_campus_ticket_risks",
+        "data_17_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_12_grade",
+        "ca_07_compact",
+        "ca_06_dedupe"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_49_phone",
+        "ca_38_csv",
+        "ca_31_transactions"
+      ]
+    },
+    {
+      "tasks": [
+        "data_36_clinical_safety_followups",
+        "data_16_procurement_finance_review",
+        "data_03_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "data_04_support_case_escalations",
+        "data_22_procurement_finance_review",
+        "data_40_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_36_date",
+        "ca_43_acronym",
+        "ca_14_initials"
+      ]
+    },
+    {
+      "tasks": [
+        "text_27_return_eligibility",
+        "text_14_discharge_followups",
+        "text_09_syllabus_exceptions"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_41_normalize",
+        "ca_03_roman",
+        "ca_19_cart_total"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_30_email_mask",
+        "ca_37_buckets",
+        "ca_48_pagination"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_22_balance",
+        "ca_34_cart_total",
+        "ca_10_dedupe"
+      ]
+    }
+  ]
+}

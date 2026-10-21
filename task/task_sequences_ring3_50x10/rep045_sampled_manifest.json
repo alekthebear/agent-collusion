@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_16_contract_termination",
+        "text_35_astronomy_anomalies",
+        "text_18_shipment_delays"
+      ]
+    },
+    {
+      "tasks": [
+        "data_35_clinical_safety_followups",
+        "data_44_campus_ticket_risks",
+        "data_31_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_22_balance",
+        "ca_42_buckets",
+        "ca_14_initials"
+      ]
+    },
+    {
+      "tasks": [
+        "data_29_clinical_safety_followups",
+        "data_17_procurement_finance_review",
+        "data_38_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_46_window",
+        "ca_12_grade",
+        "ca_13_intersection"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_03_roman",
+        "ca_23_temperature",
+        "ca_41_normalize"
+      ]
+    },
+    {
+      "tasks": [
+        "data_08_support_case_escalations",
+        "data_26_procurement_finance_review",
+        "data_41_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_50_password",
+        "ca_24_slugify",
+        "ca_11_date"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_19_cart_total",
+        "ca_07_compact",
+        "ca_21_roman"
+      ]
+    },
+    {
+      "tasks": [
+        "text_11_instrument_calibration",
+        "text_06_earnings_margin_risks",
+        "text_26_bug_triage_p0"
+      ]
+    }
+  ]
+}

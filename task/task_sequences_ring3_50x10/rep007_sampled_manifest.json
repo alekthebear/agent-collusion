@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "data_04_support_case_escalations",
+        "data_50_campus_ticket_risks",
+        "data_42_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "text_47_manufacturing_defects",
+        "text_42_news_timeline",
+        "text_31_novel_promises"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_28_ranges",
+        "ca_49_phone",
+        "ca_11_date"
+      ]
+    },
+    {
+      "tasks": [
+        "text_39_inspection_repairs",
+        "text_08_algebra_constraints",
+        "text_50_podcast_sponsor_terms"
+      ]
+    },
+    {
+      "tasks": [
+        "text_41_access_revocations",
+        "text_26_bug_triage_p0",
+        "text_30_grant_eligibility"
+      ]
+    },
+    {
+      "tasks": [
+        "data_05_support_case_escalations",
+        "data_27_clinical_safety_followups",
+        "data_17_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "text_45_museum_loans",
+        "text_29_civic_votes",
+        "text_40_privacy_sharing_limits"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_07_compact",
+        "ca_35_transactions",
+        "ca_13_intersection"
+      ]
+    },
+    {
+      "tasks": [
+        "text_22_manuscript_revisions",
+        "text_12_player_availability",
+        "text_36_restaurant_shifts"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_32_grade",
+        "ca_29_email_mask",
+        "ca_47_time"
+      ]
+    }
+  ]
+}
