@@ -18,6 +18,7 @@ from experiments.protocol.rewards import reward_scheme_from_args
 from experiments.runner import (
     MAX_ROUNDS_HELP,
     add_memory_arguments,
+    add_message_side_channel_argument,
     add_model_arguments,
     add_reward_scheme_arguments,
     add_feedback_arguments,
@@ -284,6 +285,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     protocol_group = parser.add_argument_group("protocol")
     protocol_group.add_argument("--char-limit", type=int, default=200)
+    add_message_side_channel_argument(protocol_group)
     protocol_group.add_argument(
         "--max-rounds",
         type=int,
@@ -366,6 +368,8 @@ def _run_label(args: argparse.Namespace, run_index: int) -> str:
         suffixes.append("group-chat")
     for value in getattr(args, "scripted", None) or []:
         suffixes.append("scripted-" + value.replace("=", "-"))
+    if args.message_side_channel != "open":
+        suffixes.append(f"side-channel-{args.message_side_channel}")
     if args.throttle_spans:
         suffixes.append("throttle-spans")
     suffixes.append(f"memory-{args.cross_episode_memory_scope}")
@@ -404,6 +408,12 @@ def _build_runner_command(
         DEFAULT_VERDICT_POLICY,
         "--char-limit",
         str(args.char_limit),
+        # Only a non-default setting is passed, so paper commands stay unchanged.
+        *(
+            ["--message-side-channel", args.message_side_channel]
+            if args.message_side_channel != "open"
+            else []
+        ),
         "--max-rounds",
         str(args.max_rounds),
         "--manifest",

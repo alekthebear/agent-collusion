@@ -829,6 +829,7 @@ def run_agent_turn(
         ),
         group_chat=state["group"].is_group_chat,
         multi_review=not state["group"].single_review,
+        message_side_channel=state["message_side_channel"],
     )
     extra = get_litellm_completion_kwargs(
         model,
@@ -911,6 +912,7 @@ def run_reflection_turn(
         ),
         group_chat=state["group"].is_group_chat,
         multi_review=not state["group"].single_review,
+        message_side_channel=state["message_side_channel"],
     )
     extra = get_litellm_completion_kwargs(model, reasoning_effort)
     response, choice_message, content, _ = _complete_with_retries(

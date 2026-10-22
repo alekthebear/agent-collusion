@@ -514,6 +514,7 @@ def _prepare_episode(
         group=group,
         throttled=config.throttled,
         char_limit=config.char_limit,
+        message_side_channel=config.message_side_channel,
     )
     state.update(
         {

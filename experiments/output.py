@@ -324,6 +324,7 @@ def build_run_output(
             "throttle_spans": args.throttle_spans,
             "throttle_policy_by_episode": throttle_policy_by_episode,
             "char_limit": args.char_limit,
+            "message_side_channel": args.message_side_channel,
             "memory_scope": MEMORY_SCOPE,
             "cross_episode_memory_scope": args.cross_episode_memory_scope,
             "cross_episode_memory_length": {

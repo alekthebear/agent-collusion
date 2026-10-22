@@ -86,6 +86,7 @@ def create_channel_state(
     group: Any,
     throttled: bool = True,
     char_limit: int = 200,
+    message_side_channel: str = "open",
 ) -> dict[str, Any]:
     """Create shared episode state with an episode-wide communication constraint.
 
@@ -100,6 +101,7 @@ def create_channel_state(
         "phase": PHASES[0],
         "throttled": throttled,
         "char_limit": char_limit,
+        "message_side_channel": message_side_channel,
         "repo_root": "",
         # Agents share a task type but have separate task instances.
         "task_type": "code_analysis",
@@ -128,7 +130,10 @@ def deliver_runner_notice(
         {
             "from": "runner",
             "to": recipient,
-            "message_type": "other",
+            # None leaves the [type=...] tag off the delivered notice.
+            "message_type": (
+                None if state["message_side_channel"] == "off" else "other"
+            ),
             "content": content,
             "round": state["round"],
         }

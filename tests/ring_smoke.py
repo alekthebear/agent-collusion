@@ -11,7 +11,9 @@ response the provider flags as an error, and once a runaway with no error flag (
 the tool-call limit); both must be retried, never executed. The
 checks cover message routing and
 turn order, what each agent can see, the names in feedback, and rewards under both
-reward scopes. No API calls.
+reward scopes. A ring is also run under each --message-side-channel setting with a
+300-character message_type label on every message: open delivers and shows it, and
+off never offers or shows a label. No API calls.
 
     python -m tests.ring_smoke
 """
@@ -49,10 +51,13 @@ def _tool_call(name: str, arguments: dict[str, Any], index: int) -> dict[str, An
 class ScriptedCompletion:
     """Act out each phase from the tools offered and the latest instruction."""
 
-    def __init__(self) -> None:
+    def __init__(self, label: str = "") -> None:
         self.calls = 0
         self.failure_sent = False
         self.runaway_sent = False
+        # A message_type label put on every message, to test the side channel.
+        self.label = label
+        self.label_offered = False
 
     def __call__(self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any):
         self.calls += 1
@@ -92,6 +97,16 @@ class ScriptedCompletion:
                 calls = [
                     _tool_call("send_message", {"to": to, "content": text}, self.calls)
                 ]
+            schema = next(
+                t for t in kwargs["tools"] if t["function"]["name"] == "send_message"
+            )
+            if "message_type" in schema["function"]["parameters"]["properties"]:
+                self.label_offered = True
+            if self.label:
+                for call in calls:
+                    arguments = json.loads(call["function"]["arguments"])
+                    arguments["message_type"] = self.label
+                    call["function"]["arguments"] = json.dumps(arguments)
             if not self.failure_sent:
                 # A failed generation: repeated calls, flagged "error" by the provider.
                 self.failure_sent = True
@@ -151,6 +166,8 @@ def run_ring(
     channel: str = "links",
     kind: str = "ring",
     scripted: tuple[str, ...] = (),
+    side_channel: str = "open",
+    completion: ScriptedCompletion | None = None,
 ) -> dict[str, Any]:
     from experiments import runner
 
@@ -158,6 +175,7 @@ def run_ring(
         *(arg for agent_id in scripted for arg in ("--scripted", f"{agent_id}=compliant")),
         "--group", kind,
         "--channel", channel,
+        "--message-side-channel", side_channel,
         "--model", "openrouter/google/gemini-3.1-flash-lite",
         "--reasoning-effort", "low",
         "--reward-scope", reward_scope,
@@ -171,7 +189,9 @@ def run_ring(
         try:
             with (
                 mock.patch.object(sys, "argv", argv),
-                mock.patch("experiments.agents.completion", ScriptedCompletion()),
+                mock.patch(
+                    "experiments.agents.completion", completion or ScriptedCompletion()
+                ),
                 mock.patch("experiments.agents.time.sleep"),
                 mock.patch.object(litellm, "completion", _no_network),
             ):
@@ -360,8 +380,51 @@ def check_scripted(
     return problems
 
 
+LONG_LABEL = "x" * 300
+
+
+def check_side_channel(
+    run: dict[str, Any], side_channel: str, completion: ScriptedCompletion
+) -> list[str]:
+    """A 300-character label on every message: delivered and shown (open), or never
+    offered and never shown (off)."""
+    problems = []
+    recorded = run["run_config"].get("message_side_channel")
+    if recorded != side_channel:
+        problems.append(f"run_config records {recorded!r}")
+    if completion.label_offered != (side_channel == "open"):
+        problems.append(f"message_type offered in the tool: {completion.label_offered}")
+    for index, episode in enumerate(run["results"]):
+        where = f"episode {index + 1}"
+        labels = {m.get("message_type") for m in episode["channel_transcript"]}
+        seen = "\n".join(
+            str(m.get("content"))
+            for agent in episode["agents"].values()
+            for m in agent["messages"]
+            if m["role"] == "user"
+        )
+        if side_channel == "open":
+            if labels != {LONG_LABEL} or f"[type={LONG_LABEL}]" not in seen:
+                problems.append(f"{where}: the long label wasn't delivered and shown")
+        elif labels != {None} or "[type=" in seen:
+            problems.append(f"{where}: a label was recorded or a [type=] tag shown")
+    return problems
+
+
 def main() -> None:
     failed = False
+    for side_channel in ("open", "off"):
+        label = f"side channel {side_channel}"
+        completion = ScriptedCompletion(label=LONG_LABEL)
+        problems = check_side_channel(
+            run_ring("separate", side_channel=side_channel, completion=completion),
+            side_channel,
+            completion,
+        )
+        for problem in problems[:20]:
+            print(f"[{label}] {problem}")
+        failed = failed or bool(problems)
+        print(f"[{label}] {'FAILED' if problems else 'side-channel checks pass'}")
     setups = [
         (kind, channel, reward_scope, ())
         for kind, channel in (("ring", "links"), ("ring", "group"), ("complete", "links"))

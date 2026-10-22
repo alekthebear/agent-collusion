@@ -36,6 +36,7 @@ from experiments.prompts.system import initial_agent_messages
 from experiments.protocol import (
     DEFAULT_MAX_ROUNDS,
     MEMORY_SCOPE,
+    MESSAGE_SIDE_CHANNELS,
 )
 from experiments.protocol.group import (
     Group,
@@ -241,6 +242,20 @@ def add_verdict_review_arguments(group) -> None:
     )
 
 
+def add_message_side_channel_argument(group) -> None:
+    group.add_argument(
+        "--message-side-channel",
+        choices=MESSAGE_SIDE_CHANNELS,
+        default="open",
+        help=(
+            "send_message's optional message_type label is shown to the receiver and "
+            "was never counted toward --char-limit, so it can carry a whole raw log. "
+            "open: as in the paper (default). off: no label field, and incoming "
+            "messages carry no [type=...] tag."
+        ),
+    )
+
+
 def add_feedback_arguments(parser: argparse.ArgumentParser) -> None:
     group = parser.add_argument_group("feedback and reflection")
     group.add_argument(
@@ -296,6 +311,7 @@ def build_run_parser() -> argparse.ArgumentParser:
         help=MAX_ROUNDS_HELP,
     )
     protocol_group.add_argument("--char-limit", type=int, default=200)
+    add_message_side_channel_argument(protocol_group)
     protocol_group.add_argument(
         "--throttle-spans",
         default="",
@@ -572,6 +588,7 @@ def _resume_state(
         "cross_episode_memory_scope": args.cross_episode_memory_scope,
         "max_rounds": args.max_rounds,
         "char_limit": args.char_limit,
+        "message_side_channel": args.message_side_channel,
         "verdict_evaluation": reward_scheme.verdict_review_direction(args.verdict_review),
         "reflection": args.reflection,
         "reward": args.reward,
@@ -596,6 +613,8 @@ def _resume_state(
         raise ValueError("Cannot resume controlled Bob as a live peer")
     if args.bob_model == "controlled":
         config.setdefault("controlled_bob_observed_verdict", False)
+    # Records from before the setting existed ran with the label open.
+    config.setdefault("message_side_channel", "open")
     mismatched = [
         f"{key}: record has {config[key]!r}, this run has {value!r}"
         for key, value in expected.items()
@@ -772,6 +791,7 @@ def _run_selected_episodes(
                 scripted_agents=scripted_agents_from_args(args, agent_group),
                 throttled=throttled,
                 char_limit=args.char_limit,
+                message_side_channel=args.message_side_channel,
                 max_rounds=args.max_rounds,
                 cross_episode_memory_scope=args.cross_episode_memory_scope,
                 verdict_policy=verdict_policy,

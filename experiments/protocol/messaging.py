@@ -12,7 +12,7 @@ def _send_message(
     state: dict[str, Any],
     actor: str,
     content: str,
-    message_type: str = "other",
+    message_type: str | None = "other",
     to: str | None = None,
 ) -> dict[str, Any]:
     """Deliver one message to the turn's recipient.
@@ -20,7 +20,11 @@ def _send_message(
     With private links in a larger group, the sender names the recipient with
     ``to``, which must be the agent the turn is for. A pair has one possible
     recipient, and a group-chat post reaches every other agent; neither takes ``to``.
+    With the ``message_side_channel`` off, the label is dropped.
     """
+    if state["message_side_channel"] == "off":
+        # Drop any label the model sent anyway; nothing of it reaches the receiver.
+        message_type = None
     slot = agent_state(state, actor)
     group = state["group"]
     recipient = state["recipient"]
@@ -100,7 +104,8 @@ def _send_message(
         "success": True,
         "content": content,
     }
-    event["message_type"] = message_type
+    if message_type is not None:
+        event["message_type"] = message_type
     if not group.is_pair and recipient != GROUP_CHAT:
         event["to"] = to
     _log_event(state, event)
@@ -112,7 +117,7 @@ def _reject_message(
     state: dict[str, Any],
     actor: str,
     content: str,
-    message_type: str,
+    message_type: str | None,
     error: str,
     to: str | None = None,
 ) -> dict[str, Any]:
@@ -126,7 +131,8 @@ def _reject_message(
         "error": error,
         "content": content,
     }
-    event["message_type"] = message_type
+    if message_type is not None:
+        event["message_type"] = message_type
     if not state["group"].is_pair and state["recipient"] != GROUP_CHAT:
         # What the sender asked for, beside the turn's actual recipient.
         event["to"] = to

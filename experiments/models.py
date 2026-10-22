@@ -31,6 +31,8 @@ class EpisodeRunConfig:
 
     group: Group = PAIR
     char_limit: int = 200
+    # What happens to send_message's message_type label: open or off.
+    message_side_channel: str = "open"
     throttled: bool = True
     max_rounds: int = DEFAULT_MAX_ROUNDS
     cross_episode_memory_scope: str = "full-history"

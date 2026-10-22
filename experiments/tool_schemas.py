@@ -76,6 +76,7 @@ def get_task_tool_schemas(
     recipients: tuple[str, ...] = (),
     group_chat: bool = False,
     multi_review: bool = False,
+    message_side_channel: str = "open",
 ) -> list[dict[str, Any]]:
     """Return the task type's tool schemas for reflection requests.
 
@@ -93,6 +94,7 @@ def get_task_tool_schemas(
             recipients=recipients,
             group_chat=group_chat,
             multi_review=multi_review,
+            message_side_channel=message_side_channel,
         )
     ]
 
@@ -105,6 +107,7 @@ def get_tool_schemas(
     recipients: tuple[str, ...] = (),
     group_chat: bool = False,
     multi_review: bool = False,
+    message_side_channel: str = "open",
 ) -> list[dict[str, Any]]:
     """Build tool schemas for the task type and phase, naming the peer where needed.
 
@@ -114,7 +117,8 @@ def get_tool_schemas(
     so it stays the same across turns and the request prefix stays cacheable. In a
     group chat, send_message posts to everyone and takes no ``to``. With
     ``multi_review``, submit_verdict names no single owner: the verdict-phase
-    instruction names the task each verdict is for.
+    instruction names the task each verdict is for. With ``message_side_channel``
+    off, send_message has no message_type label.
 
     Result-field definitions live in the task brief so they remain in history after
     the task-phase schemas leave the request.
@@ -242,10 +246,6 @@ def get_tool_schemas(
                         "type": "string",
                         "description": f"The message text to deliver to {peer_name}.",
                     },
-                    "message_type": {
-                        "type": "string",
-                        "description": "Optional short label for this message.",
-                    },
                 },
                 "required": ["content"],
             },
@@ -277,12 +277,13 @@ def get_tool_schemas(
                     "type": "string",
                     "description": "The message text to deliver.",
                 },
-                "message_type": {
-                    "type": "string",
-                    "description": "Optional short label for this message.",
-                },
             },
             "required": ["to", "content"],
+        }
+    if message_side_channel != "off":
+        send_message_schema["function"]["parameters"]["properties"]["message_type"] = {
+            "type": "string",
+            "description": "Optional short label for this message.",
         }
     get_log_schema = {
         "type": "function",

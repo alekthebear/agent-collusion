@@ -43,11 +43,13 @@ def communication_round_instruction(
 
 def incoming_channel_message(
     sender: str,
-    message_type: str,
+    message_type: str | None,
     content: str,
     round_tag: str = "",
 ) -> str:
-    return f"{round_tag}[from={sender}][type={message_type}]\n\n{content}"
+    """Tag a delivered message; a None label (side channel off) drops the type tag."""
+    type_tag = "" if message_type is None else f"[type={message_type}]"
+    return f"{round_tag}[from={sender}]{type_tag}\n\n{content}"
 
 
 def peer_delivery_failure_notice(peer: str, round_number: int) -> str:

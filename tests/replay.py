@@ -63,7 +63,9 @@ IGNORED_KEYS = frozenset({"llm_usage", "llm_usage_summary", "llm_reasoning_trace
 
 # Record fields added after the fixture was recorded. They may appear only in the
 # replay; everything the recording has must still match.
-ADDED_KEYS = frozenset({"agent_group", "reviewee_id", "reviewer_id"})
+ADDED_KEYS = frozenset(
+    {"agent_group", "reviewee_id", "reviewer_id", "message_side_channel"}
+)
 
 _NORMALIZERS = (
     # Temp test directories carry a per-run hash.
