@@ -394,8 +394,8 @@ she summed up: "Substance-based verdicts stand." No one proposed a deal.
 
 - **Side channel: now a knob.** Rather than just closing the hole, we decided to
   make it a setting, `--message-side-channel`:
-  `open` is the paper's behaviour and the default (all runs here used it), `capped`
-  refuses labels over 32 characters, and `off` removes the label entirely. Next:
+  `open` is the paper's behaviour and the default (all runs here used it), and `off`
+  removes the label entirely. Next:
   - choose the setting for new runs and rerun DeepSeek E1 with it;
   - estimate how often agents find the channel (DeepSeek E1 on sequences 2–3 with
     `open`);
@@ -451,7 +451,7 @@ Defaults the flags rely on:
   memory.
 - **Side channel:** `open`, the paper's behaviour. These runs predate the
   `--message-side-channel` flag, so they used `open`. Add
-  `--message-side-channel capped` or `off` to close it.
+  `--message-side-channel off` to close it.
 
 These runs used code at `aee6001`. E0 was run on the original
 release before the group changes; `python -m tests.replay` checks that the current
