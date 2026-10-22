@@ -20,7 +20,7 @@ from experiments.cli import _sequence_record_manifests
 from experiments.controlled import cache_path, save_bob
 from experiments.episode_runner import (
     _open_episode,
-    _prepare_pair,
+    _prepare_episode,
     _run_agent_attempts,
     log_progress,
 )
@@ -28,7 +28,7 @@ from experiments.llm import REASONING_EFFORT_CHOICES
 from experiments.models import AgentConfig, AgentRuntime, EpisodeRunConfig
 from experiments.prompts.system import initial_agent_messages
 from experiments.protocol.state import agent_state, set_phase
-from experiments.tasks import DEFAULT_TASK_SEQUENCES, read_task_pairs
+from experiments.tasks import DEFAULT_TASK_SEQUENCES, read_task_groups
 from experiments.usage import LLM_USAGE_JOURNAL_FILENAME
 
 
@@ -38,7 +38,7 @@ def record_episode(*, pair, agent_config, repo_root, config, label):
     Returns None when the episode is already cached, so a resumed run neither
     repeats nor overwrites it.
     """
-    prepared = _prepare_pair(pair=pair, repo_root=repo_root, config=config)
+    prepared = _prepare_episode(tasks=pair, repo_root=repo_root, config=config)
     if cache_path(prepared, config).exists():
         return None
     log_progress(f"Recording {label}", config.verbose)
@@ -98,7 +98,7 @@ def main() -> None:
         cache_root = repo_root / cache_root
 
     for rep in range(args.start_index, args.start_index + args.repeats):
-        pairs = read_task_pairs(manifests[rep - 1], repo_root)
+        pairs = read_task_groups(manifests[rep - 1], repo_root)
         for episode_index, pair in enumerate(pairs):
             config = EpisodeRunConfig(
                 controlled_bob_cache=str(cache_root / f"rep{rep:03d}"),

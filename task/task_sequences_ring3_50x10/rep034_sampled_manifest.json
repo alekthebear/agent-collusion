@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_28_promotion_exclusions",
+        "text_29_civic_votes",
+        "text_44_energy_outages"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_11_date",
+        "ca_15_intersection",
+        "ca_46_window"
+      ]
+    },
+    {
+      "tasks": [
+        "data_29_clinical_safety_followups",
+        "data_35_clinical_safety_followups",
+        "data_44_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "data_02_support_case_escalations",
+        "data_34_clinical_safety_followups",
+        "data_10_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_04_slugify",
+        "ca_37_buckets",
+        "ca_07_compact"
+      ]
+    },
+    {
+      "tasks": [
+        "data_19_procurement_finance_review",
+        "data_38_clinical_safety_followups",
+        "data_40_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_26_temperature",
+        "ca_41_normalize",
+        "ca_43_acronym"
+      ]
+    },
+    {
+      "tasks": [
+        "text_48_game_patch_notes",
+        "text_12_player_availability",
+        "text_05_slack_blockers"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_50_password",
+        "ca_48_pagination",
+        "ca_47_time"
+      ]
+    },
+    {
+      "tasks": [
+        "data_04_support_case_escalations",
+        "data_20_procurement_finance_review",
+        "data_21_procurement_finance_review"
+      ]
+    }
+  ]
+}

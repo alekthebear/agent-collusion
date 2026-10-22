@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "data_20_procurement_finance_review",
+        "data_41_campus_ticket_risks",
+        "data_14_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "data_30_clinical_safety_followups",
+        "data_45_campus_ticket_risks",
+        "data_17_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "data_05_support_case_escalations",
+        "data_10_support_case_escalations",
+        "data_04_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_50_password",
+        "ca_25_balance",
+        "ca_09_compact"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_20_acronym",
+        "ca_12_grade",
+        "ca_27_initials"
+      ]
+    },
+    {
+      "tasks": [
+        "data_38_clinical_safety_followups",
+        "data_47_campus_ticket_risks",
+        "data_40_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_42_buckets",
+        "ca_06_dedupe",
+        "ca_38_csv"
+      ]
+    },
+    {
+      "tasks": [
+        "data_09_support_case_escalations",
+        "data_37_clinical_safety_followups",
+        "data_42_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "text_29_civic_votes",
+        "text_21_flight_compensation",
+        "text_11_instrument_calibration"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_14_initials",
+        "ca_04_slugify",
+        "ca_15_intersection"
+      ]
+    }
+  ]
+}

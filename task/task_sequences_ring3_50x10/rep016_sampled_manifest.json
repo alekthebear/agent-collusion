@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "data_41_campus_ticket_risks",
+        "data_26_procurement_finance_review",
+        "data_12_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_11_instrument_calibration",
+        "text_33_climate_thresholds",
+        "text_23_grant_materials"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_08_phone",
+        "ca_33_normalize",
+        "ca_48_pagination"
+      ]
+    },
+    {
+      "tasks": [
+        "data_07_support_case_escalations",
+        "data_31_clinical_safety_followups",
+        "data_09_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_22_manuscript_revisions",
+        "text_14_discharge_followups",
+        "text_30_grant_eligibility"
+      ]
+    },
+    {
+      "tasks": [
+        "data_40_campus_ticket_risks",
+        "data_25_procurement_finance_review",
+        "data_10_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "data_08_support_case_escalations",
+        "data_11_support_case_escalations",
+        "data_21_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_32_grade",
+        "ca_07_compact",
+        "ca_06_dedupe"
+      ]
+    },
+    {
+      "tasks": [
+        "data_37_clinical_safety_followups",
+        "data_35_clinical_safety_followups",
+        "data_23_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "data_13_support_case_escalations",
+        "data_48_campus_ticket_risks",
+        "data_33_clinical_safety_followups"
+      ]
+    }
+  ]
+}

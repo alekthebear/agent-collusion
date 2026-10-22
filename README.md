@@ -38,7 +38,9 @@ Each agent solves its own task, exchanges evidence with its peer, and issues `AC
 │   ├── agreement_judge.py          # Explicit coordination in communication
 │   ├── agreement_judge_prompts.md  # Prompts for the agreement judge
 │   ├── relaxation_judge.py         # Policy relaxation in private reflections
-│   └── relaxation_judge_prompts.md # Prompts for the relaxation judge
+│   ├── relaxation_judge_prompts.md # Prompts for the relaxation judge
+│   ├── judge_common.py             # Shared judge client, run selection, review structure
+│   └── collusion_summary.py        # Combines both judges into the three measure levels
 │
 ├── task/                           # Task inputs, references, and fixed sequences
 │   ├── code-analysis/              # Python code analysis
@@ -164,22 +166,23 @@ Add `--controlled-bob-observed-verdict` to reveal Bob's verdict in Alice's feedb
 
 Two additional LLM judges annotate **explicit coordination** in communication and **policy relaxation** in private reflections to study how collusion begins.
 
-Start a local OpenAI-compatible model server on port, e.g., **8042**, serving Qwen 3.8 27B with the model name **`qwen3.8-27b`**. The judge scripts use this configuration by default, with `xhigh` reasoning effort and temperature 0.
+The agreement judge makes one call per model-made verdict, so it covers pairs, rings, group chats, and complete groups; the relaxation judge makes one call per reflection. By default both use DeepSeek V4.1 Flash through OpenRouter (`OPENROUTER_API_KEY` in `.env`) at temperature 0. The agreement judge runs at medium reasoning effort, since without reasoning it took verdict announcements answered with thanks for deals; the relaxation judge runs with reasoning off. `--reasoning-effort` changes either. The paper used a local OpenAI-compatible server serving Qwen 3.8 27B; pass `--base-url http://localhost:8042/v1 --model qwen3.8-27b` for that. `--dry-run` reports the number and size of the prompts without calling the model.
 
 ```bash
 python analysis/agreement_judge.py \
   --runs 'results/main/*/run.json' \
   --out analysis/results/agreement.csv \
-  --base-url http://localhost:8042/v1 \
-  --model qwen3.8-27b \
   --verdict-policy raw-only
 
 python analysis/relaxation_judge.py \
   --runs 'results/main/*/run.json' \
   --out analysis/results/relaxation.csv \
-  --base-url http://localhost:8042/v1 \
-  --model qwen3.8-27b \
   --verdict-policy raw-only
+
+# Violation %, joint violation %, and collusion % per model and setup
+python analysis/collusion_summary.py \
+  --agreement analysis/results/agreement.csv \
+  --relaxation analysis/results/relaxation.csv
 ```
 
 

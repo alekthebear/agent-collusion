@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "data_36_clinical_safety_followups",
+        "data_17_procurement_finance_review",
+        "data_46_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "text_25_api_breaking_changes",
+        "text_16_contract_termination",
+        "text_26_bug_triage_p0"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_27_initials",
+        "ca_05_pagination",
+        "ca_20_acronym"
+      ]
+    },
+    {
+      "tasks": [
+        "data_42_campus_ticket_risks",
+        "data_03_support_case_escalations",
+        "data_47_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "text_08_algebra_constraints",
+        "text_18_shipment_delays",
+        "text_50_podcast_sponsor_terms"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_30_email_mask",
+        "ca_34_cart_total",
+        "ca_12_grade"
+      ]
+    },
+    {
+      "tasks": [
+        "data_07_support_case_escalations",
+        "data_29_clinical_safety_followups",
+        "data_25_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "text_05_slack_blockers",
+        "text_12_player_availability",
+        "text_29_civic_votes"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_36_date",
+        "ca_17_csv",
+        "ca_06_dedupe"
+      ]
+    },
+    {
+      "tasks": [
+        "data_10_support_case_escalations",
+        "data_49_campus_ticket_risks",
+        "data_39_campus_ticket_risks"
+      ]
+    }
+  ]
+}

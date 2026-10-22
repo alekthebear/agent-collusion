@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_20_hotel_requests",
+        "text_18_shipment_delays",
+        "text_43_insurance_claims"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_26_temperature",
+        "ca_47_time",
+        "ca_08_phone"
+      ]
+    },
+    {
+      "tasks": [
+        "data_23_procurement_finance_review",
+        "data_40_campus_ticket_risks",
+        "data_49_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_43_acronym",
+        "ca_42_buckets",
+        "ca_36_date"
+      ]
+    },
+    {
+      "tasks": [
+        "text_48_game_patch_notes",
+        "text_10_lab_anomalies",
+        "text_46_online_course_progress"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_19_cart_total",
+        "ca_22_balance",
+        "ca_20_acronym"
+      ]
+    },
+    {
+      "tasks": [
+        "text_14_discharge_followups",
+        "text_41_access_revocations",
+        "text_02_family_medical_pickups"
+      ]
+    },
+    {
+      "tasks": [
+        "data_34_clinical_safety_followups",
+        "data_01_support_case_escalations",
+        "data_13_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_50_password",
+        "ca_05_pagination",
+        "ca_17_csv"
+      ]
+    },
+    {
+      "tasks": [
+        "data_46_campus_ticket_risks",
+        "data_50_campus_ticket_risks",
+        "data_06_support_case_escalations"
+      ]
+    }
+  ]
+}

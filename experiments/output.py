@@ -12,9 +12,10 @@ from experiments.models import (
     TaskEvaluation,
     EpisodeOutcomes,
     EpisodeRunConfig,
-    PreparedPair,
+    PreparedEpisode,
 )
 from experiments.prompts.policies import (
+    group_reward_objective_text,
     verdict_policy_section,
     reward_objective_text,
 )
@@ -25,8 +26,9 @@ from experiments.protocol import (
     TASK_ATTEMPTS,
     VERDICT_ATTEMPTS,
 )
+from experiments.protocol.group import group_from_args, scripted_agents_from_args
 from experiments.protocol.rewards import reward_scheme_from_args
-from experiments.protocol.state import AGENT_IDS, agent_state, display_name, peer_id
+from experiments.protocol.state import agent_state, display_name
 from experiments.usage import (
     LLM_USAGE_JOURNAL_FILENAME,
     summarize_llm_usage,
@@ -49,7 +51,7 @@ def _build_channel_transcript(
                 "event_id": event.get("event_id"),
                 "round": event.get("round"),
                 "sender": sender,
-                "receiver": str(event.get("recipient") or peer_id(sender)),
+                "receiver": str(event.get("recipient", "")),
                 **({"message_type": message_type} if message_type else {}),
                 "content": content,
             }
@@ -60,7 +62,7 @@ def _build_channel_transcript(
 def _build_agent_result(
     *,
     agent_id: str,
-    prepared: PreparedPair,
+    prepared: PreparedEpisode,
     evaluations: dict[str, TaskEvaluation],
     outcomes: EpisodeOutcomes,
     repo_root: Path,
@@ -68,16 +70,23 @@ def _build_agent_result(
 ) -> dict[str, Any]:
     """Serialize one agent's result.
 
-    Ground truth describes its own task; verdict and verdict_correct describe its peer.
+    Ground truth describes its own task; verdict and verdict_correct describe its
+    reviewee. ``peer_id`` repeats ``reviewee_id`` for the paper's analysis code. With
+    several reviewees, the single-verdict fields are empty and the per-reviewee
+    fields at the end hold the verdicts.
     """
+    group = prepared.state["group"]
     agent = prepared.agents[agent_id]
     task = agent.task
     slot = agent_state(prepared.state, agent_id)
     evaluation = evaluations[agent_id]
     outcome = outcomes.agents[agent_id]
-    return {
+    single = group.single_review
+    result = {
         "agent_id": agent_id,
-        "peer_id": peer_id(agent_id),
+        "peer_id": group.reviewee_of(agent_id) if single else None,
+        "reviewee_id": group.reviewee_of(agent_id) if single else None,
+        "reviewer_id": group.reviewer_of(agent_id) if single else None,
         "task_id": task["task_id"],
         "display_id": agent.display_id,
         "task_family": task.get("task_family"),
@@ -106,7 +115,7 @@ def _build_agent_result(
         "data_search_eval": evaluation.data_search,
         "private_raw_log": deepcopy(slot.get("private_raw_log", [])),
         "written_test_files": list(slot.get("written_test_files", [])),
-        # Score this agent's verdict against its peer's ground truth.
+        # Score this agent's verdict against its reviewee's ground truth.
         "verdict_submission": deepcopy(slot.get("verdict_submission")),
         "verdict": outcome.verdict,
         "verdict_correct": outcome.verdict_correct,
@@ -121,11 +130,27 @@ def _build_agent_result(
         "verdict_prompt": agent.verdict_prompt,
         "messages": snapshot_visible_messages(agent_messages[agent_id]),
     }
+    if not single:
+        result.update(
+            {
+                "reviewee_ids": list(group.reviewees_of(agent_id)),
+                "reviewer_ids": list(group.reviewers_of(agent_id)),
+                "verdict_submissions": {
+                    e: deepcopy(prepared.state["verdicts"][(agent_id, e)])
+                    for e in group.reviewees_of(agent_id)
+                },
+                "verdicts": outcome.verdicts,
+                "verdicts_correct": outcome.verdicts_correct,
+                "verdicts_forced": outcome.verdicts_forced,
+                "decision_on_own_task": outcome.decision_on_own_task,
+            }
+        )
+    return result
 
 
 def build_episode_result(
     *,
-    prepared: PreparedPair,
+    prepared: PreparedEpisode,
     evaluations: dict[str, TaskEvaluation],
     outcomes: EpisodeOutcomes,
     repo_root: Path,
@@ -135,11 +160,12 @@ def build_episode_result(
     agent_messages: dict[str, list[dict[str, Any]]],
 ) -> dict[str, Any]:
     state = prepared.state
+    agent_ids = config.group.agent_ids
     return {
         "episode_id": state["episode_id"],
         "task_type": prepared.task_type,
-        "task_ids": [prepared.agents[a].task["task_id"] for a in AGENT_IDS],
-        "display_ids": [prepared.agents[a].display_id for a in AGENT_IDS],
+        "task_ids": [prepared.agents[a].task["task_id"] for a in agent_ids],
+        "display_ids": [prepared.agents[a].display_id for a in agent_ids],
         "memory_scope": MEMORY_SCOPE,
         "verdict_policy": config.verdict_policy,
         "throttled": config.throttled,
@@ -156,7 +182,7 @@ def build_episode_result(
                 repo_root=repo_root,
                 agent_messages=agent_messages,
             )
-            for agent_id in AGENT_IDS
+            for agent_id in agent_ids
         },
         "llm_reasoning_traces": reasoning_traces,
         "llm_usage": usage_records,
@@ -173,24 +199,28 @@ def build_episode_result(
             "reward_scheme": config.reward_scheme.label,
             "reward_sharing": config.reward_scheme.sharing,
             "reward_terms": config.reward_scheme.terms,
+            # With several reviewees, each agent maps to its verdicts by reviewee.
             "verdict_correct_by_agent": {
-                agent_id: outcomes.agents[agent_id].verdict_correct
-                for agent_id in AGENT_IDS
+                agent_id: outcomes.agents[agent_id].verdicts_correct
+                or outcomes.agents[agent_id].verdict_correct
+                for agent_id in agent_ids
             },
             "verdict_by_agent": {
-                agent_id: outcomes.agents[agent_id].verdict for agent_id in AGENT_IDS
+                agent_id: outcomes.agents[agent_id].verdicts
+                or outcomes.agents[agent_id].verdict
+                for agent_id in agent_ids
             },
             "expected_verdict_by_agent": {
                 agent_id: evaluations[agent_id].expected_verdict
-                for agent_id in AGENT_IDS
+                for agent_id in agent_ids
             },
             "cross_episode_memory_scope": config.cross_episode_memory_scope,
             "policy_prompt_by_agent": {
                 agent_id: verdict_policy_section(
                     config.verdict_policy,
-                    display_name(peer_id(agent_id)),
+                    display_name(config.group.reviewees_of(agent_id)[0]),
                 )
-                for agent_id in AGENT_IDS
+                for agent_id in agent_ids
             },
         },
         "channel_transcript": _build_channel_transcript(events=state["events"]),
@@ -209,6 +239,8 @@ def build_run_output(
 ) -> dict[str, Any]:
     """Build the complete serializable state of a run."""
     reward_scheme = reward_scheme_from_args(args)
+    group = group_from_args(args)
+    agent_ids = group.agent_ids
     system_prompts = {
         agent_id: initial_agent_messages(
             agent_id=agent_id,
@@ -218,8 +250,9 @@ def build_run_output(
             reward_objective=args.reward
             and not (agent_id == "bob" and args.bob_model == "controlled"),
             reward_scheme=reward_scheme,
+            group=group,
         )[0]["content"]
-        for agent_id in AGENT_IDS
+        for agent_id in agent_ids
     }
     llm_usage_records = [
         usage for result in results for usage in result.get("llm_usage", [])
@@ -237,10 +270,17 @@ def build_run_output(
             },
             "controlled_bob_observed_verdict": getattr(args, "controlled_bob_observed_verdict", False),
             "manifest": str(manifest_path),
+            "agent_group": group.describe(),
+            **(
+                {"scripted_agents": dict(scripted_agents_from_args(args, group))}
+                if getattr(args, "scripted", None)
+                else {}
+            ),
+            # The number of episodes, named when every episode was a pair.
             "pair_count": pair_count,
             # Record each agent's model independently.
             "models": {
-                agent_id: getattr(args, f"{agent_id}_model") for agent_id in AGENT_IDS
+                agent_id: getattr(args, f"{agent_id}_model") for agent_id in agent_ids
             },
             "endpoints": {
                 agent_id: get_endpoint_metadata(
@@ -248,7 +288,7 @@ def build_run_output(
                     if agent_id == "bob" and args.bob_model == "controlled"
                     else getattr(args, f"{agent_id}_model")
                 )
-                for agent_id in AGENT_IDS
+                for agent_id in agent_ids
             },
             "litellm_version": get_litellm_version(),
             # Requested settings before LiteLLM applies provider-specific mappings and defaults.
@@ -264,11 +304,11 @@ def build_run_output(
                         f"{agent_id}_reasoning_effort",
                     ),
                 }
-                for agent_id in AGENT_IDS
+                for agent_id in agent_ids
             },
             "reasoning_efforts": {
                 agent_id: getattr(args, f"{agent_id}_reasoning_effort")
-                for agent_id in AGENT_IDS
+                for agent_id in agent_ids
             },
             "llm_usage_journal": {
                 "path": LLM_USAGE_JOURNAL_FILENAME,
@@ -284,11 +324,12 @@ def build_run_output(
             "throttle_spans": args.throttle_spans,
             "throttle_policy_by_episode": throttle_policy_by_episode,
             "char_limit": args.char_limit,
+            "message_side_channel": args.message_side_channel,
             "memory_scope": MEMORY_SCOPE,
             "cross_episode_memory_scope": args.cross_episode_memory_scope,
             "cross_episode_memory_length": {
                 agent_id: getattr(args, f"{agent_id}_cross_episode_memory_length")
-                for agent_id in AGENT_IDS
+                for agent_id in agent_ids
             },
             "verdict_policy": args.verdict_policy,
             "initial_verdict_policy": initial_verdict_policy,
@@ -308,13 +349,25 @@ def build_run_output(
             "prompt_texts": {
                 "system_prompts": system_prompts,
                 "reward_objective_texts": {
-                    agent_id: reward_objective_text(
-                        args.reward
-                        and not (agent_id == "bob" and args.bob_model == "controlled"),
-                        display_name(peer_id(agent_id)),
-                        reward_scheme,
+                    agent_id: (
+                        reward_objective_text(
+                            args.reward
+                            and not (
+                                agent_id == "bob" and args.bob_model == "controlled"
+                            ),
+                            display_name(group.reviewer_of(agent_id)),
+                            display_name(group.reviewee_of(agent_id)),
+                            reward_scheme,
+                        )
+                        if group.single_review
+                        else group_reward_objective_text(
+                            args.reward,
+                            [display_name(a) for a in group.reviewers_of(agent_id)],
+                            [display_name(a) for a in group.reviewees_of(agent_id)],
+                            reward_scheme,
+                        )
                     )
-                    for agent_id in AGENT_IDS
+                    for agent_id in agent_ids
                 },
             },
         },

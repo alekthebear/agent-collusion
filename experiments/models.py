@@ -1,6 +1,6 @@
-"""Shared runtime structures for paired-agent experiments.
+"""Shared runtime structures for group experiments.
 
-An episode contains two agent tasks, three phases, and one reward per agent.
+An episode contains one task per agent, three phases, and one reward per agent.
 Per-agent fields are keyed by agent ID.
 """
 
@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from experiments.protocol import DEFAULT_MAX_ROUNDS
+from experiments.protocol.group import PAIR, Group
 from experiments.protocol.rewards import RewardScheme
 
 
@@ -26,9 +27,12 @@ class AgentConfig:
 
 @dataclass(frozen=True)
 class EpisodeRunConfig:
-    """Per-episode settings shared by both agents."""
+    """Per-episode settings shared by every agent."""
 
+    group: Group = PAIR
     char_limit: int = 200
+    # What happens to send_message's message_type label: open or off.
+    message_side_channel: str = "open"
     throttled: bool = True
     max_rounds: int = DEFAULT_MAX_ROUNDS
     cross_episode_memory_scope: str = "full-history"
@@ -42,11 +46,17 @@ class EpisodeRunConfig:
     controlled_bob_cache: str = ""
     controlled_bob_messages: str = "summary"
     controlled_bob_observed_verdict: bool = False
+    # Scripted agents in a larger group, as (agent_id, policy) pairs.
+    scripted_agents: tuple[tuple[str, str], ...] = ()
     temp_run_id: str = ""
     episode_index: int = 0
     verbose: bool = True
     usage_journal_path: Path | None = None
     usage_invocation_id: str = ""
+
+    def scripted_policy(self, agent_id: str) -> str | None:
+        """The scripted policy this agent follows, or None for a model-driven agent."""
+        return dict(self.scripted_agents).get(agent_id)
 
     @property
     def verdict_evaluation(self) -> str:
@@ -55,12 +65,12 @@ class EpisodeRunConfig:
 
 @dataclass
 class PreparedAgentTask:
-    """One agent's prepared task, addressed through ``PreparedPair.agents[agent_id]``."""
+    """One agent's prepared task, addressed through ``PreparedEpisode.agents[agent_id]``."""
 
     task: dict[str, Any]
     display_id: str
-    # The owner receives own_task_prompt; its peer receives the judging and verdict
-    # openings. Only the owner's brief includes resource paths.
+    # The owner receives own_task_prompt; its reviewer receives the judging and
+    # verdict openings. Only the owner's brief includes resource paths.
     own_task_prompt: str
     judging_prompt: str
     verdict_prompt: str
@@ -71,7 +81,7 @@ class PreparedAgentTask:
 
 
 @dataclass
-class PreparedPair:
+class PreparedEpisode:
     task_type: str
     state: dict[str, Any]
     agents: dict[str, PreparedAgentTask] = field(default_factory=dict)
@@ -97,9 +107,9 @@ class TaskEvaluation:
 
 @dataclass
 class AgentOutcome:
-    """One agent's verdict on its peer, verdict accuracy, and reward.
+    """One agent's verdict on its reviewee, verdict accuracy, and reward.
 
-    Verdict accuracy is measured against the peer's ground truth.
+    Verdict accuracy is measured against the reviewee's ground truth.
     """
 
     verdict: str
@@ -110,6 +120,13 @@ class AgentOutcome:
     feedback: str | None = None
     reflection: str | None = None
     reflection_prompt: str | None = None
+    # With several reviewees (complete groups), verdicts are keyed by the judged
+    # agent and the single-verdict fields above stay empty.
+    verdicts: dict[str, str] = field(default_factory=dict)
+    verdicts_correct: dict[str, bool] = field(default_factory=dict)
+    verdicts_forced: dict[str, bool] = field(default_factory=dict)
+    # Accepted only if every reviewer accepted this agent's task.
+    decision_on_own_task: str = ""
 
 
 @dataclass

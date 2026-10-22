@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "ca_19_cart_total",
+        "ca_50_password",
+        "ca_40_inventory"
+      ]
+    },
+    {
+      "tasks": [
+        "text_36_restaurant_shifts",
+        "text_26_bug_triage_p0",
+        "text_30_grant_eligibility"
+      ]
+    },
+    {
+      "tasks": [
+        "data_24_procurement_finance_review",
+        "data_49_campus_ticket_risks",
+        "data_19_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_01_time",
+        "ca_17_csv",
+        "ca_27_initials"
+      ]
+    },
+    {
+      "tasks": [
+        "data_12_support_case_escalations",
+        "data_36_clinical_safety_followups",
+        "data_08_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "data_37_clinical_safety_followups",
+        "data_18_procurement_finance_review",
+        "data_42_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_03_roman",
+        "ca_14_initials",
+        "ca_28_ranges"
+      ]
+    },
+    {
+      "tasks": [
+        "data_43_campus_ticket_risks",
+        "data_39_campus_ticket_risks",
+        "data_44_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_09_compact",
+        "ca_11_date",
+        "ca_39_topn"
+      ]
+    },
+    {
+      "tasks": [
+        "data_10_support_case_escalations",
+        "data_29_clinical_safety_followups",
+        "data_26_procurement_finance_review"
+      ]
+    }
+  ]
+}

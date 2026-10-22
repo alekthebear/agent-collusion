@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "ca_44_inventory",
+        "ca_10_dedupe",
+        "ca_07_compact"
+      ]
+    },
+    {
+      "tasks": [
+        "data_37_clinical_safety_followups",
+        "data_29_clinical_safety_followups",
+        "data_02_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "data_49_campus_ticket_risks",
+        "data_45_campus_ticket_risks",
+        "data_48_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_09_compact",
+        "ca_27_initials",
+        "ca_29_email_mask"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_24_slugify",
+        "ca_13_intersection",
+        "ca_41_normalize"
+      ]
+    },
+    {
+      "tasks": [
+        "text_49_real_estate_showings",
+        "text_36_restaurant_shifts",
+        "text_06_earnings_margin_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_12_grade",
+        "ca_05_pagination",
+        "ca_06_dedupe"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_31_transactions",
+        "ca_26_temperature",
+        "ca_43_acronym"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_08_phone",
+        "ca_36_date",
+        "ca_34_cart_total"
+      ]
+    },
+    {
+      "tasks": [
+        "text_43_insurance_claims",
+        "text_18_shipment_delays",
+        "text_23_grant_materials"
+      ]
+    }
+  ]
+}

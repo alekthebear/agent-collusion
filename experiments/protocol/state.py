@@ -6,11 +6,14 @@ and verdicts live in ``state["agents"][agent_id]``.
 
 from typing import Any
 
-# Agent order also determines who opens each communication round.
-AGENT_IDS = ("alice", "bob")
+# Every agent ID a group can use, in the order groups take them.
+AGENT_NAMES = ("alice", "bob", "carol", "dave", "erin")
+
+# The pair, the paper's setting. Its order determines who opens each round.
+AGENT_IDS = AGENT_NAMES[:2]
 
 # Use display names in prose and agent IDs in tags and routing.
-AGENT_DISPLAY_NAMES = {agent_id: agent_id.capitalize() for agent_id in AGENT_IDS}
+AGENT_DISPLAY_NAMES = {agent_id: agent_id.capitalize() for agent_id in AGENT_NAMES}
 
 # Shared phase barriers; agents alternate only within communication.
 PHASES = ("task", "communication", "verdict")
@@ -28,15 +31,6 @@ ACCEPT_VERDICT = VERDICT_BY_EXPECTED_VERDICT["pass"]
 
 # Reward per qualifying verdict; the reward scheme determines how many terms are paid.
 VERDICT_REWARD = 10
-
-
-def peer_id(agent_id: str) -> str:
-    """The other agent in the pair -- the one this agent judges and is judged by."""
-    if agent_id == AGENT_IDS[0]:
-        return AGENT_IDS[1]
-    if agent_id == AGENT_IDS[1]:
-        return AGENT_IDS[0]
-    raise ValueError(f"Unknown agent: {agent_id}")
 
 
 def display_name(agent_id: str) -> str:
@@ -79,7 +73,7 @@ def _agent_slot() -> dict[str, Any]:
         "private_raw_log": [],
         "final_answer_saved": False,
         "private_raw_log_retrieved": False,
-        # this agent's verdict on its peer's task
+        # this agent's verdict on its reviewee's task
         "verdict_submission": None,
         # Unread messages, each carrying its originating communication round.
         "inbox": [],
@@ -89,10 +83,17 @@ def _agent_slot() -> dict[str, Any]:
 
 def create_channel_state(
     episode_id: str,
+    group: Any,
     throttled: bool = True,
     char_limit: int = 200,
+    message_side_channel: str = "open",
 ) -> dict[str, Any]:
-    """Create shared episode state with an episode-wide communication constraint."""
+    """Create shared episode state with an episode-wide communication constraint.
+
+    ``group`` is the episode's ``Group``; the runner sets ``recipient`` before each
+    communication turn and ``verdict_target`` before each verdict turn. Verdicts are
+    kept by (reviewer, reviewee) link.
+    """
     return {
         "episode_id": episode_id,
         # Internal rounds are 0-based; displayed rounds are 1-based.
@@ -100,11 +101,16 @@ def create_channel_state(
         "phase": PHASES[0],
         "throttled": throttled,
         "char_limit": char_limit,
+        "message_side_channel": message_side_channel,
         "repo_root": "",
         # Agents share a task type but have separate task instances.
         "task_type": "code_analysis",
         "events": [],
-        "agents": {agent_id: _agent_slot() for agent_id in AGENT_IDS},
+        "group": group,
+        "recipient": None,
+        "verdict_target": None,
+        "verdicts": {},
+        "agents": {agent_id: _agent_slot() for agent_id in group.agent_ids},
     }
 
 
@@ -124,7 +130,10 @@ def deliver_runner_notice(
         {
             "from": "runner",
             "to": recipient,
-            "message_type": "other",
+            # None leaves the [type=...] tag off the delivered notice.
+            "message_type": (
+                None if state["message_side_channel"] == "off" else "other"
+            ),
             "content": content,
             "round": state["round"],
         }

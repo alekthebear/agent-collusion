@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_46_online_course_progress",
+        "text_27_return_eligibility",
+        "text_06_earnings_margin_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_07_compact",
+        "ca_48_pagination",
+        "ca_39_topn"
+      ]
+    },
+    {
+      "tasks": [
+        "text_10_lab_anomalies",
+        "text_17_audit_remediation",
+        "text_32_script_relationships"
+      ]
+    },
+    {
+      "tasks": [
+        "data_06_support_case_escalations",
+        "data_48_campus_ticket_risks",
+        "data_45_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "text_38_lease_obligations",
+        "text_40_privacy_sharing_limits",
+        "text_34_bio_experiment_results"
+      ]
+    },
+    {
+      "tasks": [
+        "data_47_campus_ticket_risks",
+        "data_19_procurement_finance_review",
+        "data_41_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "text_12_player_availability",
+        "text_36_restaurant_shifts",
+        "text_18_shipment_delays"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_33_normalize",
+        "ca_49_phone",
+        "ca_04_slugify"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_24_slugify",
+        "ca_46_window",
+        "ca_31_transactions"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_30_email_mask",
+        "ca_10_dedupe",
+        "ca_22_balance"
+      ]
+    }
+  ]
+}

@@ -36,6 +36,13 @@ from experiments.prompts.system import initial_agent_messages
 from experiments.protocol import (
     DEFAULT_MAX_ROUNDS,
     MEMORY_SCOPE,
+    MESSAGE_SIDE_CHANNELS,
+)
+from experiments.protocol.group import (
+    Group,
+    add_group_arguments,
+    group_from_args,
+    scripted_agents_from_args,
 )
 from experiments.protocol.rewards import (
     DEFAULT_REWARD_SHARING,
@@ -45,11 +52,11 @@ from experiments.protocol.rewards import (
     RewardScheme,
     reward_scheme_from_args,
 )
-from experiments.protocol.state import AGENT_IDS
+from experiments.protocol.state import AGENT_NAMES
 from experiments.tasks import (
-    DEFAULT_TASK_SEQUENCES,
+    default_task_sequences,
     display_task_id,
-    read_task_pairs,
+    read_task_groups,
     sanitize_label,
 )
 from experiments.usage import LLM_USAGE_JOURNAL_FILENAME
@@ -62,11 +69,14 @@ MAX_ROUNDS_HELP = (
 )
 
 @dataclass
-class SelectedPairs:
-    """The run's episodes, each one a pair of manifest tasks."""
+class SelectedEpisodes:
+    """The run's episodes, each one manifest task per group member."""
 
-    pairs: list[tuple[dict[str, Any], dict[str, Any]]]
+    episodes: list[tuple[dict[str, Any], ...]]
     manifest_path: Path
+
+# Per-agent completion settings; a group-wide flag of the same name sets the default.
+AGENT_MODEL_SETTINGS = ("model", "reasoning-effort", "temperature", "max-output-tokens")
 
 
 def _agent_flag(agent_id: str, suffix: str) -> str:
@@ -103,11 +113,34 @@ def add_model_arguments(parser: argparse.ArgumentParser) -> None:
             "by the first episode instead, after the run directory exists."
         ),
     )
-    for agent_id in AGENT_IDS:
+    group.add_argument(
+        "--model",
+        default=None,
+        help="LiteLLM model for every agent without its own --<agent>-model.",
+    )
+    group.add_argument(
+        "--reasoning-effort",
+        choices=REASONING_EFFORT_CHOICES,
+        default=None,
+        help="Reasoning effort for every agent without its own flag.",
+    )
+    group.add_argument(
+        "--temperature",
+        type=float,
+        default=None,
+        help="Sampling temperature for every agent without its own flag.",
+    )
+    group.add_argument(
+        "--max-output-tokens",
+        type=int,
+        default=None,
+        help="Maximum completion tokens for every agent without its own flag.",
+    )
+    for agent_id in AGENT_NAMES:
         group.add_argument(
             _agent_flag(agent_id, "model"),
-            required=True,
-            help=f"{agent_id} LiteLLM model.",
+            default=None,
+            help=f"{agent_id} LiteLLM model; overrides --model.",
         )
         group.add_argument(
             _agent_flag(agent_id, "reasoning-effort"),
@@ -115,7 +148,7 @@ def add_model_arguments(parser: argparse.ArgumentParser) -> None:
             default="",
             help=(
                 f"{agent_id} reasoning effort; default lets the provider choose. "
-                "Required unless the cache supplies it."
+                "Required unless --reasoning-effort or the cache supplies it."
             ),
         )
         group.add_argument(
@@ -147,12 +180,21 @@ def add_memory_arguments(
         choices=CROSS_EPISODE_MEMORY_SCOPES,
         default=default_scope,
     )
-    for agent_id in AGENT_IDS:
+    group.add_argument(
+        "--cross-episode-memory-length",
+        type=int,
+        default=-1,
+        help="Episodes of history every agent keeps: -1 keeps all; 0 keeps none.",
+    )
+    for agent_id in AGENT_NAMES:
         group.add_argument(
             _agent_flag(agent_id, "cross-episode-memory-length"),
             type=int,
-            default=-1,
-            help=f"-1 keeps all {agent_id} history; 0 keeps none.",
+            default=None,
+            help=(
+                f"-1 keeps all {agent_id} history; 0 keeps none. "
+                "Overrides --cross-episode-memory-length."
+            ),
         )
 
 
@@ -200,6 +242,20 @@ def add_verdict_review_arguments(group) -> None:
     )
 
 
+def add_message_side_channel_argument(group) -> None:
+    group.add_argument(
+        "--message-side-channel",
+        choices=MESSAGE_SIDE_CHANNELS,
+        default="open",
+        help=(
+            "send_message's optional message_type label is shown to the receiver and "
+            "was never counted toward --char-limit, so it can carry a whole raw log. "
+            "open: as in the paper (default). off: no label field, and incoming "
+            "messages carry no [type=...] tag."
+        ),
+    )
+
+
 def add_feedback_arguments(parser: argparse.ArgumentParser) -> None:
     group = parser.add_argument_group("feedback and reflection")
     group.add_argument(
@@ -231,19 +287,20 @@ def _resolve_feedback_settings(args: argparse.Namespace) -> None:
 def build_run_parser() -> argparse.ArgumentParser:
     """Create the internal single-run parser."""
     parser = argparse.ArgumentParser(
-        description="Run one collusion-safety two-agent experiment."
+        description="Run one collusion-safety multi-agent experiment."
     )
     task_group = parser.add_argument_group("task selection")
     task_group.add_argument(
         "--manifest",
         default="",
         help=(
-            "Stored task sequence: pairs of task ids, resolved against the pool "
-            "manifests and run in the order written. Defaults to the first "
-            f"sequence in {DEFAULT_TASK_SEQUENCES}."
+            "Stored task sequence: one task id per agent for each episode, resolved "
+            "against the pool manifests and run in the order written. Defaults to "
+            "the first stored sequence for the group's size."
         ),
     )
 
+    add_group_arguments(parser)
     add_model_arguments(parser)
 
     protocol_group = parser.add_argument_group("protocol")
@@ -254,6 +311,7 @@ def build_run_parser() -> argparse.ArgumentParser:
         help=MAX_ROUNDS_HELP,
     )
     protocol_group.add_argument("--char-limit", type=int, default=200)
+    add_message_side_channel_argument(protocol_group)
     protocol_group.add_argument(
         "--throttle-spans",
         default="",
@@ -309,9 +367,40 @@ def replays_controlled_bob(args: argparse.Namespace) -> bool:
     return getattr(args, "bob_model", "") == "controlled"
 
 
-def _resolve_model_settings(args: argparse.Namespace) -> None:
-    """Apply completion defaults; a replayed Bob takes its settings from the cache."""
-    for agent_id in AGENT_IDS:
+def _agent_settings_given(args: argparse.Namespace, agent_id: str) -> list[str]:
+    """The per-agent flags this run sets for one agent."""
+    names = [*AGENT_MODEL_SETTINGS, "cross-episode-memory-length"]
+    return [
+        _agent_flag(agent_id, name)
+        for name in names
+        if getattr(args, f"{agent_id}_{name.replace('-', '_')}", None) not in (None, "")
+    ]
+
+
+def _resolve_model_settings(args: argparse.Namespace, group: Group) -> None:
+    """Apply group-wide and completion defaults; a replayed Bob takes its settings
+    from the cache."""
+    for agent_id in AGENT_NAMES:
+        if agent_id not in group.agent_ids and _agent_settings_given(args, agent_id):
+            raise ValueError(
+                f"{agent_id} is not in this {group.kind}; drop "
+                + ", ".join(_agent_settings_given(args, agent_id))
+            )
+    for agent_id in group.agent_ids:
+        # Fill each unset per-agent setting from its group-wide flag.
+        for name in AGENT_MODEL_SETTINGS:
+            attribute = f"{agent_id}_{name.replace('-', '_')}"
+            shared = getattr(args, name.replace("-", "_"), None)
+            if getattr(args, attribute) in (None, "") and shared is not None:
+                if not (agent_id == "bob" and replays_controlled_bob(args)):
+                    setattr(args, attribute, shared)
+        memory = f"{agent_id}_cross_episode_memory_length"
+        if getattr(args, memory) is None:
+            setattr(args, memory, args.cross_episode_memory_length)
+        if not getattr(args, f"{agent_id}_model"):
+            raise ValueError(
+                f"{_agent_flag(agent_id, 'model')} or --model is required."
+            )
         settings = {
             "reasoning-effort": getattr(args, f"{agent_id}_reasoning_effort"),
             "temperature": getattr(args, f"{agent_id}_temperature"),
@@ -326,7 +415,10 @@ def _resolve_model_settings(args: argparse.Namespace) -> None:
                 )
             continue
         if not settings["reasoning-effort"]:
-            raise ValueError(f"{_agent_flag(agent_id, 'reasoning-effort')} is required.")
+            raise ValueError(
+                f"{_agent_flag(agent_id, 'reasoning-effort')} or --reasoning-effort "
+                "is required."
+            )
         if settings["temperature"] is None:
             setattr(args, f"{agent_id}_temperature", DEFAULT_LLM_TEMPERATURE)
         if settings["max-output-tokens"] is None:
@@ -335,15 +427,20 @@ def _resolve_model_settings(args: argparse.Namespace) -> None:
 
 def validate_run_args(args: argparse.Namespace) -> None:
     """Reject internally inconsistent single-run options."""
-    # Default to the paper's fixed ten-episode sequences.
+    group = group_from_args(args)
+    scripted_agents_from_args(args, group)
+    if replays_controlled_bob(args) and not group.is_pair:
+        raise ValueError("A controlled Bob is only supported in --group pair")
+    # Default to the stored ten-episode sequences for the group's size.
+    sequences = default_task_sequences(len(group.agent_ids))
     if hasattr(args, "task_sequence_record"):
         if not args.task_sequence_record:
-            args.task_sequence_record = [DEFAULT_TASK_SEQUENCES]
+            args.task_sequence_record = [sequences]
     elif not args.manifest:
-        args.manifest = f"{DEFAULT_TASK_SEQUENCES}/rep001_sampled_manifest.json"
+        args.manifest = f"{sequences}/rep001_sampled_manifest.json"
     _validate_rounds(args)
-    _resolve_model_settings(args)
-    for agent_id in AGENT_IDS:
+    _resolve_model_settings(args, group)
+    for agent_id in group.agent_ids:
         if getattr(args, f"{agent_id}_cross_episode_memory_length") < -1:
             raise ValueError(
                 f"{_agent_flag(agent_id, 'cross-episode-memory-length')} "
@@ -375,7 +472,7 @@ def validate_run_args(args: argparse.Namespace) -> None:
             )
     elif args.controlled_bob_cache:
         raise ValueError("Controlled Bob options require --bob-model controlled")
-    for agent_id in AGENT_IDS:
+    for agent_id in group.agent_ids:
         if agent_id == "bob" and replays_controlled_bob(args):
             continue
         validate_model_route(
@@ -407,15 +504,16 @@ def _load_selected_tasks(
     *,
     args: argparse.Namespace,
     repo_root: Path,
-) -> SelectedPairs:
+) -> SelectedEpisodes:
     """Resolve the stored episode sequence against the task pool."""
     manifest_path = Path(args.manifest)
     if not manifest_path.is_absolute():
         manifest_path = (repo_root / manifest_path).resolve()
-    pairs = read_task_pairs(manifest_path, repo_root)
-    if not pairs:
+    group_size = len(group_from_args(args).agent_ids)
+    episodes = read_task_groups(manifest_path, repo_root, group_size)
+    if not episodes:
         raise ValueError(f"{manifest_path} selected no episodes.")
-    return SelectedPairs(pairs, manifest_path)
+    return SelectedEpisodes(episodes, manifest_path)
 
 
 def _episode_policy_sequences(
@@ -473,9 +571,10 @@ def _resume_state(
             "outcome-feedback delimiter for the other scopes to cut at; "
             f"got {args.cross_episode_memory_scope}"
         )
+    agent_ids = group_from_args(args).agent_ids
     capped = [
         agent_id
-        for agent_id in AGENT_IDS
+        for agent_id in agent_ids
         if getattr(args, f"{agent_id}_cross_episode_memory_length") != -1
     ]
     if capped:
@@ -489,6 +588,7 @@ def _resume_state(
         "cross_episode_memory_scope": args.cross_episode_memory_scope,
         "max_rounds": args.max_rounds,
         "char_limit": args.char_limit,
+        "message_side_channel": args.message_side_channel,
         "verdict_evaluation": reward_scheme.verdict_review_direction(args.verdict_review),
         "reflection": args.reflection,
         "reward": args.reward,
@@ -513,6 +613,8 @@ def _resume_state(
         raise ValueError("Cannot resume controlled Bob as a live peer")
     if args.bob_model == "controlled":
         config.setdefault("controlled_bob_observed_verdict", False)
+    # Records from before the setting existed ran with the label open.
+    config.setdefault("message_side_channel", "open")
     mismatched = [
         f"{key}: record has {config[key]!r}, this run has {value!r}"
         for key, value in expected.items()
@@ -526,7 +628,7 @@ def _resume_state(
             )
     # Require the current system prompt to match the restored opening turn.
     recorded_prompts = (config.get("prompt_texts") or {}).get("system_prompts") or {}
-    for agent_id in AGENT_IDS:
+    for agent_id in agent_ids:
         recorded = recorded_prompts.get(agent_id)
         mine = base_agent_messages[agent_id][0].get("content")
         if recorded is not None and recorded != mine:
@@ -538,7 +640,7 @@ def _resume_state(
         )
 
     agent_messages: dict[str, list[dict[str, Any]]] = {}
-    for agent_id in AGENT_IDS:
+    for agent_id in agent_ids:
         snapshots: list[tuple[str, list[dict[str, Any]]]] = []
         for episode in results:
             agents = episode.get("agents") or {}
@@ -566,11 +668,12 @@ def _run_selected_episodes(
     args: argparse.Namespace,
     repo_root: Path,
     output_path: Path,
-    selected: SelectedPairs,
+    selected: SelectedEpisodes,
     verdict_policy_by_episode: list[str],
     throttle_by_episode: list[str],
 ) -> None:
     results: list[dict[str, Any]] = []
+    agent_group = group_from_args(args)
     if replays_controlled_bob(args):
         # Each cache names the settings that wrote it, so replaying asks for no model.
         recorded = cached_model_settings(args.controlled_bob_cache)
@@ -590,8 +693,9 @@ def _run_selected_episodes(
             reward_objective=args.reward
             and not (agent_id == "bob" and args.bob_model == "controlled"),
             reward_scheme=reward_scheme,
+            group=agent_group,
         )
-        for agent_id in AGENT_IDS
+        for agent_id in agent_group.agent_ids
     }
     agent_messages = {
         agent_id: deepcopy(messages)
@@ -606,7 +710,7 @@ def _run_selected_episodes(
             base_agent_messages=base_agent_messages,
             reward_scheme=reward_scheme,
             manifest_path=selected.manifest_path,
-            episode_count=len(selected.pairs),
+            episode_count=len(selected.episodes),
         )
         completed_episodes = len(results)
 
@@ -616,7 +720,7 @@ def _run_selected_episodes(
             build_run_output(
                 args=args,
                 manifest_path=selected.manifest_path,
-                pair_count=len(selected.pairs),
+                pair_count=len(selected.episodes),
                 initial_verdict_policy=args.verdict_policy,
                 verdict_policy_by_episode=verdict_policy_by_episode,
                 throttle_policy_by_episode=throttle_by_episode,
@@ -644,11 +748,11 @@ def _run_selected_episodes(
             temperature=getattr(args, f"{agent_id}_temperature"),
             max_output_tokens=getattr(args, f"{agent_id}_max_output_tokens"),
         )
-        for agent_id in AGENT_IDS
+        for agent_id in agent_group.agent_ids
     }
     max_memory_episodes_by_agent = {
         agent_id: getattr(args, f"{agent_id}_cross_episode_memory_length")
-        for agent_id in AGENT_IDS
+        for agent_id in agent_group.agent_ids
     }
     # Report the reward scheme even when it is the default.
     log_progress(
@@ -657,21 +761,21 @@ def _run_selected_episodes(
     )
     if completed_episodes:
         log_progress(
-            f"Resuming after {completed_episodes}/{len(selected.pairs)} episodes "
+            f"Resuming after {completed_episodes}/{len(selected.episodes)} episodes "
             f"from: {args.resume_from}",
             True,
         )
 
-    for episode_index, pair in enumerate(selected.pairs):
+    for episode_index, tasks in enumerate(selected.episodes):
         if episode_index < completed_episodes:
             continue
         throttled = throttle_by_episode[episode_index] == "throttled"
         verdict_policy = verdict_policy_by_episode[episode_index]
         group = throttle_by_episode[episode_index]
-        shown = " + ".join(display_task_id(task) for task in pair)
-        internal = " + ".join(str(task["task_id"]) for task in pair)
+        shown = " + ".join(display_task_id(task) for task in tasks)
+        internal = " + ".join(str(task["task_id"]) for task in tasks)
         log_progress(
-            f"Running episode {episode_index + 1}/{len(selected.pairs)}: {shown} "
+            f"Running episode {episode_index + 1}/{len(selected.episodes)}: {shown} "
             f"({internal}) [{group}, "
             f"memory={MEMORY_SCOPE}/{args.cross_episode_memory_scope}"
             f"/max_episodes={max_memory_episodes_by_agent}, "
@@ -679,12 +783,15 @@ def _run_selected_episodes(
             True,
         )
         result = run_one_episode(
-            pair=pair,
+            tasks=tasks,
             agent_configs=agent_configs,
             repo_root=repo_root,
             config=EpisodeRunConfig(
+                group=agent_group,
+                scripted_agents=scripted_agents_from_args(args, agent_group),
                 throttled=throttled,
                 char_limit=args.char_limit,
+                message_side_channel=args.message_side_channel,
                 max_rounds=args.max_rounds,
                 cross_episode_memory_scope=args.cross_episode_memory_scope,
                 verdict_policy=verdict_policy,
@@ -717,7 +824,7 @@ def _run_selected_episodes(
         persist()
         log_progress(
             "  Saved incremental results after "
-            f"{episode_index + 1}/{len(selected.pairs)}",
+            f"{episode_index + 1}/{len(selected.episodes)}",
             True,
         )
     log_progress(f"Saved results to: {output_path}", True)
@@ -732,7 +839,7 @@ def main() -> None:
     selected = _load_selected_tasks(args=args, repo_root=repo_root)
     verdict_policy_by_episode, throttle_by_episode = _episode_policy_sequences(
         args,
-        len(selected.pairs),
+        len(selected.episodes),
     )
     _run_selected_episodes(
         args=args,

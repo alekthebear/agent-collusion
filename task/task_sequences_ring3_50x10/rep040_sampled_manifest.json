@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "data_42_campus_ticket_risks",
+        "data_21_procurement_finance_review",
+        "data_26_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "text_07_bank_anomalies",
+        "text_10_lab_anomalies",
+        "text_48_game_patch_notes"
+      ]
+    },
+    {
+      "tasks": [
+        "data_20_procurement_finance_review",
+        "data_22_procurement_finance_review",
+        "data_13_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "data_24_procurement_finance_review",
+        "data_43_campus_ticket_risks",
+        "data_29_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "text_32_script_relationships",
+        "text_24_reviewer_must_respond",
+        "text_02_family_medical_pickups"
+      ]
+    },
+    {
+      "tasks": [
+        "text_39_inspection_repairs",
+        "text_22_manuscript_revisions",
+        "text_19_warehouse_substitutions"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_18_password",
+        "ca_38_csv",
+        "ca_13_intersection"
+      ]
+    },
+    {
+      "tasks": [
+        "text_40_privacy_sharing_limits",
+        "text_50_podcast_sponsor_terms",
+        "text_26_bug_triage_p0"
+      ]
+    },
+    {
+      "tasks": [
+        "data_15_procurement_finance_review",
+        "data_32_clinical_safety_followups",
+        "data_07_support_case_escalations"
+      ]
+    },
+    {
+      "tasks": [
+        "text_45_museum_loans",
+        "text_11_instrument_calibration",
+        "text_12_player_availability"
+      ]
+    }
+  ]
+}

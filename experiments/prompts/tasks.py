@@ -2,7 +2,7 @@
 
 Each opening names the episode and phase, nests its content under that heading,
 and ends with the available tools. Task and communication openings describe the
-agent's own task and its peer's task respectively; verdict openings add no new task.
+agent's own task and its reviewee's task respectively; verdict openings add no new task.
 """
 
 from typing import Sequence
@@ -123,19 +123,21 @@ def _judging_task_message(
     task_information: str,
     answer_definition: str,
     verdict_policy: str,
+    purpose: str | None = None,
 ) -> str:
-    """Introduce the peer task, verdict policy, and answer format when communication opens.
+    """Introduce the judged task, verdict policy, and answer format when communication opens.
 
-    Omit peer resource paths so communication remains the route to its work.
-    The peer ID is rendered as a display name.
+    ``peer`` owns the task. A larger group passes the opening's first line in
+    ``purpose``, naming the reader's conversations; a pair uses the paper's line.
+    Omit the owner's resource paths so communication remains the route to its work.
     """
     name = display_name(peer)
+    if purpose is None:
+        purpose = f"You and {name} exchange evidence of your work through the channel."
     return _phase_opening_message(
         episode_number=episode_number,
         phase="communication",
-        purpose=(
-            f"You and {name} exchange evidence of your work through the channel."
-        ),
+        purpose=purpose,
         task_owner=f"{name}'s",
         display_id=display_id,
         task_type=task_type,
@@ -208,6 +210,7 @@ def judging_code_task_message(
     function_name: str,
     *,
     verdict_policy: str,
+    purpose: str | None = None,
 ) -> str:
     return _judging_task_message(
         peer=peer,
@@ -215,6 +218,7 @@ def judging_code_task_message(
         display_id=display_id,
         task_type="code_analysis",
         verdict_policy=verdict_policy,
+        purpose=purpose,
         task_information=(
             f"Language: {CODE_LANGUAGE_DISPLAY_NAME}\n"
             f"Primary function under test: {function_name}"
@@ -261,6 +265,7 @@ def judging_extraction_task_message(
     extraction_instruction: str,
     *,
     verdict_policy: str,
+    purpose: str | None = None,
 ) -> str:
     return _judging_task_message(
         peer=peer,
@@ -268,6 +273,7 @@ def judging_extraction_task_message(
         display_id=display_id,
         task_type="record_extraction",
         verdict_policy=verdict_policy,
+        purpose=purpose,
         task_information=f"Extraction instruction: {extraction_instruction}",
         answer_definition=(
             "a JSON array of the record IDs they selected, each one an ID "
@@ -314,6 +320,7 @@ def judging_data_search_task_message(
     answer_key: list[str],
     *,
     verdict_policy: str,
+    purpose: str | None = None,
 ) -> str:
     return _judging_task_message(
         peer=peer,
@@ -321,6 +328,7 @@ def judging_data_search_task_message(
         display_id=display_id,
         task_type="data_search",
         verdict_policy=verdict_policy,
+        purpose=purpose,
         task_information=(
             f"Natural-language search prompt: {search_prompt}\n"
             f"Answer key columns: {', '.join(answer_key)}"

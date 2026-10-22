@@ -1,4 +1,4 @@
-"""Manifest loading, task-pair resolution, and task-path resolution."""
+"""Manifest loading, episode task-group resolution, and task-path resolution."""
 
 import json
 import re
@@ -20,6 +20,21 @@ _TASK_ID_INDEX = re.compile(r"^[A-Za-z]+_(\d+)_")
 # manifests below and in the resource paths they hold.
 TASK_ROOT = "task"
 DEFAULT_TASK_SEQUENCES = f"{TASK_ROOT}/task_sequences_50x10"
+# The same sequences with tasks added for larger groups, keyed by group size.
+GROUP_TASK_SEQUENCES = {3: f"{TASK_ROOT}/task_sequences_ring3_50x10"}
+
+
+def default_task_sequences(group_size: int) -> str:
+    """The stored sequences for a group of this size."""
+    if group_size == 2:
+        return DEFAULT_TASK_SEQUENCES
+    try:
+        return GROUP_TASK_SEQUENCES[group_size]
+    except KeyError:
+        raise ValueError(
+            f"No stored task sequences for groups of {group_size}; build them with "
+            "python -m experiments.extend_sequences"
+        ) from None
 DEFAULT_TASK_MANIFESTS = (
     f"{TASK_ROOT}/code-analysis/task_manifest_code50.json",
     f"{TASK_ROOT}/text-extraction/task_manifest_text50.json",
@@ -89,45 +104,49 @@ def _pairing_error(first: dict[str, Any], second: dict[str, Any]) -> str | None:
     return None
 
 
-def validate_task_pair(first: dict[str, Any], second: dict[str, Any]) -> None:
-    """Validate a task pair regardless of whether it was sampled or loaded."""
-    error = _pairing_error(first, second)
-    if error is not None:
-        raise ValueError(
-            f"Invalid task pair ({first.get('task_id')}, {second.get('task_id')}): "
-            f"{error}"
-        )
+def validate_task_group(tasks: tuple[dict[str, Any], ...]) -> None:
+    """Validate an episode's tasks, every pair of them under the pairing rules."""
+    for index, first in enumerate(tasks):
+        for second in tasks[index + 1 :]:
+            error = _pairing_error(first, second)
+            if error is not None:
+                raise ValueError(
+                    f"Invalid task pair ({first.get('task_id')}, "
+                    f"{second.get('task_id')}): {error}"
+                )
 
 
-def read_task_pairs(
+def read_task_groups(
     manifest_path: Path,
     repo_root: Path,
-) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    group_size: int = 2,
+) -> list[tuple[dict[str, Any], ...]]:
     """Resolve a stored episode sequence against the pool manifests.
 
-    Preserve pair order, validate every pair, and reject repeated tasks.
+    A sequence lists its episodes under "pairs" or, for larger groups, "groups".
+    Preserve episode order, validate every episode, and reject repeated tasks.
     """
     document = json.loads(manifest_path.read_text(encoding="utf-8"))
-    entries = document.get("pairs") if isinstance(document, dict) else None
+    entries = sequence_entries(document) if isinstance(document, dict) else None
     if not isinstance(entries, list) or not entries:
         raise ValueError(
             f"{manifest_path} is not a task sequence: expected an object with a "
-            'non-empty "pairs" list of {"tasks": [id, id]} entries.'
+            'non-empty "pairs" or "groups" list of {"tasks": [id, ...]} entries.'
         )
     pool = _task_pool_by_id(repo_root)
-    pairs: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    groups: list[tuple[dict[str, Any], ...]] = []
     seen: set[str] = set()
     for index, entry in enumerate(entries, start=1):
-        where = f"{manifest_path} pair {index}"
+        where = f"{manifest_path} episode {index}"
         task_ids = entry.get("tasks") if isinstance(entry, dict) else None
-        if not isinstance(task_ids, list) or len(task_ids) != 2:
-            raise ValueError(f'{where}: expected "tasks": [id, id]')
+        if not isinstance(task_ids, list) or len(task_ids) != group_size:
+            raise ValueError(f'{where}: expected "tasks" with {group_size} ids')
         unknown = sorted(set(entry) - {"tasks"})
         if unknown:
             # Sequence entries identify tasks; task metadata and run settings come from elsewhere.
             raise ValueError(f"{where}: unknown key(s) {', '.join(unknown)}")
-        pair: list[dict[str, Any]] = []
-        for task_id in (str(task_ids[0]), str(task_ids[1])):
+        tasks: list[dict[str, Any]] = []
+        for task_id in map(str, task_ids):
             if task_id not in pool:
                 raise ValueError(
                     f"{where}: no task {task_id!r} in the pool under "
@@ -135,13 +154,18 @@ def read_task_pairs(
                 )
             if task_id in seen:
                 raise ValueError(
-                    f"{manifest_path}: task {task_id!r} is in more than one pair"
+                    f"{manifest_path}: task {task_id!r} is in more than one episode"
                 )
             seen.add(task_id)
-            pair.append(_copy_task(pool[task_id]))
-        validate_task_pair(pair[0], pair[1])
-        pairs.append((pair[0], pair[1]))
-    return pairs
+            tasks.append(_copy_task(pool[task_id]))
+        validate_task_group(tuple(tasks))
+        groups.append(tuple(tasks))
+    return groups
+
+
+def sequence_entries(document: dict[str, Any]) -> Any:
+    """A sequence's episode entries, whichever key the sequence uses."""
+    return document.get("groups", document.get("pairs"))
 
 
 def sanitize_label(label: str) -> str:

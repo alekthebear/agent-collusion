@@ -13,18 +13,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from experiments.protocol import DEFAULT_MAX_ROUNDS
-from experiments.protocol.state import AGENT_IDS
+from experiments.protocol.group import add_group_arguments, group_from_args
 from experiments.protocol.rewards import reward_scheme_from_args
 from experiments.runner import (
     MAX_ROUNDS_HELP,
     add_memory_arguments,
+    add_message_side_channel_argument,
     add_model_arguments,
     add_reward_scheme_arguments,
     add_feedback_arguments,
     replays_controlled_bob,
     validate_run_args,
 )
-from experiments.tasks import read_task_pairs
+from experiments.tasks import read_task_groups, sequence_entries
 
 DEFAULT_VERDICT_POLICY = "raw-only"
 MANIFEST_FILENAME_PATTERN = re.compile(r"rep(\d+)_sampled_manifest\.json")
@@ -106,13 +107,13 @@ def _sequence_record_manifests(record_path: Path, repo_root: Path) -> list[Path]
 
 
 def _sequence_pairs(path: Path) -> list[dict[str, object]]:
-    """Read unresolved task-pair entries for sequence concatenation."""
+    """Read unresolved episode entries for sequence concatenation."""
     document = json.loads(path.read_text(encoding="utf-8"))
-    entries = document.get("pairs") if isinstance(document, dict) else None
+    entries = sequence_entries(document) if isinstance(document, dict) else None
     if not isinstance(entries, list) or not entries:
         raise ValueError(
             f"{path} is not a task sequence: expected an object with a non-empty "
-            '"pairs" list.'
+            '"pairs" or "groups" list.'
         )
     return entries
 
@@ -155,8 +156,8 @@ def _write_merged_sequences(
             probe = Path(scratch) / f"rep{index:03d}_sampled_manifest.json"
             _write_sequence(probe, pairs)
             try:
-                # Reject invalid pairs and tasks repeated across episodes before launch.
-                read_task_pairs(probe, repo_root)
+                # Reject invalid episodes and tasks repeated across episodes before launch.
+                read_task_groups(probe, repo_root, len(pairs[0]["tasks"]))
             except ValueError as error:
                 raise ValueError(
                     "Concatenating "
@@ -223,8 +224,10 @@ def _write_merged_sequences(
 def _write_sequence(path: Path, pairs: list[dict[str, object]]) -> None:
     """Atomically replace a sequence file so concurrent readers never see partial output."""
     scratch = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+    # Pair sequences keep the paper's key; larger groups list "groups".
+    key = "pairs" if all(len(entry["tasks"]) == 2 for entry in pairs) else "groups"
     scratch.write_text(
-        json.dumps({"pairs": pairs}, ensure_ascii=False, indent=2) + "\n",
+        json.dumps({key: pairs}, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     os.replace(scratch, path)
@@ -277,10 +280,12 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    add_group_arguments(parser)
     add_model_arguments(parser)
 
     protocol_group = parser.add_argument_group("protocol")
     protocol_group.add_argument("--char-limit", type=int, default=200)
+    add_message_side_channel_argument(protocol_group)
     protocol_group.add_argument(
         "--max-rounds",
         type=int,
@@ -355,11 +360,20 @@ def _verdict_policy_label(args: argparse.Namespace) -> str:
 
 def _run_label(args: argparse.Namespace, run_index: int) -> str:
     label = _setting_label(run_index, _verdict_policy_label(args), args.max_rounds)
+    group = group_from_args(args)
     suffixes: list[str] = []
+    if not group.is_pair:
+        suffixes.append(f"{group.kind}{len(group.agent_ids)}")
+    if group.is_group_chat:
+        suffixes.append("group-chat")
+    for value in getattr(args, "scripted", None) or []:
+        suffixes.append("scripted-" + value.replace("=", "-"))
+    if args.message_side_channel != "open":
+        suffixes.append(f"side-channel-{args.message_side_channel}")
     if args.throttle_spans:
         suffixes.append("throttle-spans")
     suffixes.append(f"memory-{args.cross_episode_memory_scope}")
-    for agent_id in AGENT_IDS:
+    for agent_id in group.agent_ids:
         max_episodes = getattr(args, f"{agent_id}_cross_episode_memory_length")
         if max_episodes >= 0:
             suffixes.append(
@@ -394,6 +408,12 @@ def _build_runner_command(
         DEFAULT_VERDICT_POLICY,
         "--char-limit",
         str(args.char_limit),
+        # Only a non-default setting is passed, so paper commands stay unchanged.
+        *(
+            ["--message-side-channel", args.message_side_channel]
+            if args.message_side_channel != "open"
+            else []
+        ),
         "--max-rounds",
         str(args.max_rounds),
         "--manifest",
@@ -403,6 +423,15 @@ def _build_runner_command(
         "--output-dir",
         args.output_dir,
     ]
+    group = group_from_args(args)
+    if not group.is_pair:
+        command.extend(
+            ["--group", group.kind, "--group-size", str(len(group.agent_ids))]
+        )
+        if group.is_group_chat:
+            command.extend(["--channel", group.channel])
+        for value in getattr(args, "scripted", None) or []:
+            command.extend(["--scripted", value])
     if args.bob_model == "controlled":
         if args.controlled_bob_observed_verdict:
             command.append("--controlled-bob-observed-verdict")
@@ -416,7 +445,7 @@ def _build_runner_command(
                 value = str(Path(value) / f"rep{sequence_index + 1:03d}")
             if value:
                 command.extend(["--" + name.replace("_", "-"), value])
-    for agent_id in AGENT_IDS:
+    for agent_id in group.agent_ids:
         flag = agent_id.replace("_", "-")
         command.extend([f"--{flag}-model", getattr(args, f"{agent_id}_model")])
         if not (agent_id == "bob" and replays_controlled_bob(args)):

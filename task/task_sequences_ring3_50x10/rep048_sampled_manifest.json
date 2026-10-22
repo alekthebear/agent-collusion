@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "text_03_travel_group_bookings",
+        "text_16_contract_termination",
+        "text_36_restaurant_shifts"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_43_acronym",
+        "ca_22_balance",
+        "ca_27_initials"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_29_email_mask",
+        "ca_21_roman",
+        "ca_20_acronym"
+      ]
+    },
+    {
+      "tasks": [
+        "text_28_promotion_exclusions",
+        "text_39_inspection_repairs",
+        "text_26_bug_triage_p0"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_18_password",
+        "ca_13_intersection",
+        "ca_10_dedupe"
+      ]
+    },
+    {
+      "tasks": [
+        "data_17_procurement_finance_review",
+        "data_09_support_case_escalations",
+        "data_46_campus_ticket_risks"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_35_transactions",
+        "ca_40_inventory",
+        "ca_50_password"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_36_date",
+        "ca_33_normalize",
+        "ca_07_compact"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_04_slugify",
+        "ca_08_phone",
+        "ca_30_email_mask"
+      ]
+    },
+    {
+      "tasks": [
+        "data_36_clinical_safety_followups",
+        "data_32_clinical_safety_followups",
+        "data_25_procurement_finance_review"
+      ]
+    }
+  ]
+}

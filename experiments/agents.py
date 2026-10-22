@@ -39,7 +39,7 @@ from experiments.protocol.dispatch import (
     format_tool_content,
     reject_undecodable_arguments,
 )
-from experiments.protocol.state import agent_state, peer_id
+from experiments.protocol.state import agent_state
 from experiments.tool_schemas import get_task_tool_schemas, get_tool_schemas
 from experiments.usage import _get_attr, _jsonable, normalize_llm_usage
 
@@ -73,6 +73,21 @@ CONTENT_FILTER_FINISH_REASONS = frozenset(
         "spii",
     }
 )
+# Provider finish reasons that LiteLLM maps to "stop" but that mark a failed
+# generation. Such a response can still carry content, even thousands of repeated
+# tool calls, so it is retried rather than accepted.
+PROVIDER_FAILURE_FINISH_REASONS = frozenset(
+    {
+        "error",
+        "network_error",
+        "MALFORMED_FUNCTION_CALL",
+        "MALFORMED_RESPONSE",
+        "TOO_MANY_TOOL_CALLS",
+    }
+)
+# More tool calls than any real response makes; a larger response is a runaway
+# generation and is retried. Real responses have about 1 (max 4 observed).
+MAX_TOOL_CALLS_PER_RESPONSE = 50
 # Include provider block reasons and safety ratings when available.
 CONTENT_FILTER_DETAIL_FIELDS = (
     "prompt_feedback",
@@ -415,6 +430,13 @@ def _classify_llm_error(exc: Exception) -> LLMErrorDecision:
     )
 
 
+def _provider_failure_reason(choice: Any) -> str | None:
+    """The provider's own finish reason, when it marks a failed generation."""
+    fields = _get_attr(choice, "provider_specific_fields") or {}
+    native = fields.get("native_finish_reason") if isinstance(fields, dict) else None
+    return native if native in PROVIDER_FAILURE_FINISH_REASONS else None
+
+
 def _content_filter_reason(finish_reason: Any) -> str | None:
     normalized = str(finish_reason or "").strip().lower()
     return normalized if normalized in CONTENT_FILTER_FINISH_REASONS else None
@@ -619,6 +641,58 @@ def _complete_with_retries(
             )
             usage_record["visible_content_chars"] = len(content)
             usage_record["tool_call_count"] = len(tool_calls)
+            provider_failure = _provider_failure_reason(choices[0])
+            if provider_failure is not None:
+                usage_record.update(
+                    {
+                        "response_status": "error_provider_finish",
+                        "error_category": "provider_finish",
+                        "native_finish_reason": provider_failure,
+                    }
+                )
+                _record_usage(usage_record, usage_recorder)
+                wait = _retry_wait_seconds(retry_index)
+                _raise_if_retry_exhausted(
+                    retry_index,
+                    f"provider finished with {provider_failure}",
+                    waited_seconds=retry_waited_seconds,
+                    next_wait_seconds=wait,
+                )
+                print(
+                    f"    [provider error retry {retry_index + 1}/"
+                    f"{LLM_MAX_RETRIES} in {_format_wait(wait)}s: "
+                    f"finish_reason {provider_failure}]",
+                    flush=True,
+                )
+                time.sleep(wait)
+                retry_waited_seconds += wait
+                retry_index += 1
+                continue
+            if len(tool_calls) > MAX_TOOL_CALLS_PER_RESPONSE:
+                usage_record.update(
+                    {
+                        "response_status": "error_too_many_tool_calls",
+                        "error_category": "too_many_tool_calls",
+                    }
+                )
+                _record_usage(usage_record, usage_recorder)
+                wait = _retry_wait_seconds(retry_index)
+                _raise_if_retry_exhausted(
+                    retry_index,
+                    f"{len(tool_calls)} tool calls in one response",
+                    waited_seconds=retry_waited_seconds,
+                    next_wait_seconds=wait,
+                )
+                print(
+                    f"    [runaway response retry {retry_index + 1}/"
+                    f"{LLM_MAX_RETRIES} in {_format_wait(wait)}s: "
+                    f"{len(tool_calls)} tool calls]",
+                    flush=True,
+                )
+                time.sleep(wait)
+                retry_waited_seconds += wait
+                retry_index += 1
+                continue
             if content.strip() or tool_calls:
                 usage_record["response_status"] = "accepted"
                 _record_usage(usage_record, usage_recorder)
@@ -747,7 +821,15 @@ def run_agent_turn(
         task_type=str(state.get("task_type", "code_analysis")),
         phase=str(state.get("phase", "task")),
         answer_key=[str(column) for column in slot.get("answer_key", [])],
-        peer=peer_id(actor),
+        peer=state["group"].reviewees_of(actor)[0],
+        recipients=(
+            ()
+            if state["group"].is_pair or state["group"].is_group_chat
+            else state["group"].partners_of(actor)
+        ),
+        group_chat=state["group"].is_group_chat,
+        multi_review=not state["group"].single_review,
+        message_side_channel=state["message_side_channel"],
     )
     extra = get_litellm_completion_kwargs(
         model,
@@ -822,7 +904,15 @@ def run_reflection_turn(
     tools = get_task_tool_schemas(
         task_type=str(state.get("task_type", "code_analysis")),
         answer_key=[str(column) for column in slot.get("answer_key", [])],
-        peer=peer_id(actor),
+        peer=state["group"].reviewees_of(actor)[0],
+        recipients=(
+            ()
+            if state["group"].is_pair or state["group"].is_group_chat
+            else state["group"].partners_of(actor)
+        ),
+        group_chat=state["group"].is_group_chat,
+        multi_review=not state["group"].single_review,
+        message_side_channel=state["message_side_channel"],
     )
     extra = get_litellm_completion_kwargs(model, reasoning_effort)
     response, choice_message, content, _ = _complete_with_retries(

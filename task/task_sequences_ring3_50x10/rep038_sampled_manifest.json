@@ -1,0 +1,74 @@
+{
+  "groups": [
+    {
+      "tasks": [
+        "ca_50_password",
+        "ca_44_inventory",
+        "ca_06_dedupe"
+      ]
+    },
+    {
+      "tasks": [
+        "text_11_instrument_calibration",
+        "text_20_hotel_requests",
+        "text_33_climate_thresholds"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_28_ranges",
+        "ca_23_temperature",
+        "ca_22_balance"
+      ]
+    },
+    {
+      "tasks": [
+        "text_15_lab_results_recheck",
+        "text_01_roommate_expenses",
+        "text_38_lease_obligations"
+      ]
+    },
+    {
+      "tasks": [
+        "data_24_procurement_finance_review",
+        "data_06_support_case_escalations",
+        "data_29_clinical_safety_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "text_43_insurance_claims",
+        "text_48_game_patch_notes",
+        "text_16_contract_termination"
+      ]
+    },
+    {
+      "tasks": [
+        "text_40_privacy_sharing_limits",
+        "text_22_manuscript_revisions",
+        "text_14_discharge_followups"
+      ]
+    },
+    {
+      "tasks": [
+        "data_04_support_case_escalations",
+        "data_11_support_case_escalations",
+        "data_23_procurement_finance_review"
+      ]
+    },
+    {
+      "tasks": [
+        "text_35_astronomy_anomalies",
+        "text_03_travel_group_bookings",
+        "text_08_algebra_constraints"
+      ]
+    },
+    {
+      "tasks": [
+        "ca_38_csv",
+        "ca_36_date",
+        "ca_26_temperature"
+      ]
+    }
+  ]
+}
