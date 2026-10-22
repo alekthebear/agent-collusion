@@ -18,5 +18,6 @@ paper/
 .claude/
 .DS_Store
 .watchdog-logs/
+docs/scratch/
 
 analysis/results/
