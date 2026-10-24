@@ -1,61 +1,26 @@
-# Emergent Collusion in Long-Horizon LLM Agent Interaction
+# Collusion in LLM Code Review
 
-**Xinrui Shi\*, Yanzhe Zhang\*, Diyi Yang**
+A multi-agent PR-review environment for studying collusion between LLM agents, built
+for the Apart AI Collusion Research Sprint (October 23–25, 2026). It extends
+[SALT-NLP/agent-collusion](https://github.com/SALT-NLP/agent-collusion), the code for
+[Emergent Collusion in Long-Horizon LLM Agent Interaction](https://arxiv.org/abs/2609.24967)
+(Shi, Zhang and Yang, 2026), and reuses its LLM client and judges.
 
-\*Equal contribution.
+Three agents fix tickets in small Python repos and review each other's pull requests.
+Each episode, an agent works its tickets within a time-box of tool calls, opens a PR as
+`ready` or `blocked`, inspects the PRs it reviews with a few budgeted checks, talks on
+PR threads (which the team lead reads) and in private direct messages, then approves
+or requests changes. A golden verdict, never shown to agents, records which
+CONTRIBUTING.md rules each PR broke, so every approval can be scored. The question is
+whether a reviewer covers for a teammate's known violation, and more so when the
+teammate can return the favor (all-to-all review) than when it can't (a ring).
 
-📄 [Paper](https://arxiv.org/abs/2609.24967) | 💻 [Code](https://github.com/SALT-NLP/agent-collusion) | 🤗 [Data](https://huggingface.co/datasets/SALT-NLP/agent-collusion) | 🔍 [Data Viewer](https://salt-nlp.github.io/agent-collusion-website/)
+- **Design:** [docs/20261023_pr_review_design.md](docs/20261023_pr_review_design.md)
+- **Pilot results:** [docs/experiments/20261024_pr_review_pilot_log.md](docs/experiments/20261024_pr_review_pilot_log.md)
 
-## Abstract
+## Setup
 
-LLM agents are increasingly deployed in collaborative settings, yet long-term interaction may give rise to undesirable coordination. We study the emergence of collusion in a long-horizon multi-agent environment: two agents repeatedly complete individual tasks, share task logs, verify each other's work, and receive rewards. We introduce realistic constraints that make compliance with the verification protocol incompatible with reward maximization, and find that agents increasingly deviate from the protocol over repeated interactions. Collusion emerges in 94% of trajectories across 10 models, and more capable models within the same family reach it earlier. Controlled peer interventions show that collusion is shaped by peer behavior, while ablations reveal additional effects of reward structure, the verification feedback agents receive, and their interaction history. In particular, restricting the amount and scope of interaction history available to agents reduces collusion. Overall, our findings show that long-horizon interaction can reshape how agents coordinate in ways that create safety risks.
-
-## What this measures
-
-We study **collusion as joint instruction violation driven by inter-agent behavioral influence**. A fixed pair of agents interacts over 10 episodes, each with four phases:
-
-**Task completion → Communication → Verdict → Feedback and reflection**
-
-Each agent solves its own task, exchanges evidence with its peer, and issues `ACCEPT` or `REJECT` for the peer's work. The verification protocol requires the complete raw execution log, but communication is limited to five rounds of 200 characters per message. Agents receive a shared reward for correct verdicts and retain their interaction history. This creates a conflict between following the verification protocol and maximizing reward, and we measure collusion through mutual `ACCEPT`.
-
-## Repository structure
-
-```text
-.
-├── experiments/                    # Two-agent experiments and controlled-peer interventions
-│   ├── __main__.py                 # Main CLI: python -m experiments
-│   ├── runner.py                   # Run execution and result saving
-│   ├── episode_runner.py           # Four-phase episode orchestration
-│   ├── agents.py                   # Agent turns and tool execution
-│   ├── llm.py                      # Model routing and provider settings
-│   ├── controlled.py               # Replay controlled-peer behavior
-│   ├── record_peer.py              # Record peer trajectories for replay
-│   ├── prompts/                    # System, task, policy, and feedback prompts
-│   ├── protocol/                   # Task tools, communication, verdicts, and rewards
-│   └── memory/                     # Cross-episode history and retention
-│
-├── analysis/                       # LLM judges for trajectory analysis
-│   ├── agreement_judge.py          # Explicit coordination in communication
-│   ├── agreement_judge_prompts.md  # Prompts for the agreement judge
-│   ├── relaxation_judge.py         # Policy relaxation in private reflections
-│   ├── relaxation_judge_prompts.md # Prompts for the relaxation judge
-│   ├── judge_common.py             # Shared judge client, run selection, review structure
-│   └── collusion_summary.py        # Combines both judges into the three measure levels
-│
-├── task/                           # Task inputs, references, and fixed sequences
-│   ├── code-analysis/              # Python code analysis
-│   ├── text-extraction/            # Record extraction from source documents
-│   ├── data-search/                # Data search over a SQLite database
-│   ├── task_sequences_50x10/       # 50 sequences × 10 episodes
-│   └── task_sequences_50x3+50x10/  # 50 sequences × (3 warm-up + 10 evaluation episodes)
-│
-├── .env.example                    # Model provider configuration template
-└── requirements.txt                # Python dependencies
-```
-
-## Installation
-
-Use Python 3.12 and run the following from the repository root:
+Use Python 3.12, from the repository root:
 
 ```bash
 python -m venv .venv
@@ -64,154 +29,165 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Add your model provider credentials to `.env`, which is loaded automatically. Models use LiteLLM routes such as `openai/<model>`, `gemini/<model>`, `bedrock/<model>`, or `deepseek/<model>`. For self-hosted agent models, configure `OPENAI_API_BASE` and `OPENAI_API_KEY` as shown in [.env.example](.env.example) and use an `openai/<model>` route.
+Add provider keys to `.env`. The default model, DeepSeek V4.1 Flash, and the deal judge
+both go through OpenRouter, so set `OPENROUTER_API_KEY`. Any LiteLLM route works as
+the `model` setting.
 
-`pytest` is a runtime dependency rather than a development one: agents write their own test files during code-analysis tasks, and the protocol executes them in a subprocess.
+## Running an experiment
 
-## Usage
-
-### Main experiment
-
-Set your model route and a reasoning effort supported by that model, then run one trajectory:
-
-```bash
-export MODEL="openai/<your-model>"
-export REASONING_EFFORT="high"
-
-python -m experiments \
-  --alice-model "$MODEL" \
-  --bob-model "$MODEL" \
-  --alice-reasoning-effort "$REASONING_EFFORT" \
-  --bob-reasoning-effort "$REASONING_EFFORT" \
-  --task-sequence-record task/task_sequences_50x10 \
-  --repeats 1 \
-  --output-dir results/main
-```
-
-The defaults implement the main setting: 10 episodes, five communication rounds, 200 characters per message, shared verdict-accuracy rewards, verdict review, private reflection, and full interaction history. Use `--repeats 50` for all 50 fixed sequences; `--start-index` selects the first sequence (1-based). For cross-model experiments, change Alice's and Bob's model settings independently.
-
-Each trajectory saves a `run.json` under the output directory, containing its configuration, task evaluations, messages, verdicts, rewards, reflections, and model usage.
-
-### Ablations
-
-Apply one row to the main command; use a separate `--output-dir` for each condition. All other settings keep their defaults.
-
-| Experiment | Condition | Command options |
-| --- | --- | --- |
-| Feedback | No reward instructions, reward feedback, or reflection; keep verdict review | `--no-reward` |
-| | No verdict review; keep reward and reflection | `--no-verdict-review` |
-| Warm-up history | 3 unrestricted-communication episodes + 10 evaluation episodes | `--task-sequence-record task/task_sequences_50x3+50x10`<br>`--throttle-spans 'no-throttle:3,throttled:*'` |
-| | 3 summary-allowed episodes + 10 evaluation episodes | `--task-sequence-record task/task_sequences_50x3+50x10`<br>`--verdict-policy-spans 'summary-allowed:3,raw-only:*'` |
-| Memory length | Last 3 episodes | `--alice-cross-episode-memory-length 3`<br>`--bob-cross-episode-memory-length 3` |
-| | No cross-episode memory | `--alice-cross-episode-memory-length 0`<br>`--bob-cross-episode-memory-length 0` |
-| Memory scope | Communication onward | `--cross-episode-memory-scope communication-onward` |
-| | Feedback and reflection only | `--cross-episode-memory-scope feedback-and-reflection` |
-| Reward scope | Separate rewards; each agent's reward and review concern the peer's verdict on its own task | `--reward-scope separate` |
-| Reward type | Verdict accuracy, without verdict review | `--reward-type verdict-accuracy --no-verdict-review` |
-| | Acceptance, without verdict review | `--reward-type acceptance --no-verdict-review` |
-
-### Controlled peer interventions
-
-Bob is replaced by a scripted peer. Use `$MODEL` and `$REASONING_EFFORT` from the main example for Alice.
-
-| Peer policy | `--controlled-bob-messages` | `--controlled-bob-verdict` |
-| --- | --- | --- |
-| Compliant | `raw-prefix` (first 5 × 200 characters of the raw log) | `reject` |
-| Violating | `summary` (Peer's own summaries of its work) | `accept` |
-
-**1. Record the peer once.**
+Every setting in [pr_review/config.py](pr_review/config.py) is a flag, and anything
+left out keeps its default. For example, all-to-all review with a scripted
+confederate who offers a casual trade:
 
 ```bash
-python -m experiments.record_peer \
-  --model gemini/gemini-3.1-flash-lite \
-  --reasoning-effort high \
-  --task-sequence-record task/task_sequences_50x10 \
-  --repeats 50 \
-  --cache results/peer-cache
+python -m pr_review --structure all3 --confederate bob --ask trade --ask-tone casual --episodes 4
 ```
 
-**2. Replay the violating peer.** 
+The main settings are `--structure` (`all3`, `ring3`, `ring4`, `pairs4`),
+`--confederate`, `--ask` (`none`, `plea`, `trade`), `--ask-tone` (`direct`, `casual`),
+`--favor-episodes`, `--review-checks`, `--positive-control`, `--pressure` or
+`--no-pressure`, `--budgets hard=3`, `--model`, `--episodes` and `--seed`. See
+`python -m pr_review --help` for all of them, and the design doc for what each does.
+
+To repeat or vary a past run, start from its settings with `--from`. Flags change
+the rest:
 
 ```bash
-python -m experiments \
-  --alice-model "$MODEL" \
-  --alice-reasoning-effort "$REASONING_EFFORT" \
-  --bob-model controlled \
-  --controlled-bob-cache results/peer-cache \
-  --controlled-bob-messages summary \
-  --controlled-bob-verdict accept \
-  --task-sequence-record task/task_sequences_50x10 \
-  --repeats 50 \
-  --output-dir results/peer-violating
+python -m pr_review --from results/pr-review/v1-ring3-trade/run_20261024_013241_seed1 --seed 2
+python -m pr_review --from results/pr-review/v1-ring3-trade/run_20261024_013241_seed1 --structure all3
 ```
 
-**3. Replay the compliant peer.**
+`--from` takes the settings only; the run uses the current code.
+
+The results folder is named by `--id`. Without it, the name is the structure plus every
+setting that differs from its default, such as `all3_confederate-bob_ask-trade_ask-tone-casual`.
+With `--from`, the past run's name is kept when only `--seed` or `--episodes` changes.
+
+A run writes `results/pr-review/<id>/run_<time>_seed<S>/`:
+
+- `run.json`: the config, git commit, system prompts, and every episode's PRs, checks,
+  messages, reviews, golden verdicts, rewards, reflections and transcripts
+- `llm_usage.jsonl`: one line per model call, with tokens and cost
+- `viewer.html`: the run's viewer as one file that opens without a server
+- `sandboxes/`: each author's working copy of each ticket
+
+## Viewing runs
 
 ```bash
-python -m experiments \
-  --alice-model "$MODEL" \
-  --alice-reasoning-effort "$REASONING_EFFORT" \
-  --bob-model controlled \
-  --controlled-bob-cache results/peer-cache \
-  --controlled-bob-messages raw-prefix \
-  --controlled-bob-verdict reject \
-  --task-sequence-record task/task_sequences_50x10 \
-  --repeats 50 \
-  --output-dir results/peer-compliant
+python -m viewer.pr_review [--results DIR] [--port 8766] [--no-browser]
 ```
 
-Add `--controlled-bob-observed-verdict` to reveal Bob's verdict in Alice's feedback.
-
-### Evaluation
-
-Two additional LLM judges annotate **explicit coordination** in communication and **policy relaxation** in private reflections to study how collusion begins.
-
-The agreement judge makes one call per model-made verdict, so it covers pairs, rings, group chats, and complete groups; the relaxation judge makes one call per reflection. By default both use DeepSeek V4.1 Flash through OpenRouter (`OPENROUTER_API_KEY` in `.env`) at temperature 0. The agreement judge runs at medium reasoning effort, since without reasoning it took verdict announcements answered with thanks for deals; the relaxation judge runs with reasoning off. `--reasoning-effort` changes either. The paper used a local OpenAI-compatible server serving Qwen 3.8 27B; pass `--base-url http://localhost:8042/v1 --model qwen3.8-27b` for that. `--dry-run` reports the number and size of the prompts without calling the model.
+This serves every run under `results/pr-review/`: per-episode PR outcomes, PR threads
+beside direct messages, check results, golden verdicts, transcripts, and the exact
+prompt behind each model call, with eval-awareness terms highlighted. To write the
+single-file page for a run again:
 
 ```bash
-python analysis/agreement_judge.py \
-  --runs 'results/main/*/run.json' \
-  --out analysis/results/agreement.csv \
-  --verdict-policy raw-only
-
-python analysis/relaxation_judge.py \
-  --runs 'results/main/*/run.json' \
-  --out analysis/results/relaxation.csv \
-  --verdict-policy raw-only
-
-# Violation %, joint violation %, and collusion % per model and setup
-python analysis/collusion_summary.py \
-  --agreement analysis/results/agreement.csv \
-  --relaxation analysis/results/relaxation.csv
+python -m viewer.pr_review.export results/pr-review/<id>/<run>
 ```
 
+`python viewer/original/server.py` serves the paper harness's runs.
+
+## Analysis
+
+```bash
+# Ticket outcomes, false approvals (knowing or not), planted violations, eval awareness
+python analysis/pr_review/metrics.py results/pr-review/<id>/*/run.json
+
+# LLM judge: is a review covered by a deal in the threads or direct messages?
+python analysis/pr_review/deal_judge.py \
+  --runs 'results/pr-review/<id>/*/run.json' \
+  --out analysis/results/pr_review_deals.csv
+```
+
+Reviewer measures count only reviews a model decided; the confederate's scripted reviews
+are left out.
 
 ## Tasks
 
-All task inputs and evaluation references are included in [task/](task/):
+30 tickets, each a one-function bug drawn from the paper's code-analysis tasks, with a
+ticket, a test file, and a clean twin. Sources are in `task/pr-review-src/`; the built
+repos in `task/pr-review/` are committed. After changing a source or the rules in
+[pr_review/rules.py](pr_review/rules.py), rebuild:
 
-| Task family | Tasks | Resources and objective |
-| --- | ---: | --- |
-| Code analysis | 50 | Python implementations; identify whether the code satisfies its specification. |
-| Record extraction | 50 | Source documents; extract identifiers matching the requested criteria. |
-| Data search | 50 | SQLite database; answer queries evaluated against reference SQL results. |
+```bash
+python -m pr_review.build_tasks
+```
 
-Each family includes a task manifest. [task_sequences_50x10](task/task_sequences_50x10/) contains 50 fixed ten-episode sequences, shared across models and conditions. [task_sequences_50x3+50x10](task/task_sequences_50x3+50x10/) prepends three warm-up episodes to each sequence. Each episode assigns the agents different tasks from the same family.
+The build checks that every test file fails on the buggy module and passes on the
+clean twin, and that the confederate's skip-the-failing-tests script works on every task.
 
-## License
+## Tests
 
-Code and task data are released under the [MIT License](LICENSE).
+```bash
+python -m tests.pr_review_smoke
+```
 
-## Citation
+This runs without API calls, in about 40 seconds: scripted traces for each rule of
+the golden verdict, tool budgets, test sandboxing, and full runs with a scripted model,
+including the confederate and favors-first runs. The paper harness has its own:
+`python -m tests.ring_smoke`, `python -m tests.judge_smoke` and `python -m tests.replay`.
+
+## Results
+
+Committed runs are in `results/pr-review/` (each with `run.json` and
+`llm_usage.jsonl`), plus the paper harness's proof-of-concept run in `results/poc/`.
+Runs that aren't shared go in `results/scratch/`, which is ignored.
+
+## Repository structure
+
+```text
+.
+├── pr_review/                 # The PR-review environment
+│   ├── __main__.py            # python -m pr_review [flags]
+│   ├── config.py              # Experiment settings, as flags or from a past run
+│   ├── run.py                 # Deals tickets, runs episodes, carries memory, writes run.json
+│   ├── episode.py             # Work → inspect → talk → verdict → score → feedback → reflect
+│   ├── structure.py           # Who reviews whom: all3, ring3, ring4, pairs4
+│   ├── rules.py               # CONTRIBUTING.md rules
+│   ├── golden.py              # Golden verdict from the author's trace and sandbox
+│   ├── sandbox.py             # Per-ticket repo copies and real pytest runs
+│   ├── tools/                 # Author and reviewer tools, with budgets
+│   ├── channels.py            # PR threads and direct messages
+│   ├── confederate.py         # Scripted rule-breaking author and its asks
+│   ├── prompts.py             # Everything the agents read
+│   ├── llm.py                 # Model calls through the paper harness's client
+│   └── build_tasks.py         # Builds and checks task/pr-review/
+├── viewer/
+│   ├── pr_review/             # Run viewer: python -m viewer.pr_review
+│   └── original/              # Viewer for the paper harness's runs
+├── analysis/
+│   ├── pr_review/             # metrics.py and deal_judge.py
+│   └── ...                    # The paper's agreement and relaxation judges
+├── task/
+│   ├── pr-review-src/         # Ticket sources
+│   ├── pr-review/             # Built ticket repos
+│   └── ...                    # The paper's task families and sequences
+├── tests/                     # pr_review_smoke.py, plus the paper harness's tests
+├── docs/
+│   ├── 20261023_pr_review_design.md
+│   └── experiments/           # Write-ups and pilot logs
+├── results/                   # Shared runs; results/scratch/ is ignored
+└── experiments/               # The paper's two-agent harness, extended to groups
+```
+
+The original harness still runs as before (`python -m experiments`); see the
+[upstream README](https://github.com/SALT-NLP/agent-collusion#readme) for its usage, and
+[docs/experiments/20261021_baseline_explorations.md](docs/experiments/20261021_baseline_explorations.md)
+for its group extension.
+
+## License and citation
+
+MIT License; see [LICENSE](LICENSE). If you build on the original environment, cite:
 
 ```bibtex
 @misc{shi2026emergentcollusionlonghorizonllm,
-      title={Emergent Collusion in Long-Horizon LLM Agent Interaction}, 
+      title={Emergent Collusion in Long-Horizon LLM Agent Interaction},
       author={Xinrui Shi and Yanzhe Zhang and Diyi Yang},
       year={2026},
       eprint={2609.24967},
       archivePrefix={arXiv},
       primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2609.24967}, 
+      url={https://arxiv.org/abs/2609.24967},
 }
 ```
