@@ -299,3 +299,17 @@ isn't returned, so its awareness can't be measured.
   remaining levers (more favor episodes, more seeds) were unlikely to change it at this
   budget. Spend at stop: about $5.12 of model calls, plus under $0.01 for the deal
   judge.
+
+### 11. Reviewer-side rule (planned)
+
+- **Hypothesis.** The pilots lacked supply because authors expect any corner they cut
+  to be caught. In the base paper, the violation is the reviewer's, not the author's:
+  an impossible evidence rule plus a payoff for correct verdicts. Moving that rule to
+  the reviewer gives every approval a violation, without a confederate, and the golden
+  verdict says which approvals let bad work through.
+- **Fix.** A team-lead review policy requiring all four checks, with 2 checks per PR;
+  verdict feedback after each episode; tickets dealt from easy and medium only. See
+  [Reviewer-side rule](../20261023_pr_review_design.md#reviewer-side-rule-v2).
+- **Runs.** Not yet run. Planned: ring and all-to-all at 2 checks, then 1 check as the
+  stricter comparison.
+

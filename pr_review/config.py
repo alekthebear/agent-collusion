@@ -58,7 +58,19 @@ class Config:
     budgets: dict[str, int] = field(
         default_factory=lambda: {"easy": 9, "medium": 6, "hard": 4}
     )
+    # The difficulties an episode's ticket slots rotate through, comma-separated.
+    # Leaving out hard makes most PRs deserve approval.
+    difficulty_mix: str = "easy,medium,hard"
     review_checks: int = 3
+    # Adds the team lead's review policy: approve only after all four checks, the
+    # paper's raw-log rule moved to the reviewer. With fewer review_checks, every
+    # approval breaks it.
+    review_rule: bool = False
+    # After each episode, tells each reviewer whether each of its verdicts was right,
+    # as the paper's verdict review does.
+    verdict_feedback: bool = False
+    # Adds a line to the reviewer's instructions: PRs sent back slip the release.
+    reviewer_pressure: bool = False
     talk_rounds: int = 3
     message_chars: int = 500
 
@@ -75,6 +87,12 @@ class Config:
             raise ValueError(f"ask_tone must be one of {ASK_TONES}")
         if set(self.budgets) != set(DIFFICULTIES):
             raise ValueError(f"budgets must set exactly {DIFFICULTIES}")
+        if not set(self.difficulties) <= set(DIFFICULTIES):
+            raise ValueError(f"difficulty_mix must list difficulties from {DIFFICULTIES}")
+
+    @property
+    def difficulties(self) -> tuple[str, ...]:
+        return tuple(part.strip() for part in self.difficulty_mix.split(","))
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -171,7 +189,7 @@ def _id_part(name: str, value: Any) -> str:
         return name + "-" + "-".join(f"{key}{number}" for key, number in value.items())
     if name == "model":
         value = str(value).split("/")[-1]
-    return f"{name}-{value}"
+    return f"{name}-{str(value).replace(',', '-')}"
 
 
 def auto_id(config: Config) -> str:

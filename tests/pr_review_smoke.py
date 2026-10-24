@@ -12,6 +12,7 @@ and everyone approves.
 import argparse
 import itertools
 import json
+import sys
 import tempfile
 from dataclasses import replace
 from pathlib import Path
@@ -24,10 +25,15 @@ from pr_review.config import Config, add_config_arguments, config_from_args
 from pr_review.golden import APPROVE, REQUEST_CHANGES, evaluate
 from pr_review.llm import Reply
 from pr_review.pull_request import Ticket, PullRequest
+from pr_review.prompts import AUDIT_HEADING, REVIEWER_PRESSURE_LINE
+from pr_review.rules import REVIEW_POLICY
 from pr_review.run import load_tasks, run
 from pr_review.sandbox import Sandbox
 from pr_review.tools.reviewer import Inspection, format_log
 from pr_review.tools.worker import WorkSession
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analysis" / "pr_review"))
+import metrics  # noqa: E402
 
 TASK = next(task for task in load_tasks() if task["task_id"].endswith("_dedupe"))
 MODULE = f"{TASK['module']}.py"
@@ -306,6 +312,9 @@ def check_cli(run_dir: Path) -> None:
     assert config.budgets == {"easy": 9, "medium": 6, "hard": 3}
     assert config.id == "ring3_no-pressure_confederate-bob_ask-trade_budgets-easy9-medium6-hard3", config.id
     assert _config("--id", "mine", "--episodes", "2").id == "mine"
+    config = _config("--difficulty-mix", "easy,medium", "--review-checks", "2", "--review-rule", "--verdict-feedback")
+    assert config.difficulties == ("easy", "medium")
+    assert config.id == "all3_difficulty-mix-easy-medium_review-checks-2_review-rule_verdict-feedback", config.id
     # The smoke run's id and settings come back; a new seed keeps the id, a new
     # setting gets a new one.
     rerun = _config("--from", str(run_dir), "--seed", "2")
@@ -371,6 +380,37 @@ def check_confederate(scratch: Path) -> None:
     print(f"confederate: scripts break the intended rules on {len(tasks)} tasks; runs work")
 
 
+def check_review_rule(scratch: Path) -> None:
+    """The reviewer-side setup: the policy, verdict feedback, the mix, and the metric."""
+    config = replace(
+        Config(id="smoke-review-rule", structure="ring3", episodes=2),
+        model="scripted",
+        difficulty_mix="easy,medium",
+        review_checks=2,
+        review_rule=True,
+        verdict_feedback=True,
+        reviewer_pressure=True,
+    )
+    output = json.loads((run(config, scratch / "results", respond=ScriptedModel()) / "run.json").read_text())
+    assert REVIEW_POLICY in output["system_prompts"]["alice"]
+    for episode in output["episodes"]:
+        assert {pr["difficulty"] for pr in episode["prs"]} == {"easy", "medium"}
+        assert REVIEWER_PRESSURE_LINE in json.dumps(episode["transcripts"]["carol"])
+        for agent_id, feedback in episode["feedback"].items():
+            audits = feedback.split(AUDIT_HEADING)[1].strip().splitlines()
+            assert len(audits) == 2 and all("call:" in line for line in audits), feedback
+    assert AUDIT_HEADING in output["episodes"][1]["memory_at_start"]["bob"]
+    # The scripted reviewers approve everything after two of four checks.
+    rows = metrics.pr_rows(output)
+    assert len(metrics.rule_breaking_approvals(rows)) == len(rows) == 12
+    # Off by default: the old prompts and feedback come back unchanged.
+    plain = json.loads((run(replace(config, id="smoke-plain", review_rule=False, verdict_feedback=False, reviewer_pressure=False), scratch / "results", respond=ScriptedModel()) / "run.json").read_text())
+    assert REVIEW_POLICY not in plain["system_prompts"]["alice"]
+    assert AUDIT_HEADING not in json.dumps(plain["episodes"])
+    assert REVIEWER_PRESSURE_LINE not in json.dumps(plain["episodes"])
+    print("review rule: policy, verdict feedback, difficulty mix and rule-breaking approvals")
+
+
 def main() -> None:
     with tempfile.TemporaryDirectory() as scratch:
         scratch_path = Path(scratch)
@@ -379,6 +419,7 @@ def main() -> None:
         check_budget(scratch_path)
         check_run(scratch_path)
         check_confederate(scratch_path)
+        check_review_rule(scratch_path)
     print("pr_review smoke: all checks passed")
 
 

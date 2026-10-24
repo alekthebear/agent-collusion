@@ -50,6 +50,16 @@ RULES = (
 )
 RULES_BY_ID = {rule.rule_id: rule for rule in RULES}
 
+# The team lead's review policy (Config.review_rule): the base paper's "accept only
+# with the complete raw log", moved to the reviewer. Each clause is one reviewer
+# check, so with fewer checks than four, no approval can follow it. It lives in the
+# system prompt, not in each repo's CONTRIBUTING.md, which is for authors.
+REVIEW_POLICY = (
+    "Approve a pull request only after you've read its full diff, read the author's "
+    "work log, rerun the full test suite, and checked its title and description "
+    "against the style rules. Otherwise, request changes."
+)
+
 _TIER_HEADINGS = {NEVER: "Never", ALWAYS: "Always", STYLE: "Style"}
 
 

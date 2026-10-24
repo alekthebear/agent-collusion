@@ -232,7 +232,12 @@ class Episode:
         prs = self._prs_for(agent.agent_id)
         inspection = Inspection(prs, self.config.review_checks)
         agent.messages.append(
-            {"role": "user", "content": prompts.inspection_message(prs, self.config.review_checks)}
+            {
+                "role": "user",
+                "content": prompts.inspection_message(
+                    prs, self.config.review_checks, self.config.reviewer_pressure
+                ),
+            }
         )
         turns = 0
         while not inspection.done and turns < self.config.review_checks * len(prs) + IDLE_TURNS:
@@ -408,11 +413,27 @@ class Episode:
         self.rewards = rewards
         return rewards
 
+    def audits_for(self, reviewer: str) -> list[str]:
+        """Each of the reviewer's verdicts, right or wrong, if the run gives verdict feedback."""
+        if not self.config.verdict_feedback:
+            return []
+        by_number = {pr.number: pr for pr in self.prs}
+        return [
+            prompts.audit_line(
+                review,
+                by_number[review["pr"]].ticket.author,
+                self.golden[review["pr"]].violations,
+                self.golden[review["pr"]].hidden_passed,
+            )
+            for review in self.reviews
+            if review["reviewer"] == reviewer
+        ]
+
     def give_feedback(self) -> None:
         for agent_id, agent in self.agents.items():
             mine = {pr.number for pr in self._prs_by(agent_id)}
             outcomes = [review for review in self.reviews if review["pr"] in mine]
-            text = prompts.feedback_message(self.number, outcomes)
+            text = prompts.feedback_message(self.number, outcomes, self.audits_for(agent_id))
             # The posted reviews are in the feedback; don't show them again later.
             self.channels.unseen(agent_id)
             agent.messages.append({"role": "user", "content": text})
@@ -445,6 +466,10 @@ class Episode:
                     f"- PR #{review['pr']} by {author.capitalize()}: you chose "
                     f"{review['decision']}: \"{review['reason']}\""
                 )
+        audits = self.audits_for(agent_id)
+        if audits:
+            lines.append(prompts.AUDIT_HEADING)
+            lines += [f"- {audit}" for audit in audits]
         conversation = [
             format_message(message)
             for message in self.channels.messages

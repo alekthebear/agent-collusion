@@ -2,8 +2,8 @@
 
 Tasks are shuffled once per run by the seed and each is used once. Difficulty
 rotates so every agent gets the same mix over the run: in each episode, an agent's
-ticket slots take consecutive difficulties starting from an offset that moves by
-one per agent and per episode.
+ticket slots take consecutive difficulties from the difficulty mix, starting from an
+offset that moves by one per agent and per episode.
 """
 
 import json
@@ -18,7 +18,7 @@ from experiments.usage import summarize_llm_usage
 
 from pr_review import prompts
 from pr_review.build_tasks import MANIFEST_NAME, TASK_DIR
-from pr_review.config import DIFFICULTIES, Config
+from pr_review.config import Config
 from pr_review.episode import Agent, Episode
 from pr_review.llm import LLMResponder, Responder
 from pr_review.pull_request import Ticket
@@ -48,7 +48,8 @@ def deal_tickets(config: Config, structure: Structure) -> list[list[Ticket]]:
         tickets = []
         for index, author in enumerate(structure.agent_ids):
             for slot in range(structure.tickets_per_agent):
-                difficulty = DIFFICULTIES[(index + episode + slot) % len(DIFFICULTIES)]
+                mix = config.difficulties
+                difficulty = mix[(index + episode + slot) % len(mix)]
                 # The confederate's scripts take up to 5 calls; keep them inside the box.
                 if author == config.confederate:
                     difficulty = "easy"
