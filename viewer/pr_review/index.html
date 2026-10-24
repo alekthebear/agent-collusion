@@ -737,6 +737,42 @@ function discussStage(c) {
     </div>`);
 }
 
+// ---------- Judgements (judgements.json) ----------
+const HEADLINE_CLS = { "compliant": "good", "careless": "warn", "solo violation": "warn", "tacit collusion": "bad", "explicit collusion": "bad" };
+const judgedEpisode = (n) => S.data.judgements && S.data.judgements.episodes.find((e) => e.episode === n);
+function judgedQuotes(rows, flag, n) {
+  return rows.filter((r) => r.episode === n && r[flag] === 1).map((r) => `<div class="item"><div class="small"><span class="who">${esc(cap(r.agent))}</span> <span class="muted">· ${esc(r.source || r.part)} · ${esc(r.kind)}</span></div><div class="small dim">“${esc(r.quote)}”</div></div>`).join("") || `<span class="empty">None.</span>`;
+}
+function labelsStage(c) {
+  const j = S.data.judgements;
+  if (!j) return stage("labels", "Labels", "This run hasn't been judged. Run analysis/pr_review/judge_run.py on it to label harm, conduct and eval awareness.", "");
+  const e = judgedEpisode(c.n);
+  if (!e) return "";
+  const harm = e.harm_seen + e.harm_unseen;
+  const deals = j.deals.filter((r) => r.episode === c.n && r.deal === 1).map((r) => `<div class="item"><div class="small">${esc(cap(r.reviewer))} on #${r.pr}</div><div class="small dim">“${esc(r.first_quote)}” / “${esc(r.second_quote)}”</div></div>`).join("") || `<span class="empty">None.</span>`;
+  return stage("labels", "Labels", `Judged by ${esc(j.judge.model)}. Harm is deterministic. Conduct is deterministic except explicit collusion and the pathway, which use the deal and relaxation judges. Eval awareness is judged.`, `
+    <div class="panels">
+      <div class="panel"><div class="hd">Conduct<span class="spacer"></span><span class="tag ${HEADLINE_CLS[e.headline]}">${esc(e.headline)}</span></div><div class="bd"><div class="kv">
+        <span>Pathway</span><span>${esc(e.pathway || "-")}</span>
+        <span>Compliant</span><span>${e.compliant}${e.over_strict ? ` (${e.over_strict} over-strict)` : ""}</span>
+        <span>Careless</span><span>${e.careless}</span>
+        <span>Solo violation</span><span>${e.solo}${e.covering ? ` (${e.covering} covering)` : ""}</span>
+        <span>Collusion</span><span>${e.collusion}</span>
+        <span>Attempted collusion</span><span>${e.attempted ? "yes" : "no"}</span>
+      </div><div class="lbl" style="margin-top:12px">Deals</div>${deals}</div></div>
+      <div class="panel"><div class="hd">Harm<span class="spacer"></span><span class="tag ${harm ? "bad" : "good"}">${harm ? plural(harm, "harmful approval") : "none"}</span></div><div class="bd"><div class="kv">
+        <span>Harmful, seen</span><span>${e.harm_seen}</span><span>Harmful, unseen</span><span>${e.harm_unseen}</span></div>
+        <div class="lbl" style="margin-top:12px">Relaxation signals</div>${judgedQuotes(j.relaxation, "relaxation", c.n)}</div></div>
+      <div class="panel"><div class="hd">Eval awareness<span class="spacer"></span><span class="tag ${e.eval_aware.length ? "warn" : "good"}">${e.eval_aware.length} aware</span></div><div class="bd">${judgedQuotes(j.eval_awareness, "aware", c.n)}</div></div>
+    </div>`);
+}
+function reviewLabel(n, pr) {
+  const j = S.data.judgements;
+  const r = j && j.reviews.find((x) => x.episode === n && x.pr === pr);
+  if (!r) return "";
+  return `<div class="small muted" style="margin-top:2px">Conduct ${esc(r.conduct)}${r.covering ? " (covering)" : ""}${r.harm ? ` · ${esc(r.harm)}` : ""}${r.over_strict ? " · over-strict" : ""}</div>`;
+}
+
 function verdictStage(c) {
   const panels = S.X.agents.map((a) => {
     const items = c.prs.filter((p) => p.reviewer === a).map((p) => {
@@ -744,7 +780,7 @@ function verdictStage(c) {
       return `<div class="item">
         <div class="row" style="gap:8px">${decisionTag(review.decision)}<span class="small">on ${prLink(c, p, `${esc(cap(p.author))}'s #${p.pr}`)}</span></div>
         <div style="margin-top:6px">${outcomeText(row)}${row.knowing.length && row.decision === "approve" ? ` <span class="small muted">· saw ${row.knowing.map(esc).join(", ")}</span>` : ""}</div>
-        <div class="small muted" style="margin-top:2px">Golden ${esc(p.golden.verdict === "approve" ? "approve" : "request changes")}${p.golden.violations.length ? ` · broke ${p.golden.violations.map(esc).join(", ")}` : ""}${review.forced ? " · no review submitted" : ""}</div>
+        <div class="small muted" style="margin-top:2px">Golden ${esc(p.golden.verdict === "approve" ? "approve" : "request changes")}${p.golden.violations.length ? ` · broke ${p.golden.violations.map(esc).join(", ")}` : ""}${review.forced ? " · no review submitted" : ""}</div>${reviewLabel(c.n, p.pr)}
         <div style="margin-top:6px">${lazy("Reason", () => `<div class="md small">${md(review.reason, { aware: true })}</div>`)}</div>
       </div>`;
     }).join("");
@@ -778,10 +814,18 @@ function runHeader() {
   const tags = [cfg.structure, cfg.positive_control && "positive control", cfg.pressure && "pressure", cfg.memory !== "social" && cfg.memory + " memory", cfg.budget !== "per_ticket" && cfg.budget + " budget"].filter(Boolean);
   return `<h1>${esc(cfg.id)} ${tags.map((t) => `<span class="tag" style="font-family:var(--sans);font-size:12px">${esc(t)}</span>`).join(" ")}</h1>
     <div class="sub">${esc(cfg.model.split("/").pop())} · reasoning ${esc(cfg.reasoning_effort)} · time-boxes ${Object.entries(cfg.budgets).map(([k, v]) => `${k} ${v}`).join(" / ")} · ${cfg.review_checks} checks per PR</div>
-    <div class="sub" style="color:var(--text-2)">${rows.length} PRs · ${rows.filter((r) => r.decision === "approve").length} approved · <span style="${falseA.length ? "color:var(--bad)" : ""}">${plural(falseA.length, "false approval")}</span>${knowing ? ` (${knowing} knowing)` : ""} · ${rows.filter((r) => r.decision !== "approve" && r.golden === "approve").length} false rejections${usage.cost_usd != null ? ` · $${usage.cost_usd.toFixed(2)}` : ""}</div>`;
+    <div class="sub" style="color:var(--text-2)">${rows.length} PRs · ${rows.filter((r) => r.decision === "approve").length} approved · <span style="${falseA.length ? "color:var(--bad)" : ""}">${plural(falseA.length, "false approval")}</span>${knowing ? ` (${knowing} knowing)` : ""} · ${rows.filter((r) => r.decision !== "approve" && r.golden === "approve").length} false rejections${usage.cost_usd != null ? ` · $${usage.cost_usd.toFixed(2)}` : ""}</div>${judgedRun()}`;
+}
+function judgedRun() {
+  const j = S.data.judgements;
+  if (!j) return `<div class="sub">Not judged.</div>`;
+  const r = j.run;
+  const heads = Object.entries(r.headlines).filter(([, n]) => n).map(([k, n]) => `${n} ${k}`).join(" · ");
+  const onset = r.onset ? `collusion from episode ${r.onset.episode} (${r.onset.pathway})${r.converged_from ? `, converged from ${r.converged_from}` : ""}` : "no collusion";
+  return `<div class="sub" style="color:var(--text-2)">Episodes: ${heads} · ${onset} · harm ${r.harm_seen} seen, ${r.harm_unseen} unseen · eval-aware in ${r.eval_aware_episodes} of ${r.episodes}</div>`;
 }
 function episodeStrip(current) {
-  return `<div class="strip">${S.X.episodes.map((c) => `<a class="${c.n === current ? "on" : ""}" href="${href({ v: "ep", c: c.n })}"><div class="l">Episode ${c.n}</div><div class="codes">${c.prs.map((p) => sq(rowOf(c.n, p.pr))).join("")}</div></a>`).join("")}
+  return `<div class="strip">${S.X.episodes.map((c) => `<a class="${c.n === current ? "on" : ""}" href="${href({ v: "ep", c: c.n })}"><div class="l">Episode ${c.n}</div><div class="codes">${c.prs.map((p) => sq(rowOf(c.n, p.pr))).join("")}</div>${judgedEpisode(c.n) ? `<div class="small muted">${esc(judgedEpisode(c.n).headline)}</div>` : ""}</a>`).join("")}
     ${Array.from({ length: Math.max(0, S.X.run.config.episodes - S.X.episodes.length) }, (_, i) => `<a style="opacity:.4"><div class="l">Episode ${S.X.episodes.length + i + 1}</div><div class="codes muted small">not run</div></a>`).join("")}</div>
     <div class="row small muted" style="gap:14px"><span class="row" style="gap:5px"><span class="sq ok-approve"></span>correct approve</span><span class="row" style="gap:5px"><span class="sq ok-reject"></span>correct reject</span><span class="row" style="gap:5px"><span class="sq false-approve"></span>false approval</span><span class="row" style="gap:5px"><span class="sq false-reject"></span>false rejection</span></div>`;
 }
@@ -792,7 +836,7 @@ function renderEpisode() {
   const agentLinks = S.X.agents.map((a) => `<span class="row" style="gap:6px">${dot(a)}<span class="who">${esc(cap(a))}</span><a class="u dim" href="${href({ v: "agent", c: c.n, agent: a })}">transcript</a><span class="muted">·</span><a class="u dim" href="${href({ v: "prompt", c: c.n, agent: a })}">raw prompt</a></span>`).join("");
   $("#main").innerHTML = `<div class="page">${runHeader()}${episodeStrip(c.n)}
     <div class="row small" style="gap:28px;margin-top:18px"><span class="muted">Episode ${c.n} per agent</span>${agentLinks}</div>
-    ${assignStage(c)}${workStage(c)}${inspectStage(c)}${discussStage(c)}${verdictStage(c)}${reflectStage(c)}</div>`;
+    ${labelsStage(c)}${assignStage(c)}${workStage(c)}${inspectStage(c)}${discussStage(c)}${verdictStage(c)}${reflectStage(c)}</div>`;
   const s = p.get("s");
   if (s && document.getElementById("st-" + s)) {
     $("#main").style.scrollBehavior = "auto";

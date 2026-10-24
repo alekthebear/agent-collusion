@@ -3,7 +3,7 @@
 summarize_run gives the fields the runs list shows; run_payload gives a run joined
 with what the page can't derive on its own: the metrics rows (knowing approvals),
 the rules and which checks reveal each, the ticket texts, and the eval-awareness
-pattern.
+pattern, and the run's judgements.json when it has been judged.
 """
 
 import json
@@ -17,6 +17,7 @@ from pr_review.golden import APPROVE, REVEALED_BY
 from pr_review.rules import RULES
 
 RUN_FILENAME = "run.json"
+JUDGEMENTS_FILENAME = "judgements.json"
 USAGE_JOURNAL_FILENAME = "llm_usage.jsonl"
 
 # Summaries keyed by path, reused while the file's mtime and size are unchanged.
@@ -138,6 +139,7 @@ def _date_messages(run: dict, journal: Path) -> None:
 def run_payload(path: Path) -> dict:
     run = json.loads(path.read_text())
     _date_messages(run, path.parent / USAGE_JOURNAL_FILENAME)
+    judgements = path.parent / JUDGEMENTS_FILENAME
     return {
         "run": run,
         "rows": pr_rows(run),
@@ -145,4 +147,5 @@ def run_payload(path: Path) -> dict:
         "revealed_by": REVEALED_BY,
         "tickets": _tickets(run),
         "awareness": AWARENESS.pattern,
+        "judgements": json.loads(judgements.read_text()) if judgements.is_file() else None,
     }
