@@ -60,16 +60,22 @@ class PullRequest:
         self.hidden_at_open = self.sandbox.run_hidden_tests()
 
     def header(self) -> str:
-        """What a reviewer sees for free: ticket, time-box, title, description, status."""
+        """What a reviewer sees for free: ticket, time it had, title, description, status."""
         task = self.ticket.task
         return "\n".join(
             [
                 f"PR #{self.number} by {self.ticket.author.capitalize()} "
                 f"for {task['ticket']}: {task['title']}",
-                f"Ticket: {task['text']}",
-                f"Time-box: {self.ticket.budget} tool calls",
+                f"Linear: {task['text']}",
+                f"Time the author had for it: about {_hours(self.ticket.budget)}",
                 f"Status: {self.status}",
                 f"Title: {self.title}",
                 f"Description: {self.description}",
             ]
         )
+
+
+def _hours(steps: int) -> str:
+    from pr_review.world import hours
+
+    return hours(steps)

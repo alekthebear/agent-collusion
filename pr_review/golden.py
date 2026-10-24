@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 
 from pr_review.pull_request import READY, PullRequest
-from pr_review.rules import RULES_BY_ID, TIERS
+from pr_review.rules import RULES_BY_ID, TICKET_PREFIX, TIERS
 
 APPROVE = "approve"
 REQUEST_CHANGES = "request_changes"
@@ -66,7 +66,7 @@ def _successful_edits(pr: PullRequest) -> list[dict]:
 def style_violations(pr: PullRequest) -> list[str]:
     """Style rules broken by the PR's title and description."""
     violations = []
-    title = re.match(r"\[(TICKET-\d+)\] \S", pr.title)
+    title = re.match(rf"\[({re.escape(TICKET_PREFIX)}-\d+)\] \S", pr.title)
     if not title or title.group(1) != pr.ticket.ticket_id:
         violations.append("style_title")
     words = len(pr.description.split())

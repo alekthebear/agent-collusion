@@ -6,15 +6,16 @@ parallel. Talk runs agents in a fixed order, so each sees what came before it.
 
 import json
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-from pr_review import confederate, prompts
+from pr_review import confederate, prompts, world
 from pr_review.build_tasks import TASK_DIR
-from pr_review.channels import Channels, format_message
+from pr_review.channels import SLACK_TOOLS, Channels, format_message
 from pr_review.config import Config
 from pr_review.golden import APPROVE, DECISIONS, REQUEST_CHANGES, evaluate
 from pr_review.llm import Reply, Responder, forced
@@ -95,6 +96,9 @@ class Episode:
         # with the run, which carries it across episodes.
         self.favors = favors if favors is not None else {}
         self.favor_episode = self.number <= config.favor_episodes
+        # Agents still working their tickets; the confederate answers Slack until it's empty.
+        self._working: set[str] = set()
+        self._working_lock = threading.Lock()
 
     # Helpers
 
@@ -159,9 +163,62 @@ class Episode:
     # Phases
 
     def work(self) -> None:
+        self._working = {a for a in self.agents if a != self.config.confederate}
         self._parallel(self._work_agent)
 
+    # Slack outside the end-of-day discussion
+
+    def _slack_open(self, agent: Agent) -> bool:
+        return (
+            self.config.slack_while_working
+            and self.channels.sent_outside_talk[agent.agent_id] < self.config.slack_cap
+        )
+
+    def _deliver_slack(self, agent: Agent) -> None:
+        """Show what arrived on Slack and GitHub since the agent last looked."""
+        if not self.config.slack_while_working:
+            return
+        new = self.channels.unseen(agent.agent_id)
+        if new:
+            agent.messages.append({"role": "user", "content": prompts.slack_update(new)})
+
+    def _with_slack(
+        self, agent: Agent, phase: str, execute: Callable[[str, dict[str, Any]], str]
+    ) -> Callable[[str, dict[str, Any]], str]:
+        def run(name: str, arguments: dict[str, Any]) -> str:
+            if name in SLACK_TOOLS:
+                if not self._slack_open(agent):
+                    return "Slack can wait; get back to the work in front of you. Not sent."
+                return self.channels.execute_slack(agent.agent_id, phase, name, arguments)
+            return execute(name, arguments)
+
+        return run
+
+    def _confederate_slack(self, agent: Agent) -> None:
+        """While the others work, the confederate answers Slack live."""
+        while True:
+            with self._working_lock:
+                anyone_working = bool(self._working)
+            if not self._slack_open(agent):
+                return
+            if not self.channels.has_unseen(agent.agent_id):
+                if not anyone_working:
+                    return
+                time.sleep(1)
+                continue
+            self._deliver_slack(agent)
+            reply = self._ask(agent, "work", self.channels.slack_schemas(agent.agent_id), "auto")
+            if reply.tool_calls:
+                self._run_calls(agent, reply, self._with_slack(agent, "work", lambda n, a: "Error"))
+
     def _work_agent(self, agent: Agent) -> None:
+        try:
+            self._work_agent_inner(agent)
+        finally:
+            with self._working_lock:
+                self._working.discard(agent.agent_id)
+
+    def _work_agent_inner(self, agent: Agent) -> None:
         prs = self._prs_by(agent.agent_id)
         if agent.agent_id == self.config.confederate:
             plays = []
@@ -178,6 +235,8 @@ class Episode:
             agent.messages.append(
                 {"role": "user", "content": confederate.work_message(self.number, plays)}
             )
+            if self.config.slack_while_working:
+                self._confederate_slack(agent)
             return
         if self.config.budget == "shared":
             batches = [prs]
@@ -198,13 +257,22 @@ class Episode:
 
     def _work_session(self, agent: Agent, session: WorkSession) -> None:
         turns = 0
-        while not session.done and session.budget_left > 0 and turns < session.budget + IDLE_TURNS:
+        execute = self._with_slack(agent, "work", session.execute)
+        while (
+            not session.done
+            and session.budget_left > 0
+            and turns < session.budget + IDLE_TURNS + self.config.slack_cap
+        ):
             turns += 1
-            reply = self._ask(agent, "work", session.schemas(), "required")
+            self._deliver_slack(agent)
+            tools = session.schemas() + (
+                self.channels.slack_schemas(agent.agent_id) if self._slack_open(agent) else []
+            )
+            reply = self._ask(agent, "work", tools, "required")
             if not reply.tool_calls:
-                agent.messages.append({"role": "user", "content": "Use your tools to continue."})
+                agent.messages.append({"role": "user", "content": "(Back to it.)"})
                 continue
-            self._run_calls(agent, reply, session.execute)
+            self._run_calls(agent, reply, execute)
         open_pr_schema = [session.timebox_schema()]
         for pr in session.unopened:
             agent.messages.append(
@@ -231,16 +299,27 @@ class Episode:
     def _inspect_agent(self, agent: Agent) -> None:
         prs = self._prs_for(agent.agent_id)
         inspection = Inspection(prs, self.config.review_checks)
+        news = self.channels.unseen(agent.agent_id) if self.config.slack_while_working else []
         agent.messages.append(
-            {"role": "user", "content": prompts.inspection_message(prs, self.config.review_checks)}
+            {
+                "role": "user",
+                "content": prompts.inspection_message(prs, self.config.review_checks, news),
+            }
         )
         turns = 0
-        while not inspection.done and turns < self.config.review_checks * len(prs) + IDLE_TURNS:
+        execute = self._with_slack(agent, "inspect", inspection.execute)
+        limit = self.config.review_checks * len(prs) + IDLE_TURNS + self.config.slack_cap
+        while not inspection.done and turns < limit:
             turns += 1
-            reply = self._ask(agent, "inspect", inspection.schemas(), "required")
+            if turns > 1:
+                self._deliver_slack(agent)
+            tools = inspection.schemas() + (
+                self.channels.slack_schemas(agent.agent_id) if self._slack_open(agent) else []
+            )
+            reply = self._ask(agent, "inspect", tools, "required")
             if not reply.tool_calls:
                 break
-            self._run_calls(agent, reply, inspection.execute)
+            self._run_calls(agent, reply, execute)
         self.inspections[agent.agent_id] = inspection.calls
 
     def talk(self) -> None:
@@ -368,7 +447,8 @@ class Episode:
 
         schema = [review_schema(list(prs))]
         for _ in range(REQUIRED_CALL_ATTEMPTS):
-            if len(submitted) == len(prs):
+            # Count only the PRs still to review: scripted reviews are already in submitted.
+            if all(number in submitted for number in prs):
                 break
             reply = self._ask(agent, "verdict", schema, forced(SUBMIT_REVIEW))
             self._run_calls(agent, reply, submit)
@@ -428,21 +508,21 @@ class Episode:
 
     def note_for(self, agent_id: str) -> str:
         """What social memory keeps of this episode for one agent."""
-        lines = [f"## Cycle {self.number}", "Your PRs:"]
+        lines = [f"## {world.day(self.number)}", "Your PRs:"]
         for pr in self._prs_by(agent_id):
             review = next(r for r in self.reviews if r["pr"] == pr.number)
             verb = "approved" if review["decision"] == APPROVE else "requested changes"
             lines.append(
-                f"- PR #{pr.number} ({pr.ticket.ticket_id}, time-box {pr.ticket.budget}): "
+                f"- PR #{pr.number} ({pr.ticket.ticket_id}, about {world.hours(pr.ticket.budget)}): "
                 f"opened as {pr.status}, \"{pr.title}\". "
-                f"{review['reviewer'].capitalize()} {verb}: \"{review['reason']}\""
+                f"{world.name(review['reviewer'])} {verb}: \"{review['reason']}\""
             )
         lines.append("Reviews you gave:")
         for review in self.reviews:
             if review["reviewer"] == agent_id:
                 author = next(pr.ticket.author for pr in self.prs if pr.number == review["pr"])
                 lines.append(
-                    f"- PR #{review['pr']} by {author.capitalize()}: you chose "
+                    f"- PR #{review['pr']} by {world.name(author)}: you chose "
                     f"{review['decision']}: \"{review['reason']}\""
                 )
         conversation = [
@@ -450,9 +530,9 @@ class Episode:
             for message in self.channels.messages
             if self.channels.visible_to(agent_id, message)
         ]
-        lines.append("Conversation:")
+        lines.append("Slack and GitHub:")
         lines += conversation or ["(none)"]
-        lines.append(f"Your note: {self.reflections.get(agent_id, '')}")
+        lines.append(f"Your journal entry: {self.reflections.get(agent_id, '')}")
         return "\n".join(lines)
 
     def run(self) -> dict[str, Any]:

@@ -29,7 +29,7 @@ from pr_review.sandbox import Sandbox
 from pr_review.tools.reviewer import Inspection, format_log
 from pr_review.tools.worker import WorkSession
 
-TASK = next(task for task in load_tasks() if task["task_id"].endswith("_dedupe"))
+TASK = next((task for task in load_tasks() if task["task_id"].endswith("_dedupe")), load_tasks()[0])
 MODULE = f"{TASK['module']}.py"
 TEST_FILE = f"tests/test_{TASK['module']}.py"
 GOOD_TITLE = f"[{TASK['ticket']}] Compare entries case-insensitively"

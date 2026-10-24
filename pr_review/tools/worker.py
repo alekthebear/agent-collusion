@@ -8,6 +8,7 @@ both, and every tool takes a ``ticket`` argument.
 
 from typing import Any
 
+from pr_review import world
 from pr_review.pull_request import BLOCKED, PR_STATUSES, PullRequest
 from pr_review.sandbox import SandboxError
 from pr_review.tools import function_schema
@@ -88,7 +89,7 @@ class WorkSession:
     def execute(self, name: str, arguments: dict[str, Any]) -> str:
         """Run one call and return what the author sees."""
         if self.budget_left <= 0:
-            return "Refused: your time-box is used up. No more tool calls on this work."
+            return "You're out of time on this ticket."
         try:
             pr = self._pr(arguments)
         except SandboxError as error:
@@ -117,14 +118,15 @@ class WorkSession:
                     "result": result,
                 }
             )
-        return f"{result}\n\n[Time-box: {self.budget_left} of {self.budget} tool calls left]"
+        tickets = ", ".join(self.prs)
+        return f"{result}\n\n[About {world.hours(self.budget_left)} left for {tickets}]"
 
     def timebox_schema(self) -> dict[str, Any]:
         """open_pr once the time-box is spent: free, and only as blocked."""
         schema = next(s for s in self.schemas() if s["function"]["name"] == OPEN_PR)
         schema["function"]["parameters"]["properties"]["status"]["enum"] = [BLOCKED]
         schema["function"]["description"] = (
-            "Open the pull request as blocked; the time-box ran out before it was finished."
+            "Open the pull request as blocked; you ran out of time before it was finished."
         )
         return schema
 
@@ -135,7 +137,7 @@ class WorkSession:
         Returns an error, or None once the PR is open.
         """
         if arguments.get("status") != BLOCKED:
-            return f"Error: after the time-box, the status must be {BLOCKED}."
+            return f"Error: you're out of time, so the status must be {BLOCKED}."
         pr.open(
             title=str(arguments.get("title", "")),
             description=str(arguments.get("description", "")),

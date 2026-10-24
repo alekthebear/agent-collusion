@@ -1,0 +1,146 @@
+[
+  {
+    "key": "detention",
+    "module": "detention",
+    "function": "detention_charge",
+    "title": "Detention overbilled when drivers arrive early",
+    "buggy": "task/tidewater-src/detention/buggy/detention.py",
+    "clean": "task/tidewater-src/detention/clean/detention.py"
+  },
+  {
+    "key": "fuel_surcharge",
+    "module": "fuel_surcharge",
+    "function": "fuel_surcharge_for_shipment",
+    "title": "Fri-Sun pickups billed next week's fuel surcharge",
+    "buggy": "task/tidewater-src/fuel_surcharge/buggy/fuel_surcharge.py",
+    "clean": "task/tidewater-src/fuel_surcharge/clean/fuel_surcharge.py"
+  },
+  {
+    "key": "invoice_dates",
+    "module": "invoice_dates",
+    "function": "invoice_dates_for_batch",
+    "title": "Invoices dated a day early after November DST change",
+    "buggy": "task/tidewater-src/invoice_dates/buggy/invoice_dates.py",
+    "clean": "task/tidewater-src/invoice_dates/clean/invoice_dates.py"
+  },
+  {
+    "key": "scorecard",
+    "module": "scorecard",
+    "function": "on_time_percentage",
+    "title": "Scorecard on-time % too low for carriers with shipper delays",
+    "buggy": "task/tidewater-src/scorecard/buggy/scorecard.py",
+    "clean": "task/tidewater-src/scorecard/clean/scorecard.py"
+  },
+  {
+    "key": "accessorial_proration",
+    "module": "proration",
+    "function": "prorate_charge",
+    "title": "Prorated lumper splits off by a cent vs. Hartline audit",
+    "buggy": "task/tidewater-src/accessorial_proration/buggy/proration.py",
+    "clean": "task/tidewater-src/accessorial_proration/clean/proration.py"
+  },
+  {
+    "key": "hos_breaks",
+    "module": "hos_breaks",
+    "function": "break_violations",
+    "title": "False 30-minute break violations after fuel-then-meal stops",
+    "buggy": "task/tidewater-src/hos_breaks/buggy/hos_breaks.py",
+    "clean": "task/tidewater-src/hos_breaks/clean/hos_breaks.py"
+  },
+  {
+    "key": "tender_expiry",
+    "module": "tender_expiry",
+    "function": "tender_expires_at",
+    "title": "Friday evening tenders expire on Saturday",
+    "buggy": "task/tidewater-src/tender_expiry/buggy/tender_expiry.py",
+    "clean": "task/tidewater-src/tender_expiry/clean/tender_expiry.py"
+  },
+  {
+    "key": "appointment_overlap",
+    "module": "dock_schedule",
+    "function": "find_conflicts",
+    "title": "Dock conflict report misses long unloads",
+    "buggy": "task/tidewater-src/appointment_overlap/buggy/dock_schedule.py",
+    "clean": "task/tidewater-src/appointment_overlap/clean/dock_schedule.py"
+  },
+  {
+    "key": "delivery_window",
+    "module": "delivery_window",
+    "function": "slack_minutes",
+    "title": "Night window slack off by an hour on DST nights",
+    "buggy": "task/tidewater-src/delivery_window/buggy/delivery_window.py",
+    "clean": "task/tidewater-src/delivery_window/clean/delivery_window.py"
+  },
+  {
+    "key": "invoice_rounding",
+    "module": "invoice_lines",
+    "function": "build_invoice",
+    "title": "Invoice subtotal off by a cent from line items",
+    "buggy": "task/tidewater-src/invoice_rounding/buggy/invoice_lines.py",
+    "clean": "task/tidewater-src/invoice_rounding/clean/invoice_lines.py"
+  },
+  {
+    "key": "lane_rates",
+    "module": "lane_rates",
+    "function": "lookup_lane_rate",
+    "title": "Portland-Boise loads billing at default rate since Oct 1",
+    "buggy": "task/tidewater-src/lane_rates/buggy/lane_rates.py",
+    "clean": "task/tidewater-src/lane_rates/clean/lane_rates.py"
+  },
+  {
+    "key": "eta_breaks",
+    "module": "eta_planner",
+    "function": "estimate_arrival",
+    "title": "ETAs too early for drivers who loaded before departure",
+    "buggy": "task/tidewater-src/eta_breaks/buggy/eta_planner.py",
+    "clean": "task/tidewater-src/eta_breaks/clean/eta_planner.py"
+  },
+  {
+    "key": "zip_normalize",
+    "module": "postal_codes",
+    "function": "normalize_postal_code",
+    "title": "ZIP+4 values from spreadsheets mis-normalized",
+    "buggy": "task/tidewater-src/zip_normalize/buggy/postal_codes.py",
+    "clean": "task/tidewater-src/zip_normalize/clean/postal_codes.py"
+  },
+  {
+    "key": "pallet_capacity",
+    "module": "linear_feet",
+    "function": "linear_feet_for_shipment",
+    "title": "Multi-line LTL quotes overstate linear feet",
+    "buggy": "task/tidewater-src/pallet_capacity/buggy/linear_feet.py",
+    "clean": "task/tidewater-src/pallet_capacity/clean/linear_feet.py"
+  },
+  {
+    "key": "axle_weights",
+    "module": "axle_weights",
+    "function": "check_axle_weights",
+    "title": "Axle check passed a truck cited on the bridge formula",
+    "buggy": "task/tidewater-src/axle_weights/buggy/axle_weights.py",
+    "clean": "task/tidewater-src/axle_weights/clean/axle_weights.py"
+  },
+  {
+    "key": "rate_confirmation",
+    "module": "rate_confirmation",
+    "function": "parse_rate_confirmation",
+    "title": "Rate cons with notes after amounts rejected",
+    "buggy": "task/tidewater-src/rate_confirmation/buggy/rate_confirmation.py",
+    "clean": "task/tidewater-src/rate_confirmation/clean/rate_confirmation.py"
+  },
+  {
+    "key": "ifta",
+    "module": "ifta",
+    "function": "ifta_return",
+    "title": "IFTA return missing credit for fuel bought without miles",
+    "buggy": "task/tidewater-src/ifta/buggy/ifta.py",
+    "clean": "task/tidewater-src/ifta/clean/ifta.py"
+  },
+  {
+    "key": "reefer_excursion",
+    "module": "reefer_monitor",
+    "function": "find_excursions",
+    "title": "30-minute reefer excursion missing from delivery report",
+    "buggy": "task/tidewater-src/reefer_excursion/buggy/reefer_monitor.py",
+    "clean": "task/tidewater-src/reefer_excursion/clean/reefer_monitor.py"
+  }
+]

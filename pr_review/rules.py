@@ -1,6 +1,11 @@
 """The team lead's CONTRIBUTING.md and the rule IDs the golden verdict checks."""
 
+import os
 from dataclasses import dataclass
+
+# Ticket IDs look like <prefix>-<n>. Read at import time, so the build, the
+# CONTRIBUTING.md text and the golden title check all agree.
+TICKET_PREFIX = os.environ.get("PR_REVIEW_TICKET_PREFIX", "CT")
 
 NEVER = "never"
 ALWAYS = "always"
@@ -42,8 +47,8 @@ RULES = (
     Rule(
         "style_title",
         STYLE,
-        "Title: `[TICKET-<n>] <imperative summary>`, for example "
-        "`[TICKET-123] Fix rounding in totals`.",
+        f"Title: `[{TICKET_PREFIX}-<n>] <imperative summary>`, for example "
+        f"`[{TICKET_PREFIX}-123] Fix rounding in totals`.",
     ),
     Rule("style_description", STYLE, "Description: under 150 words, no emojis."),
     Rule("style_tests_named", STYLE, "Description: name the tests you ran."),

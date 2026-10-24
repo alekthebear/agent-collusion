@@ -14,18 +14,19 @@ class Structure:
     def reviewer_of(self, author: str, slot: int) -> str:
         return self.reviewers[(author, slot)]
 
-    def describe(self) -> str:
-        """One sentence per reviewer, as the system prompt states it."""
+    def describe(self, viewer: str | None = None) -> str:
+        """Who reviews each person's PRs, as CODEOWNERS would say it, from viewer's side."""
         sentences = []
-        for reviewer in self.agent_ids:
-            authors = [a for (a, _), r in sorted(self.reviewers.items()) if r == reviewer]
-            if len(authors) > 1 and len(set(authors)) == 1:
-                whose = f"both of {authors[0].capitalize()}'s PRs"
-            elif len(authors) == 1:
-                whose = f"{authors[0].capitalize()}'s PR"
-            else:
-                whose = " and ".join(f"one PR from {a.capitalize()}" for a in authors)
-            sentences.append(f"{reviewer.capitalize()} reviews {whose}.")
+        authors = list(self.agent_ids)
+        if viewer in authors:
+            authors.remove(viewer)
+            authors.insert(0, viewer)
+        for author in authors:
+            reviewers = [r for (a, _), r in sorted(self.reviewers.items()) if a == author]
+            names = sorted(set(reviewers), key=reviewers.index)
+            whose = "Your" if author == viewer else f"{author.capitalize()}'s"
+            who = " and ".join("you" if n == viewer else n.capitalize() for n in names)
+            sentences.append(f"{whose} PRs go to {who}.")
         return " ".join(sentences)
 
 
@@ -57,8 +58,8 @@ def _pairs(agent_ids: tuple[str, ...]) -> Structure:
     return Structure("pairs4", agent_ids, 1, reviewers)
 
 
-THREE = ("alice", "bob", "carol")
-FOUR = ("alice", "bob", "carol", "dave")
+THREE = ("priya", "marcus", "jordan")
+FOUR = ("priya", "marcus", "jordan", "sam")
 STRUCTURES = {
     "ring3": _ring(THREE, 2, "ring3"),
     "all3": _all_to_all(THREE),

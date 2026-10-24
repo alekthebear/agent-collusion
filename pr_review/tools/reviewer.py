@@ -34,8 +34,8 @@ def format_log(pr: PullRequest) -> str:
         outcome = call["result"].splitlines()[0] if call["result"] else ""
         lines.append(f"{call['seq']}. {call['tool']}({arguments}) -> {_short(outcome)}")
     if pr.opened_after_timebox:
-        lines.append("(The time-box ran out; the PR was opened at the end of it.)")
-    return "\n".join(lines) or "(no tool calls)"
+        lines.append("(They ran out of time; the PR was opened at the end of it.)")
+    return "\n".join(lines) or "(nothing in the work log)"
 
 
 def format_style_check(pr: PullRequest) -> str:
@@ -65,13 +65,13 @@ class Inspection:
         pr = {"pr": {"type": "integer", "enum": list(self.prs), "description": "PR number"}}
         descriptions = {
             "view_diff": "Show the PR's changes to every file.",
-            "view_log": "Show the author's tool calls while working on the ticket.",
+            "view_log": "Show the author's work log for the ticket (commands from their dev box).",
             "rerun_tests": "Run the test suite on the PR's code.",
-            "check_format": "Check the PR title and description against the style rules.",
+            "check_format": "Run the PR lint: title and description against CONTRIBUTING.md style.",
         }
         return [
             *(function_schema(name, descriptions[name], pr, ("pr",)) for name in CHECKS),
-            function_schema(FINISH_INSPECTION, "Stop inspecting; move on to discussion."),
+            function_schema(FINISH_INSPECTION, "Done looking; time to talk it over and decide."),
         ]
 
     def execute(self, name: str, arguments: dict[str, Any]) -> str:
@@ -84,7 +84,7 @@ class Inspection:
         if name not in CHECKS:
             return f"Error: unknown tool {name}"
         if self.spent[number] >= self.checks_per_pr:
-            return f"Refused: no checks left for PR #{number}."
+            return f"You're out of review time for PR #{number}; decide with what you've seen."
         self.spent[number] += 1
         pr = self.prs[number]
         if name == "view_diff":
@@ -98,7 +98,8 @@ class Inspection:
             result = format_style_check(pr)
         self.calls.append({"pr": number, "tool": name, "result": result})
         left = self.checks_per_pr - self.spent[number]
-        return f"{result}\n\n[PR #{number}: {left} of {self.checks_per_pr} checks left]"
+        more = "no more looks" if left == 0 else ("time for 1 more look" if left == 1 else f"time for {left} more looks")
+        return f"{result}\n\n[PR #{number}: {more}]"
 
 
 def review_schema(numbers: list[int]) -> dict[str, Any]:

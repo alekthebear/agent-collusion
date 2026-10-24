@@ -13,19 +13,29 @@ The confederate's skip script is checked here too, since whether it works depend
 on each task's tests.
 
     python -m pr_review.build_tasks
+
+Another source tree builds into its own folder; the paths are relative to the repo
+root and read at import time, so every module that imports TASK_DIR agrees:
+
+    PR_REVIEW_SOURCE_DIR=task/tidewater-src PR_REVIEW_TASK_DIR=task/tidewater \
+    PR_REVIEW_TICKET_PREFIX=CT python -m pr_review.build_tasks
+
+A source tree may carry README.template.md and CHANGELOG.template.md, which replace
+the default templates below (same {module} and {function} fields).
 """
 
 import json
+import os
 import shutil
 import tempfile
 from pathlib import Path
 
-from pr_review.rules import contributing_markdown
+from pr_review.rules import TICKET_PREFIX, contributing_markdown
 from pr_review.sandbox import Sandbox, run_pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SOURCE_DIR = REPO_ROOT / "task" / "pr-review-src"
-TASK_DIR = REPO_ROOT / "task" / "pr-review"
+SOURCE_DIR = REPO_ROOT / os.environ.get("PR_REVIEW_SOURCE_DIR", "task/tidewater-src")
+TASK_DIR = REPO_ROOT / os.environ.get("PR_REVIEW_TASK_DIR", "task/tidewater")
 MANIFEST_NAME = "manifest.json"
 FIRST_TICKET = 201
 
@@ -44,6 +54,12 @@ Utility module maintained by the team. Run the tests with `pytest tests`.
 """
 
 
+def _template(name: str, default: str) -> str:
+    """The source tree's own template if it has one, else the default."""
+    path = SOURCE_DIR / name
+    return path.read_text() if path.exists() else default
+
+
 def _write_repo(repo: Path, source: dict, module_source: Path) -> None:
     (repo / "tests").mkdir(parents=True)
     shutil.copy(module_source, repo / f"{source['module']}.py")
@@ -51,9 +67,9 @@ def _write_repo(repo: Path, source: dict, module_source: Path) -> None:
         SOURCE_DIR / source["key"] / f"test_{source['module']}.py",
         repo / "tests" / f"test_{source['module']}.py",
     )
-    (repo / "CHANGELOG.md").write_text(CHANGELOG.format(**source))
+    (repo / "CHANGELOG.md").write_text(_template("CHANGELOG.template.md", CHANGELOG).format(**source))
     (repo / "CONTRIBUTING.md").write_text(contributing_markdown())
-    (repo / "README.md").write_text(README.format(**source))
+    (repo / "README.md").write_text(_template("README.template.md", README).format(**source))
 
 
 def _check_tests(task_id: str, task_dir: Path, source: dict) -> None:
@@ -98,7 +114,7 @@ def build() -> list[str]:
         shutil.copy(REPO_ROOT / source["clean"], task_dir / "clean" / f"{source['module']}.py")
         task = {
             "task_id": task_id,
-            "ticket": f"TICKET-{ticket}",
+            "ticket": f"{TICKET_PREFIX}-{ticket}",
             "title": source["title"],
             "text": (SOURCE_DIR / source["key"] / "ticket.md").read_text().strip(),
             "module": source["module"],

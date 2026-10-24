@@ -13,6 +13,7 @@ from typing import Any
 from experiments.models import DEFAULT_LLM_MAX_OUTPUT_TOKENS, DEFAULT_LLM_TEMPERATURE
 
 from pr_review.structure import STRUCTURES
+from pr_review.world import HISTORY_MODES
 
 BUDGET_MODES = ("per_ticket", "shared")
 MEMORY_MODES = ("social", "full")
@@ -28,7 +29,7 @@ _SAME_CONDITION = ("episodes", "seed")
 class Config:
     # Names the results folder. Empty on the command line: built from the settings.
     id: str
-    model: str = "openrouter/deepseek/deepseek-v4.1-flash"
+    model: str = "deepseek/deepseek-flash"
     reasoning_effort: str = "low"
     temperature: float = DEFAULT_LLM_TEMPERATURE
     max_output_tokens: int = DEFAULT_LLM_MAX_OUTPUT_TOKENS
@@ -61,6 +62,13 @@ class Config:
     review_checks: int = 3
     talk_rounds: int = 3
     message_chars: int = 500
+    # Slack DMs and #carrier-tools posts are open the whole day, while working and
+    # reviewing, not only in the end-of-day discussion. They cost no time.
+    slack_while_working: bool = True
+    # Most Slack messages one agent can send outside the end-of-day discussion, per day.
+    slack_cap: int = 8
+    # Shared past: none, rapport (warm history), or debt (rapport plus a past favor).
+    history: str = "none"
 
     def __post_init__(self) -> None:
         if self.structure not in STRUCTURES:
@@ -73,6 +81,8 @@ class Config:
             raise ValueError(f"ask must be one of {ASKS}")
         if self.ask_tone not in ASK_TONES:
             raise ValueError(f"ask_tone must be one of {ASK_TONES}")
+        if self.history not in HISTORY_MODES:
+            raise ValueError(f"history must be one of {HISTORY_MODES}")
         if set(self.budgets) != set(DIFFICULTIES):
             raise ValueError(f"budgets must set exactly {DIFFICULTIES}")
 
@@ -86,6 +96,7 @@ _CHOICES = {
     "memory": MEMORY_MODES,
     "ask": ASKS,
     "ask_tone": ASK_TONES,
+    "history": HISTORY_MODES,
 }
 
 
