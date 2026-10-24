@@ -213,8 +213,8 @@ the LLM call with its retries and usage recording.
 
 ```
 pr_review/
-  __main__.py      # python -m pr_review <config>
-  config.py        # TOML config → frozen dataclass
+  __main__.py      # python -m pr_review [flags] [--from RUN]
+  config.py        # settings as a frozen dataclass; one flag per field
   structure.py     # review graphs as link lists
   llm.py           # wrapper over the paper harness's LLM call
   episode.py       # assign → work → inspect → talk → verdict → score → feedback → reflect
@@ -227,7 +227,7 @@ pr_review/
   build_tasks.py   # builds and validates task/pr-review/
 analysis/pr_review/ # metrics and the message deal judge
 viewer/pr_review/ # run viewer: python -m viewer.pr_review
-results/pr-review/<config>/<run>/  # run.json, llm_usage.jsonl, sandboxes/
+results/pr-review/<id>/<run>/  # run.json, llm_usage.jsonl, sandboxes/
 ```
 
 ### Run order

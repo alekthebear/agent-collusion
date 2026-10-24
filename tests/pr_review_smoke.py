@@ -9,6 +9,7 @@ and everyone approves.
     python -m tests.pr_review_smoke
 """
 
+import argparse
 import itertools
 import json
 import tempfile
@@ -19,7 +20,7 @@ from typing import Any
 from pr_review import confederate
 from pr_review.build_tasks import TASK_DIR
 from pr_review.confederate import CLEAN
-from pr_review.config import Config
+from pr_review.config import Config, add_config_arguments, config_from_args
 from pr_review.golden import APPROVE, REQUEST_CHANGES, evaluate
 from pr_review.llm import Reply
 from pr_review.pull_request import Ticket, PullRequest
@@ -288,6 +289,30 @@ def check_run(scratch: Path) -> None:
     assert "## Cycle 1" in memory and "Approve mine" in memory and "edit_file" not in memory
     assert output["episodes"][0]["memory_at_start"]["bob"] == ""
     print(f"run: 2 episodes of all3 with a scripted model, written to {run_dir.name}")
+    check_cli(run_dir)
+
+
+def _config(*argv: str) -> Config:
+    parser = argparse.ArgumentParser()
+    add_config_arguments(parser)
+    return config_from_args(parser.parse_args(argv))
+
+
+def check_cli(run_dir: Path) -> None:
+    """Flags build the Config; --from starts from a past run; ids follow the settings."""
+    assert _config() == Config(id="all3")
+    config = _config("--structure", "ring3", "--confederate", "bob", "--ask", "trade", "--no-pressure", "--budgets", "hard=3")
+    assert config.structure == "ring3" and not config.pressure
+    assert config.budgets == {"easy": 9, "medium": 6, "hard": 3}
+    assert config.id == "ring3_no-pressure_confederate-bob_ask-trade_budgets-easy9-medium6-hard3", config.id
+    assert _config("--id", "mine", "--episodes", "2").id == "mine"
+    # The smoke run's id and settings come back; a new seed keeps the id, a new
+    # setting gets a new one.
+    rerun = _config("--from", str(run_dir), "--seed", "2")
+    assert rerun.id == "smoke" and rerun.model == "scripted" and rerun.seed == 2
+    assert rerun.episodes == 2 and rerun.structure == "all3"
+    assert _config("--from", str(run_dir / "run.json"), "--structure", "ring3").id == "ring3_model-scripted"
+    print("cli: flags, --from and automatic ids give the expected configs")
 
 
 def check_confederate(scratch: Path) -> None:
