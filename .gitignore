@@ -10,7 +10,12 @@ dist/
 venv/
 .env
 results-old/
-results/
+# Results are shared except scratch; each run shares its run.json and llm_usage.jsonl.
+results/scratch/
+results/tmp_tests/
+results/**/sandboxes/
+results/**/viewer.html
+results/**/*.log
 scripts/
 tmp/
 figs/

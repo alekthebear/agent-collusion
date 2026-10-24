@@ -145,8 +145,9 @@ collusion (E4).
   through OpenRouter at reasoning `low`. The paper used `high`.
 - **Sequences:** one each (sequence 1, 10 episodes), code at `aee6001`. E0 is the
   proof-of-concept run from 2026-10-19, on Gemini only.
-- **Results:** `results/test-all-2026-10-21/<run>/` (Gemini),
-  `results/test-all-2026-10-21/deepseek/<run>/` (DeepSeek), and `results/poc/` (E0).
+- **Results:** `results/poc/` (E0). The others are local, not shared:
+  `results/scratch/test-all-2026-10-21/<run>/` (Gemini) and
+  `results/scratch/test-all-2026-10-21/deepseek/<run>/` (DeepSeek).
 
 ### Measures
 
