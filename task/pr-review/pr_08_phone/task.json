@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_08_phone",
+  "ticket": "TICKET-208",
+  "title": "Phone numbers use the wrong format",
+  "text": "`format_phone` in `phone.py` should format 10 digits as `(XXX) XXX-XXXX`. `format_phone(\"5551234567\")` returns `\"555-123-4567\"`.",
+  "module": "phone",
+  "function": "format_phone"
+}

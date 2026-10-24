@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_28_word_count",
+  "ticket": "TICKET-228",
+  "title": "Word counts are case-sensitive",
+  "text": "`count_words` in `word_count.py` should count words case-insensitively. `count_words(\"The cat and the hat\")` counts `The` and `the` separately; `the` should be 2.",
+  "module": "word_count",
+  "function": "count_words"
+}

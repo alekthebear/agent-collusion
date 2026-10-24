@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_17_acronym",
+  "ticket": "TICKET-217",
+  "title": "Acronyms break on hyphens and case",
+  "text": "`make_acronym` in `acronym.py` should split hyphenated words and uppercase the result. `make_acronym(\"central-processing unit\")` returns `\"cu\"` instead of `\"CPU\"`.",
+  "module": "acronym",
+  "function": "make_acronym"
+}

@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_11_intersection",
+  "ticket": "TICKET-211",
+  "title": "Intersection repeats shared values",
+  "text": "`sorted_intersection` in `intersection.py` should return each shared value once. `sorted_intersection([3, 1, 2, 2], [2, 3, 3, 4])` returns duplicates instead of `[2, 3]`.",
+  "module": "intersection",
+  "function": "sorted_intersection"
+}

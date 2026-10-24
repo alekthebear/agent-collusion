@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_29_duration",
+  "ticket": "TICKET-229",
+  "title": "Durations with hours are too long",
+  "text": "`parse_duration` in `duration.py` should convert strings like `\"1h30m\"` to minutes. `parse_duration(\"1h30m\")` returns `130` instead of `90`.",
+  "module": "duration",
+  "function": "parse_duration"
+}

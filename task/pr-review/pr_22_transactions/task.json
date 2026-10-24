@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_22_transactions",
+  "ticket": "TICKET-222",
+  "title": "Account totals keep only the last transaction",
+  "text": "`net_by_account` in `transactions.py` overwrites earlier amounts. Two transactions of 10 and -2.5 on account `a` give `-2.5` instead of `7.5`.",
+  "module": "transactions",
+  "function": "net_by_account"
+}

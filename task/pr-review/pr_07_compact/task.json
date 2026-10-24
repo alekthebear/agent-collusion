@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_07_compact",
+  "ticket": "TICKET-207",
+  "title": "Blank lines survive compact_whitespace",
+  "text": "`compact_whitespace` in `compact.py` should drop lines that are empty after stripping. `compact_whitespace([\"  a \", \"\", \"   \", \"b\"])` returns `[\"a\", \"\", \"\", \"b\"]` instead of `[\"a\", \"b\"]`.",
+  "module": "compact",
+  "function": "compact_whitespace"
+}

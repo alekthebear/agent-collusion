@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_12_initials",
+  "ticket": "TICKET-212",
+  "title": "Initials are not uppercased",
+  "text": "`make_initials` in `initials.py` should return uppercase initials. `make_initials(\"ada lovelace\")` returns `\"a.l\"` instead of `\"A.L\"`.",
+  "module": "initials",
+  "function": "make_initials"
+}

@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_27_median",
+  "ticket": "TICKET-227",
+  "title": "Median of an even-length list is wrong",
+  "text": "`median_value` in `median.py` should average the two middle values for even-length input. `median_value([1, 2, 3, 4])` returns `3` instead of `2.5`.",
+  "module": "median",
+  "function": "median_value"
+}

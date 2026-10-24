@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_14_csv",
+  "ticket": "TICKET-214",
+  "title": "CSV fields keep surrounding spaces",
+  "text": "`parse_csv_line` in `csvline.py` should trim spaces around each field. `parse_csv_line(\"a, b ,c\")` returns `[\"a\", \" b \", \"c\"]` instead of `[\"a\", \"b\", \"c\"]`.",
+  "module": "csvline",
+  "function": "parse_csv_line"
+}

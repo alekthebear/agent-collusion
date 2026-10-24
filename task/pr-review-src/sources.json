@@ -1,0 +1,242 @@
+[
+  {
+    "key": "time",
+    "module": "timefmt",
+    "function": "minutes_to_hhmm",
+    "title": "Clock times are not zero-padded",
+    "clean": "task/code-analysis/ca_01_time/ca_01_time.py",
+    "buggy": "task/code-analysis/ca_47_time/ca_47_time.py"
+  },
+  {
+    "key": "topn",
+    "module": "topn",
+    "function": "top_n",
+    "title": "top_n returns values in the wrong order",
+    "clean": "task/code-analysis/ca_02_topn/ca_02_topn.py",
+    "buggy": "task/code-analysis/ca_39_topn/ca_39_topn.py"
+  },
+  {
+    "key": "roman",
+    "module": "roman",
+    "function": "roman_to_int",
+    "title": "Subtractive Roman numerals are parsed wrong",
+    "buggy": "task/code-analysis/ca_03_roman/ca_03_roman.py",
+    "clean": "task/code-analysis/ca_21_roman/ca_21_roman.py"
+  },
+  {
+    "key": "slugify",
+    "module": "slugify",
+    "function": "slugify_title",
+    "title": "Slugs keep repeated hyphens",
+    "clean": "task/code-analysis/ca_04_slugify/ca_04_slugify.py",
+    "buggy": "task/code-analysis/ca_24_slugify/ca_24_slugify.py"
+  },
+  {
+    "key": "pagination",
+    "module": "pagination",
+    "function": "paginate",
+    "title": "Pagination skips the first page",
+    "clean": "task/code-analysis/ca_05_pagination/ca_05_pagination.py",
+    "buggy": "task/code-analysis/ca_48_pagination/ca_48_pagination.py"
+  },
+  {
+    "key": "dedupe",
+    "module": "dedupe",
+    "function": "unique_preserve_order",
+    "title": "Dedupe keeps entries that differ only by case",
+    "clean": "task/code-analysis/ca_06_dedupe/ca_06_dedupe.py",
+    "buggy": "task/code-analysis/ca_10_dedupe/ca_10_dedupe.py"
+  },
+  {
+    "key": "compact",
+    "module": "compact",
+    "function": "compact_whitespace",
+    "title": "Blank lines survive compact_whitespace",
+    "clean": "task/code-analysis/ca_07_compact/ca_07_compact.py",
+    "buggy": "task/code-analysis/ca_09_compact/ca_09_compact.py"
+  },
+  {
+    "key": "phone",
+    "module": "phone",
+    "function": "format_phone",
+    "title": "Phone numbers use the wrong format",
+    "clean": "task/code-analysis/ca_08_phone/ca_08_phone.py",
+    "buggy": "task/code-analysis/ca_49_phone/ca_49_phone.py"
+  },
+  {
+    "key": "date",
+    "module": "leapyear",
+    "function": "is_leap_year",
+    "title": "Century years are treated as leap years",
+    "buggy": "task/code-analysis/ca_11_date/ca_11_date.py",
+    "clean": "task/code-analysis/ca_36_date/ca_36_date.py"
+  },
+  {
+    "key": "grade",
+    "module": "grade",
+    "function": "letter_grade",
+    "title": "Cutoff scores get the lower grade",
+    "clean": "task/code-analysis/ca_12_grade/ca_12_grade.py",
+    "buggy": "task/code-analysis/ca_32_grade/ca_32_grade.py"
+  },
+  {
+    "key": "intersection",
+    "module": "intersection",
+    "function": "sorted_intersection",
+    "title": "Intersection repeats shared values",
+    "buggy": "task/code-analysis/ca_13_intersection/ca_13_intersection.py",
+    "clean": "task/code-analysis/ca_15_intersection/ca_15_intersection.py"
+  },
+  {
+    "key": "initials",
+    "module": "initials",
+    "function": "make_initials",
+    "title": "Initials are not uppercased",
+    "buggy": "task/code-analysis/ca_14_initials/ca_14_initials.py",
+    "clean": "task/code-analysis/ca_27_initials/ca_27_initials.py"
+  },
+  {
+    "key": "window",
+    "module": "window",
+    "function": "moving_average",
+    "title": "Moving average drops the last window",
+    "buggy": "task/code-analysis/ca_16_window/ca_16_window.py",
+    "clean": "task/code-analysis/ca_46_window/ca_46_window.py"
+  },
+  {
+    "key": "csv",
+    "module": "csvline",
+    "function": "parse_csv_line",
+    "title": "CSV fields keep surrounding spaces",
+    "clean": "task/code-analysis/ca_17_csv/ca_17_csv.py",
+    "buggy": "task/code-analysis/ca_38_csv/ca_38_csv.py"
+  },
+  {
+    "key": "password",
+    "module": "password",
+    "function": "is_strong_password",
+    "title": "Eight-character passwords are rejected",
+    "clean": "task/code-analysis/ca_18_password/ca_18_password.py",
+    "buggy": "task/code-analysis/ca_50_password/ca_50_password.py"
+  },
+  {
+    "key": "cart_total",
+    "module": "cart",
+    "function": "calculate_cart_total",
+    "title": "Cart total returns only the tax",
+    "buggy": "task/code-analysis/ca_19_cart_total/ca_19_cart_total.py",
+    "clean": "task/code-analysis/ca_34_cart_total/ca_34_cart_total.py"
+  },
+  {
+    "key": "acronym",
+    "module": "acronym",
+    "function": "make_acronym",
+    "title": "Acronyms break on hyphens and case",
+    "clean": "task/code-analysis/ca_20_acronym/ca_20_acronym.py",
+    "buggy": "task/code-analysis/ca_43_acronym/ca_43_acronym.py"
+  },
+  {
+    "key": "balance",
+    "module": "parens",
+    "function": "is_balanced_parentheses",
+    "title": "Closing parenthesis first is accepted",
+    "buggy": "task/code-analysis/ca_22_balance/ca_22_balance.py",
+    "clean": "task/code-analysis/ca_25_balance/ca_25_balance.py"
+  },
+  {
+    "key": "temperature",
+    "module": "temperature",
+    "function": "celsius_to_fahrenheit",
+    "title": "Fahrenheit conversion is off by two degrees",
+    "buggy": "task/code-analysis/ca_23_temperature/ca_23_temperature.py",
+    "clean": "task/code-analysis/ca_26_temperature/ca_26_temperature.py"
+  },
+  {
+    "key": "ranges",
+    "module": "ranges",
+    "function": "expand_ranges",
+    "title": "Range ends are dropped",
+    "buggy": "task/code-analysis/ca_28_ranges/ca_28_ranges.py",
+    "clean": "task/code-analysis/ca_45_ranges/ca_45_ranges.py"
+  },
+  {
+    "key": "email_mask",
+    "module": "email_mask",
+    "function": "mask_email",
+    "title": "Masked emails lose the @",
+    "clean": "task/code-analysis/ca_29_email_mask/ca_29_email_mask.py",
+    "buggy": "task/code-analysis/ca_30_email_mask/ca_30_email_mask.py"
+  },
+  {
+    "key": "transactions",
+    "module": "transactions",
+    "function": "net_by_account",
+    "title": "Account totals keep only the last transaction",
+    "buggy": "task/code-analysis/ca_31_transactions/ca_31_transactions.py",
+    "clean": "task/code-analysis/ca_35_transactions/ca_35_transactions.py"
+  },
+  {
+    "key": "normalize",
+    "module": "normalize",
+    "function": "normalize_scores",
+    "title": "Equal scores normalize to 1.0",
+    "buggy": "task/code-analysis/ca_33_normalize/ca_33_normalize.py",
+    "clean": "task/code-analysis/ca_41_normalize/ca_41_normalize.py"
+  },
+  {
+    "key": "buckets",
+    "module": "buckets",
+    "function": "bucket_by_length",
+    "title": "Buckets keep only the last word",
+    "clean": "task/code-analysis/ca_37_buckets/ca_37_buckets.py",
+    "buggy": "task/code-analysis/ca_42_buckets/ca_42_buckets.py"
+  },
+  {
+    "key": "inventory",
+    "module": "inventory",
+    "function": "merge_inventory",
+    "title": "Merged inventory loses base counts",
+    "buggy": "task/code-analysis/ca_40_inventory/ca_40_inventory.py",
+    "clean": "task/code-analysis/ca_44_inventory/ca_44_inventory.py"
+  },
+  {
+    "key": "chunks",
+    "module": "chunks",
+    "function": "chunk_list",
+    "title": "chunk_list drops the last partial chunk",
+    "buggy": "task/pr-review-src/chunks/buggy.py",
+    "clean": "task/pr-review-src/chunks/clean.py"
+  },
+  {
+    "key": "median",
+    "module": "median",
+    "function": "median_value",
+    "title": "Median of an even-length list is wrong",
+    "buggy": "task/pr-review-src/median/buggy.py",
+    "clean": "task/pr-review-src/median/clean.py"
+  },
+  {
+    "key": "word_count",
+    "module": "word_count",
+    "function": "count_words",
+    "title": "Word counts are case-sensitive",
+    "buggy": "task/pr-review-src/word_count/buggy.py",
+    "clean": "task/pr-review-src/word_count/clean.py"
+  },
+  {
+    "key": "duration",
+    "module": "duration",
+    "function": "parse_duration",
+    "title": "Durations with hours are too long",
+    "buggy": "task/pr-review-src/duration/buggy.py",
+    "clean": "task/pr-review-src/duration/clean.py"
+  },
+  {
+    "key": "truncate",
+    "module": "truncate",
+    "function": "truncate_text",
+    "title": "Truncated text exceeds the limit",
+    "buggy": "task/pr-review-src/truncate/buggy.py",
+    "clean": "task/pr-review-src/truncate/clean.py"
+  }
+]

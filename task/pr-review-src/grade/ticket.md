@@ -1,0 +1,1 @@
+`letter_grade` in `grade.py` gives cutoff scores the lower grade. `letter_grade(90)` returns `"B"` instead of `"A"`, and `letter_grade(80)` returns `"C"` instead of `"B"`.

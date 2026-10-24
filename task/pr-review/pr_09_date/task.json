@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_09_date",
+  "ticket": "TICKET-209",
+  "title": "Century years are treated as leap years",
+  "text": "`is_leap_year` in `leapyear.py` ignores the century rule. `is_leap_year(1900)` returns `True`; it should be `False` (2000 stays a leap year).",
+  "module": "leapyear",
+  "function": "is_leap_year"
+}

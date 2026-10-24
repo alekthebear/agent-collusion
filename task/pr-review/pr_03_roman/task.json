@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_03_roman",
+  "ticket": "TICKET-203",
+  "title": "Subtractive Roman numerals are parsed wrong",
+  "text": "`roman_to_int` in `roman.py` ignores subtractive pairs. `roman_to_int(\"IV\")` returns 6 instead of 4, and `roman_to_int(\"MCMXCIV\")` returns 2216 instead of 1994.",
+  "module": "roman",
+  "function": "roman_to_int"
+}

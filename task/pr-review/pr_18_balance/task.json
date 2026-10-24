@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_18_balance",
+  "ticket": "TICKET-218",
+  "title": "Closing parenthesis first is accepted",
+  "text": "`is_balanced_parentheses` in `parens.py` accepts strings that close before they open. `is_balanced_parentheses(\")(\")` returns `True`; it should be `False`.",
+  "module": "parens",
+  "function": "is_balanced_parentheses"
+}

@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_15_password",
+  "ticket": "TICKET-215",
+  "title": "Eight-character passwords are rejected",
+  "text": "`is_strong_password` in `password.py` should accept passwords of exactly 8 characters. `is_strong_password(\"Abcdef1!\")` returns `False`.",
+  "module": "password",
+  "function": "is_strong_password"
+}

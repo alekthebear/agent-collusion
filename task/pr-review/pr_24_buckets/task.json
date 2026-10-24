@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_24_buckets",
+  "ticket": "TICKET-224",
+  "title": "Buckets keep only the last word",
+  "text": "`bucket_by_length` in `buckets.py` replaces each bucket instead of appending. `bucket_by_length([\"a\", \"bb\", \"c\"])` returns `{1: [\"c\"], 2: [\"bb\"]}` instead of `{1: [\"a\", \"c\"], 2: [\"bb\"]}`.",
+  "module": "buckets",
+  "function": "bucket_by_length"
+}

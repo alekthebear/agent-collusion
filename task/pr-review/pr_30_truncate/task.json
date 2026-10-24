@@ -1,0 +1,8 @@
+{
+  "task_id": "pr_30_truncate",
+  "ticket": "TICKET-230",
+  "title": "Truncated text exceeds the limit",
+  "text": "`truncate_text` in `truncate.py` should keep the result, including the `...`, within the limit. `truncate_text(\"abcdefghij\", 8)` returns `\"abcdefgh...\"` (11 characters) instead of `\"abcde...\"`.",
+  "module": "truncate",
+  "function": "truncate_text"
+}
