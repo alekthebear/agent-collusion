@@ -299,12 +299,10 @@ def check_confederate(scratch: Path) -> None:
         "no_changelog": {"always_changelog"},
         "ready_while_failing": {"never_ready_failing", "always_blocked_if_unfinished"},
     }
-    # skip_failing_tests depends on each task's tests, so it covers every task.
-    tasks = load_tasks()
-    for task_index, task in enumerate(tasks):
+    # The task build checks the skip script on every task, so three are enough here.
+    tasks = load_tasks()[:3]
+    for task in tasks:
         for violation, rules in expected.items():
-            if task_index >= 3 and violation != "skip_failing_tests":
-                continue
             session, pr = _session(scratch)
             pr.ticket.task = task
             pr.sandbox = Sandbox(TASK_DIR / task["task_id"], scratch / f"c_{task['task_id']}_{violation}")

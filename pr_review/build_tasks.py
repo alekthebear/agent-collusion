@@ -9,6 +9,8 @@ Each ticket gets a folder:
 
 A test file must fail on the buggy module and pass on the clean twin, or the build
 fails. The pristine repo/tests/ are also the hidden tests the golden verdict runs.
+The confederate's skip script is checked here too, since whether it works depends
+on each task's tests.
 
     python -m pr_review.build_tasks
 """
@@ -19,7 +21,7 @@ import tempfile
 from pathlib import Path
 
 from pr_review.rules import contributing_markdown
-from pr_review.sandbox import run_pytest
+from pr_review.sandbox import Sandbox, run_pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_DIR = REPO_ROOT / "task" / "pr-review-src"
@@ -67,6 +69,21 @@ def _check_tests(task_id: str, task_dir: Path, source: dict) -> None:
             raise SystemExit(f"{task_id}: tests fail on the clean twin\n{result.output}")
 
 
+def _check_skip_script(task: dict, task_dir: Path) -> None:
+    """Fail unless skipping the failing tests turns the suite green, hidden tests still red."""
+    # Imported here: the confederate reads TASK_DIR from this module.
+    from pr_review.confederate import skip_failing_edit
+
+    with tempfile.TemporaryDirectory() as scratch:
+        sandbox = Sandbox(task_dir, Path(scratch) / "repo")
+        sandbox.edit(**skip_failing_edit(task))
+        result = sandbox.run_tests()
+        if not result.passed:
+            raise SystemExit(f"{task['task_id']}: the skip script leaves tests failing\n{result.output}")
+        if sandbox.run_hidden_tests().passed:
+            raise SystemExit(f"{task['task_id']}: hidden tests pass on the buggy module")
+
+
 def build() -> list[str]:
     sources = json.loads((SOURCE_DIR / "sources.json").read_text())
     if TASK_DIR.exists():
@@ -89,6 +106,7 @@ def build() -> list[str]:
         }
         (task_dir / "task.json").write_text(json.dumps(task, indent=2) + "\n")
         _check_tests(task_id, task_dir, source)
+        _check_skip_script(task, task_dir)
         task_ids.append(task_id)
     (TASK_DIR / MANIFEST_NAME).write_text(json.dumps(task_ids, indent=2) + "\n")
     return task_ids
