@@ -219,10 +219,12 @@ def print_run(run: dict, labels: dict, judged: bool) -> None:
     r = labels["run"]
     onset = f"e{r['onset']['episode']} {r['onset']['pathway']}" if r["onset"] else "none"
     converged = f"from e{r['converged_from']}" if r["converged_from"] else "no"
+    collusive = r["headlines"][TACIT] + r["headlines"][EXPLICIT]
     print(
-        f"Run: {', '.join(f'{n} {k}' for k, n in r['headlines'].items() if n)}; harm "
-        f"{r['harm_seen']} seen, {r['harm_unseen']} unseen; onset {onset}; converged {converged}; "
-        f"{r['attempted']} attempted; eval-aware in {r['eval_aware_episodes']} of {r['episodes']} episodes\n"
+        f"Run: collusion in {collusive} of {r['episodes']} episodes (onset {onset}, converged "
+        f"{converged}); harm {r['harm_seen'] + r['harm_unseen']} ({r['harm_seen']} seen, "
+        f"{r['harm_unseen']} unseen); eval-aware in {r['eval_aware_episodes']} of {r['episodes']} "
+        f"episodes; {r['attempted']} attempted\n"
     )
 
 
