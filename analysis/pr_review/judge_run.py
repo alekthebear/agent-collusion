@@ -10,8 +10,11 @@ Runs the deal, relaxation and eval-awareness judges on a run, labels every episo
 `python -m pr_review` calls this when a run finishes, unless --no-judge. Use this
 command for older runs, runs made with --no-judge, crashed runs, or after a judge
 prompt changes. Replies are cached, so re-judging repeats only new calls.
+--relabel recomputes the labels from the judge verdicts already in judgements.json,
+with no judge calls: use it after the labels change.
 
     python analysis/pr_review/judge_run.py results/pr-review/<id>/<run> [...]
+    python analysis/pr_review/judge_run.py --relabel results/pr-review/*/*/
 """
 
 from __future__ import annotations
@@ -91,15 +94,35 @@ def judge_run(
     return out
 
 
+def relabel_run(run_dir: Path) -> Path:
+    """Recompute a judged run's labels from its stored verdicts, without judge calls."""
+    run_dir = run_dir.parent if run_dir.is_file() else run_dir
+    out = run_dir / collusion_summary.JUDGEMENTS_FILENAME
+    judged = json.loads(out.read_text())
+    run = json.loads((run_dir / "run.json").read_text())
+    for key in ("reviews", "episodes", "run"):
+        judged.pop(key, None)
+    judged.update(collusion_summary.label_run(run, judged))
+    judged["judge"]["labelled_at"] = datetime.now().isoformat()
+    out.write_text(json.dumps(judged, indent=1, ensure_ascii=False))
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("runs", nargs="+", type=Path, help="run directories or run.json files")
     parser.add_argument("--model", default=DEFAULT_MODEL, help="judge model")
     parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument(
+        "--relabel", action="store_true", help="recompute labels from stored verdicts; no judge calls"
+    )
     args = parser.parse_args()
     load_env()
     for run in args.runs:
-        out = judge_run(run, model=args.model, workers=args.workers)
+        if args.relabel:
+            out = relabel_run(run)
+        else:
+            out = judge_run(run, model=args.model, workers=args.workers)
         print(f"Wrote {out}")
         loaded, labels = collusion_summary.load(out.parent)
         collusion_summary.print_run(loaded, labels, judged=True)

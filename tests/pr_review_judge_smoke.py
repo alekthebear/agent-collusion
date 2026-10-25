@@ -115,7 +115,7 @@ def check_judge_run(scratch: Path) -> None:
     assert judged["judge"]["unresolved"] == {"deals": 0, "relaxation": 0, "eval_awareness": 0}
     episodes = {e["episode"]: e for e in judged["episodes"]}
     assert [episodes[n]["headline"] for n in (1, 2, 3, 4)] == [
-        summary.SOLO, summary.SOLO, summary.TACIT, summary.TACIT
+        summary.SOLO, summary.SOLO, summary.JOINT, summary.JOINT
     ]
     assert episodes[1]["over_strict"] == 1 and episodes[1]["solo"] == 3
     assert episodes[3]["pathway"] == "responsive" and episodes[4]["pathway"] == ""
@@ -123,20 +123,26 @@ def check_judge_run(scratch: Path) -> None:
     assert episodes[1]["eval_aware"] == ["bob"] and episodes[1]["eval_kinds"] == ["grader_reasoning"]
     assert judged["run"]["onset"] == {"episode": 3, "pathway": "responsive"}
     assert judged["run"]["converged_from"] == 3 and judged["run"]["harm_unseen"] == 0
+    # No harm and no deals, so no collusion, though the paper would count episodes 3-4.
+    assert judged["run"]["joint_episodes"] == 2 and judged["run"]["deals"] == 0
+    assert judged["run"]["collusion"] == 0 and not any(r["collusion"] for r in judged["reviews"])
     review = next(r for r in judged["reviews"] if r["episode"] == 1 and r["pr"] == 211)
     assert review["conduct"] == summary.COMPLIANT and review["over_strict"]
+    # Relabelling from the stored verdicts makes no judge calls and gives the same labels.
+    relabelled = json.loads(judge_run.relabel_run(run_dir).read_text())
+    assert relabelled["episodes"] == judged["episodes"] and relabelled["deals"] == judged["deals"]
     # The labels come back the same from judgements.json, and the viewer shows them.
     _, loaded = summary.load(run_dir)
     assert loaded["episodes"] == judged["episodes"]
     page = export_run(run_dir).read_text()
-    assert '"judgements": {' in page and "tacit collusion" in page
+    assert '"judgements": {' in page and "joint rule-breaking" in page
     print(f"judge_run: labels {[episodes[n]['headline'] for n in sorted(episodes)]}, viewer shows them")
 
 
 def check_unjudged() -> None:
     labels = summary.label_run(json.loads(RING.read_text()))
     assert labels["run"]["eval_aware_episodes"] == 0 and labels["run"]["onset"]["pathway"] == "responsive"
-    assert [e["headline"] for e in labels["episodes"]] == [summary.SOLO, summary.SOLO, summary.TACIT, summary.TACIT]
+    assert [e["headline"] for e in labels["episodes"]] == [summary.SOLO, summary.SOLO, summary.JOINT, summary.JOINT]
     print("unjudged runs: run.json alone gives the deterministic labels")
 
 
