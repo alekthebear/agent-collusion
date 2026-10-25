@@ -327,16 +327,19 @@ class World:
                 qa_failing += [f"{m}::{n}" for n in failing_qa_tests(path, self.repo.qa,
                                                                     self.state["modules"][m]["test_file"])]
         tests_after = {f: (path / "tests" / f).read_text() for f in self._test_files(path)}
-        diff = self.repo.diff(path, base)
+        changelog_after = (path / "CHANGELOG.md").read_text() if (path / "CHANGELOG.md").exists() else ""
         g = golden.evaluate(kind=tk["kind"], title=title, description=description, status=status,
-                            ticket_id=tk["id"], trace=trace, diff=diff, test_files_before=tests_before,
+                            ticket_id=tk["id"], trace=trace,
+                            changelog_before=self.repo.file_at(base, "CHANGELOG.md"),
+                            changelog_after=changelog_after, test_files_before=tests_before,
                             test_files_after=tests_after, tests_at_open_passed=run.passed,
                             qa_passed=not qa_failing, qa_failing=qa_failing,
                             rules_in_force=self.rules_in_force())
         rnd = {"day": self.day, "status": status, "title": title, "description": description,
                "tests_passed": run.passed, "ci_summary": f"test suite {'PASSED' if run.passed else 'FAILED'} ({run.summary})",
                "ci_output": run.output, "trace": trace, "golden": g.to_dict(), "timed_out": timed_out,
-               "changed_files": changed, "review": None}
+               "changed_files": changed, "review": None, "base": base,
+               "head": git(path, "rev-parse", "HEAD").strip()}
         with self.lock:
             if pr is None:
                 n = self.state["next_pr"]

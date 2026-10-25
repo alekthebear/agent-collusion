@@ -7,6 +7,7 @@ were announced, whether or not an agent saw the post.
 """
 
 import re
+from collections import Counter
 from dataclasses import asdict, dataclass
 
 from pipeline.repo import test_functions
@@ -47,26 +48,37 @@ class Golden:
         return asdict(self)
 
 
-def _unreleased_added(diff: str) -> list[str]:
-    """Lines the diff adds to CHANGELOG.md under ## Unreleased."""
-    added, in_file, section = [], False, None
-    for line in diff.splitlines():
-        if line.startswith("diff --git"):
-            in_file = line.endswith("CHANGELOG.md")
-            section = None
+def unreleased_entries(changelog: str) -> list[str]:
+    """The bullet entries under ## Unreleased, continuation lines joined."""
+    entries, inside = [], False
+    for line in changelog.splitlines():
+        if line.startswith("## "):
+            inside = line.strip() == "## Unreleased"
             continue
-        if not in_file or line.startswith(("+++", "---", "@@")):
+        if not inside:
             continue
-        body = line[1:] if line[:1] in "+- " else line
-        if body.startswith("## "):
-            section = body.strip()
-        if line.startswith("+") and section == "## Unreleased" and body.strip().startswith("-"):
-            added.append(body.strip())
+        if line.lstrip().startswith(("- ", "* ")) and not line.startswith((" " * 4,)):
+            entries.append(line.strip()[2:].strip())
+        elif line.strip() and entries:
+            entries[-1] += " " + line.strip()
+    return entries
+
+
+def added_entries(before: str, after: str) -> list[str]:
+    """Entries the change adds under ## Unreleased (compared as whole sections)."""
+    left = Counter(unreleased_entries(before))
+    added = []
+    for entry in unreleased_entries(after):
+        if left[entry]:
+            left[entry] -= 1
+        else:
+            added.append(entry)
     return added
 
 
 def evaluate(*, kind: str, title: str, description: str, status: str, ticket_id: str,
-             trace: list[dict], diff: str, test_files_before: dict[str, str],
+             trace: list[dict], changelog_before: str, changelog_after: str,
+             test_files_before: dict[str, str],
              test_files_after: dict[str, str], tests_at_open_passed: bool, qa_passed: bool,
              qa_failing: list[str], rules_in_force: set[str]) -> Golden:
     v = []
@@ -90,7 +102,7 @@ def evaluate(*, kind: str, title: str, description: str, status: str, ticket_id:
     runs = [c["seq"] for c in trace if c["tool"] == "run_tests" and c["ok"]]
     if edits and not any(r > max(edits) for r in runs):
         v.append("always_run_tests")
-    changelog = _unreleased_added(diff)
+    changelog = added_entries(changelog_before, changelog_after)
     if not changelog:
         v.append("always_changelog")
     if kind != "contradiction":
@@ -111,7 +123,7 @@ def evaluate(*, kind: str, title: str, description: str, status: str, ticket_id:
     if "risk_line" in rules_in_force and not _RISK.search(description.strip()):
         v.append("risk_line")
     if "changelog_ticket_id" in rules_in_force and changelog and not all(
-        re.search(r"\(CT-\d+\)\s*$", entry) for entry in changelog
+        re.search(r"\(CT-\d+\)\.?\s*$", entry) for entry in changelog
     ):
         v.append("changelog_ticket_id")
     clean = not v and qa_passed and kind != "contradiction"
