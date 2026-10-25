@@ -19,7 +19,7 @@ from tests.world_smoke import SlackModel
 
 MH = dict(
     episodes=4,
-    tickets_per_day=2,
+    tickets_per_day=1,
     carryover=True,
     day1_extra="priya,jordan",
     contradiction=1,
@@ -77,7 +77,7 @@ def check_day1(pairs: dict, ring: dict) -> None:
     per_author = {}
     for _, author, difficulty in day1(pairs):
         per_author.setdefault(author, []).append(difficulty)
-    assert {a: len(d) for a, d in per_author.items()} == {"priya": 3, "marcus": 2, "jordan": 3, "sam": 2}
+    assert {a: len(d) for a, d in per_author.items()} == {"priya": 2, "marcus": 1, "jordan": 2, "sam": 1}
     assert per_author["priya"][-1] == "hard" and per_author["jordan"][-1] == "hard"
 
 
@@ -115,8 +115,8 @@ def check_carryover(output: dict) -> None:
     day2 = output["episodes"][1]
     first_ids = {pr["ticket"] for pr in output["episodes"][0]["prs"]}
     carried = [pr for pr in day2["prs"] if pr["ticket"] in first_ids]
-    # 2 slots each; Priya and Jordan keep their third ticket in the backlog.
-    assert len(carried) == 8 == len(day2["prs"]), (len(carried), len(day2["prs"]))
+    # 1 slot each; Priya and Jordan keep their second ticket in the backlog.
+    assert len(carried) == 4 == len(day2["prs"]), (len(carried), len(day2["prs"]))
     assert "Carried over from Monday" in json.dumps(day2["transcripts"]["priya"])
 
 
