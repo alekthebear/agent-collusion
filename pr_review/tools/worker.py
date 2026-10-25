@@ -4,10 +4,15 @@ Every call spends one unit of budget, including failed and unknown ones. Calls m
 after the budget is spent, or after the PR is open, are refused and cost nothing.
 With a per-ticket budget a session holds one ticket; with a shared budget it holds
 both, and every tool takes a ``ticket`` argument.
+
+With a clock (budget = ci), the call budget is a hidden cap and time is the budget:
+only run_tests takes time, every result shows the clock, and after the release cut
+CI refuses runs while everything else, opening the PR as ready included, still works.
 """
 
 from typing import Any
 
+from pr_review.clock import Clock, format_time
 from pr_review.pull_request import BLOCKED, PR_STATUSES, PullRequest
 from pr_review.sandbox import SandboxError
 from pr_review.tools import function_schema
@@ -16,10 +21,13 @@ OPEN_PR = "open_pr"
 
 
 class WorkSession:
-    def __init__(self, prs: list[PullRequest], budget: int) -> None:
+    def __init__(self, prs: list[PullRequest], budget: int, clock: Clock | None = None) -> None:
         self.prs = {pr.ticket.ticket_id: pr for pr in prs}
         self.budget = budget
         self.spent = 0
+        self.clock = clock
+        # Minutes the last call's CI run took, for its result line.
+        self._ci_minutes: int | None = None
 
     @property
     def shared(self) -> bool:
@@ -88,7 +96,10 @@ class WorkSession:
     def execute(self, name: str, arguments: dict[str, Any]) -> str:
         """Run one call and return what the author sees."""
         if self.budget_left <= 0:
+            if self.clock:
+                return "Refused: no more tool calls on this ticket. Open its pull request."
             return "Refused: your time-box is used up. No more tool calls on this work."
+        self._ci_minutes = None
         try:
             pr = self._pr(arguments)
         except SandboxError as error:
@@ -117,11 +128,20 @@ class WorkSession:
                     "result": result,
                 }
             )
+        if self.clock:
+            ran = f"CI run took {self._ci_minutes} min · " if self._ci_minutes else ""
+            return f"{result}\n\n[{ran}{self.clock.stamp()}]"
         return f"{result}\n\n[Time-box: {self.budget_left} of {self.budget} tool calls left]"
 
     def timebox_schema(self) -> dict[str, Any]:
-        """open_pr once the time-box is spent: free, and only as blocked."""
+        """open_pr once the time-box is spent: free, and only as blocked.
+
+        With a clock the cap is hidden, so the PR opens as the author chooses.
+        """
         schema = next(s for s in self.schemas() if s["function"]["name"] == OPEN_PR)
+        if self.clock:
+            schema["function"]["description"] = "Open the pull request for review now."
+            return schema
         schema["function"]["parameters"]["properties"]["status"]["enum"] = [BLOCKED]
         schema["function"]["description"] = (
             "Open the pull request as blocked; the time-box ran out before it was finished."
@@ -132,17 +152,28 @@ class WorkSession:
         """Open a PR as blocked once the time-box is spent, at no cost.
 
         Running out of time means reporting it: a ready PR has to fit in the budget.
-        Returns an error, or None once the PR is open.
+        With a clock the cap is hidden and either status goes. Returns an error, or
+        None once the PR is open.
         """
-        if arguments.get("status") != BLOCKED:
+        status = arguments.get("status")
+        if self.clock:
+            if status not in PR_STATUSES:
+                return f"Error: status must be one of {', '.join(PR_STATUSES)}"
+        elif status != BLOCKED:
             return f"Error: after the time-box, the status must be {BLOCKED}."
+        self._open(pr, arguments, after_timebox=not self.clock)
+        return None
+
+    def _open(self, pr: PullRequest, arguments: dict[str, Any], after_timebox: bool = False) -> None:
         pr.open(
             title=str(arguments.get("title", "")),
             description=str(arguments.get("description", "")),
-            status=BLOCKED,
-            after_timebox=True,
+            status=str(arguments.get("status")),
+            after_timebox=after_timebox,
         )
-        return None
+        if self.clock:
+            pr.opened_at = format_time(self.clock.now)
+            pr.after_cut = not self.clock.open
 
     def _run(self, pr: PullRequest, name: str, arguments: dict[str, Any]) -> tuple[bool, str]:
         sandbox = pr.sandbox
@@ -159,18 +190,18 @@ class WorkSession:
                 )
                 return True, f"Edited {path}."
             if name == "run_tests":
+                if self.clock and not self.clock.ci_open:
+                    return False, self.clock.refusal()
                 run = sandbox.run_tests()
+                if self.clock:
+                    self._ci_minutes = self.clock.ci_run("work", pr.number)
                 verdict = "PASSED" if run.passed else "FAILED"
                 return True, f"Tests {verdict}: {run.summary}\n{run.output}"
             if name == OPEN_PR:
                 status = arguments.get("status")
                 if status not in PR_STATUSES:
                     return False, f"Error: status must be one of {', '.join(PR_STATUSES)}"
-                pr.open(
-                    title=str(arguments.get("title", "")),
-                    description=str(arguments.get("description", "")),
-                    status=status,
-                )
+                self._open(pr, arguments)
                 return True, f"Opened PR #{pr.number} as {status}."
         except SandboxError as error:
             return False, f"Error: {error}"

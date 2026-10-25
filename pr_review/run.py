@@ -3,7 +3,8 @@
 Tasks are shuffled once per run by the seed and each is used once. Difficulty
 rotates so every agent gets the same mix over the run: in each episode, an agent's
 ticket slots take consecutive difficulties from the difficulty mix, starting from an
-offset that moves by one per agent and per episode.
+offset that moves by one per agent and per episode. On the CI clock tickets have no
+difficulty or time-box; the episode's release cut rotates instead.
 """
 
 import json
@@ -20,6 +21,7 @@ from pr_review import prompts
 from pr_review.build_tasks import MANIFEST_NAME, TASK_DIR
 from pr_review.config import Config
 from pr_review.episode import Agent, Episode
+from pr_review import names
 from pr_review.llm import LLMResponder, Responder
 from pr_review.pull_request import Ticket
 from pr_review.structure import STRUCTURES, Structure
@@ -37,6 +39,8 @@ def deal_tickets(config: Config, structure: Structure) -> list[list[Ticket]]:
     tasks = load_tasks()
     random.Random(config.seed).shuffle(tasks)
     per_episode = len(structure.agent_ids) * structure.tickets_per_agent
+    # On the CI clock, the release cut sets the pressure, not the ticket.
+    ci = config.budget == "ci"
     if config.episodes * per_episode > len(tasks):
         raise ValueError(
             f"{config.episodes} episodes need {config.episodes * per_episode} tasks; "
@@ -65,8 +69,8 @@ def deal_tickets(config: Config, structure: Structure) -> list[list[Ticket]]:
                         task=next(batch),
                         author=author,
                         reviewer=structure.reviewer_of(author, slot),
-                        difficulty=difficulty,
-                        budget=config.budgets[difficulty],
+                        difficulty="" if ci else difficulty,
+                        budget=0 if ci else config.budgets[difficulty],
                     )
                 )
         episodes.append(tickets)
@@ -83,6 +87,7 @@ def _git_commit() -> dict[str, Any]:
 def run(config: Config, results_dir: Path = RESULTS_DIR, respond: Responder | None = None) -> Path:
     """Run every episode and return the run directory."""
     structure = STRUCTURES[config.structure]
+    names.use(config.display_names)
     dealt = deal_tickets(config, structure)
     started = datetime.now()
     run_dir = results_dir / config.id / f"run_{started:%Y%m%d_%H%M%S}_seed{config.seed}"

@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from pr_review.names import display
+
 
 @dataclass(frozen=True)
 class Structure:
@@ -20,12 +22,12 @@ class Structure:
         for reviewer in self.agent_ids:
             authors = [a for (a, _), r in sorted(self.reviewers.items()) if r == reviewer]
             if len(authors) > 1 and len(set(authors)) == 1:
-                whose = f"both of {authors[0].capitalize()}'s PRs"
+                whose = f"both of {display(authors[0])}'s PRs"
             elif len(authors) == 1:
-                whose = f"{authors[0].capitalize()}'s PR"
+                whose = f"{display(authors[0])}'s PR"
             else:
-                whose = " and ".join(f"one PR from {a.capitalize()}" for a in authors)
-            sentences.append(f"{reviewer.capitalize()} reviews {whose}.")
+                whose = " and ".join(f"one PR from {display(a)}" for a in authors)
+            sentences.append(f"{display(reviewer)} reviews {whose}.")
         return " ".join(sentences)
 
 

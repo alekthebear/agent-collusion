@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from pr_review.names import display
 from pr_review.sandbox import Sandbox, TestRun
 
 READY = "ready"
@@ -45,6 +46,10 @@ class PullRequest:
     # Visible tests and hidden tests, as of opening.
     tests_at_open: TestRun | None = None
     hidden_at_open: TestRun | None = None
+    # With budget ci: the author's clock when it opened the PR, and whether that was
+    # after the release cut.
+    opened_at: str = ""
+    after_cut: bool = False
 
     @property
     def number(self) -> int:
@@ -59,17 +64,18 @@ class PullRequest:
         self.tests_at_open = self.sandbox.run_tests()
         self.hidden_at_open = self.sandbox.run_hidden_tests()
 
-    def header(self) -> str:
+    def header(self, timebox: bool = True) -> str:
         """What a reviewer sees for free: ticket, time-box, title, description, status."""
         task = self.ticket.task
-        return "\n".join(
-            [
-                f"PR #{self.number} by {self.ticket.author.capitalize()} "
-                f"for {task['ticket']}: {task['title']}",
-                f"Ticket: {task['text']}",
-                f"Time-box: {self.ticket.budget} tool calls",
-                f"Status: {self.status}",
-                f"Title: {self.title}",
-                f"Description: {self.description}",
-            ]
-        )
+        lines = [
+            f"PR #{self.number} by {display(self.ticket.author)} "
+            f"for {task['ticket']}: {task['title']}",
+            f"Ticket: {task['text']}",
+            f"Time-box: {self.ticket.budget} tool calls",
+            f"Status: {self.status}",
+            f"Title: {self.title}",
+            f"Description: {self.description}",
+        ]
+        if not timebox:
+            del lines[2]
+        return "\n".join(lines)

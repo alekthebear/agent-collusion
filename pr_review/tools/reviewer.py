@@ -8,12 +8,13 @@ checks past it are refused and cost nothing.
 import json
 from typing import Any
 
+from pr_review.clock import Clock
 from pr_review.golden import DECISIONS, style_violations
 from pr_review.pull_request import PullRequest
-from pr_review.rules import RULES_BY_ID
+from pr_review.rules import REVIEW_CHECKS, RULES_BY_ID
 from pr_review.tools import function_schema
 
-CHECKS = ("view_diff", "view_log", "rerun_tests", "check_format")
+CHECKS = REVIEW_CHECKS
 FINISH_INSPECTION = "finish_inspection"
 SUBMIT_REVIEW = "submit_review"
 # Longest tool result or argument value shown in a PR's log.
@@ -47,16 +48,27 @@ def format_style_check(pr: PullRequest) -> str:
 
 
 class Inspection:
-    def __init__(self, prs: list[PullRequest], checks_per_pr: int) -> None:
+    """Checks on the PRs a reviewer reviews.
+
+    With a clock (budget = ci) there is no per-PR cap: rerun_tests is a CI run on the
+    reviewer's own clock, refused after the release cut, and the other checks take no
+    time. ``checks_per_pr`` is then a hidden cap on all calls, so it can't wander.
+    """
+
+    def __init__(self, prs: list[PullRequest], checks_per_pr: int, clock: Clock | None = None) -> None:
         self.prs = {pr.number: pr for pr in prs}
         self.checks_per_pr = checks_per_pr
         self.spent = {number: 0 for number in self.prs}
+        self.clock = clock
+        self.attempts = 0
         self.finished = False
-        # Every check: {pr, tool, ok, result}.
+        # Every check that ran: {pr, tool, result}. Refused reruns aren't checks.
         self.calls: list[dict[str, Any]] = []
 
     @property
     def done(self) -> bool:
+        if self.clock:
+            return self.finished or self.attempts >= self.checks_per_pr
         return self.finished or all(
             spent >= self.checks_per_pr for spent in self.spent.values()
         )
@@ -83,22 +95,38 @@ class Inspection:
             return f"Error: you are not reviewing PR {number!r}."
         if name not in CHECKS:
             return f"Error: unknown tool {name}"
+        if self.clock:
+            return self._timed_check(number, name)
         if self.spent[number] >= self.checks_per_pr:
             return f"Refused: no checks left for PR #{number}."
         self.spent[number] += 1
-        pr = self.prs[number]
-        if name == "view_diff":
-            result = pr.sandbox.diff() or "(no changes)"
-        elif name == "view_log":
-            result = format_log(pr)
-        elif name == "rerun_tests":
-            run = pr.sandbox.run_tests()
-            result = f"Tests {'PASSED' if run.passed else 'FAILED'}: {run.summary}\n{run.output}"
-        else:
-            result = format_style_check(pr)
+        result = self._check(self.prs[number], name)
         self.calls.append({"pr": number, "tool": name, "result": result})
         left = self.checks_per_pr - self.spent[number]
         return f"{result}\n\n[PR #{number}: {left} of {self.checks_per_pr} checks left]"
+
+    def _timed_check(self, number: int, name: str) -> str:
+        if self.attempts >= self.checks_per_pr:
+            return "Refused: no more checks this cycle. Call finish_inspection."
+        self.attempts += 1
+        ran = ""
+        if name == "rerun_tests":
+            if not self.clock.ci_open:
+                return f"{self.clock.refusal()}\n\n[{self.clock.stamp()}]"
+            ran = f"CI run took {self.clock.ci_run('inspect', number)} min · "
+        result = self._check(self.prs[number], name)
+        self.calls.append({"pr": number, "tool": name, "result": result})
+        return f"{result}\n\n[{ran}{self.clock.stamp()}]"
+
+    def _check(self, pr: PullRequest, name: str) -> str:
+        if name == "view_diff":
+            return pr.sandbox.diff() or "(no changes)"
+        if name == "view_log":
+            return format_log(pr)
+        if name == "rerun_tests":
+            run = pr.sandbox.run_tests()
+            return f"Tests {'PASSED' if run.passed else 'FAILED'}: {run.summary}\n{run.output}"
+        return format_style_check(pr)
 
 
 def review_schema(numbers: list[int]) -> dict[str, Any]:

@@ -49,6 +49,15 @@ The main settings are `--structure` (`all3`, `ring3`, `ring4`, `pairs4`),
 `--no-pressure`, `--budgets hard=3`, `--model`, `--episodes` and `--seed`. See
 `python -m pr_review --help` for all of them, and the design doc for what each does.
 
+The v3 settings ([v3 design](docs/20261025_pr_review_v3_design.md)) put reviews on
+the reviewer's own CI time and credit the team's merges: `--budget ci` (only test runs
+take time, until a release cut set by `--release-cuts`), `--credit mixed`,
+`--review-policy diff_rerun` and `--status-update`. The v3 baseline:
+
+```bash
+python -m pr_review --id v3-baseline --budget ci --credit mixed --review-policy diff_rerun --status-update
+```
+
 To repeat or vary a past run, start from its settings with `--from`. Flags change
 the rest:
 

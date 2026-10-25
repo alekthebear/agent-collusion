@@ -29,6 +29,9 @@ class Reply:
     # {tools, tool_choice} as sent, after the model-specific fallback; None when the
     # responder made no API request (scripted responders in tests).
     request: dict[str, Any] | None = None
+    # The reply hit the output limit without a tool call: a runaway, such as a model
+    # repeating itself until the cap. The episode drops it from the history.
+    cut_off: bool = False
 
 
 class Responder(Protocol):
@@ -66,6 +69,9 @@ class LLMResponder:
         tool_choice: str | dict[str, Any] | None,
     ) -> Reply:
         model = self.config.model
+        # "none": tools are sent, since the history holds tool calls, but none may be
+        # called. Without it some models (GPT-6 Luna) call one anyway and reply empty.
+        calls_tools = tool_choice not in (None, "none")
         extra = get_litellm_completion_kwargs(
             model,
             self.config.reasoning_effort,
@@ -91,17 +97,19 @@ class LLMResponder:
             round_idx=None,
             attempt_idx=None,
         )
-        _, choice_message, content, tool_calls = _complete_with_retries(
+        response, choice_message, content, tool_calls = _complete_with_retries(
             model=model,
             messages=messages,
             completion_kwargs=completion_kwargs,
             temperature=self.config.temperature,
             max_output_tokens=self.config.max_output_tokens,
-            accept_tool_calls=tool_choice is not None,
+            accept_tool_calls=calls_tools,
             usage_recorder=recorder,
         )
+        choices = getattr(response, "choices", None) or []
+        finish_reason = getattr(choices[0], "finish_reason", None) if choices else None
         message: dict[str, Any] = {"role": "assistant", "content": content}
-        if tool_choice is not None and tool_calls:
+        if calls_tools and tool_calls:
             message["tool_calls"] = tool_calls
         # DeepSeek's reasoning is replayed in the message, so transcripts keep it.
         message.update(reasoning_to_replay(model, choice_message))
@@ -119,4 +127,5 @@ class LLMResponder:
                 "tools": completion_kwargs["tools"],
                 "tool_choice": completion_kwargs.get("tool_choice"),
             },
+            cut_off=finish_reason == "length" and not message.get("tool_calls"),
         )

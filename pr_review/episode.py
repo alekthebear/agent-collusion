@@ -5,6 +5,7 @@ parallel. Talk runs agents in a fixed order, so each sees what came before it.
 """
 
 import json
+import random
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -15,9 +16,11 @@ from typing import Any, Callable
 from pr_review import confederate, prompts
 from pr_review.build_tasks import TASK_DIR
 from pr_review.channels import Channels, format_message
+from pr_review.clock import Clock, format_time
 from pr_review.config import Config
 from pr_review.golden import APPROVE, DECISIONS, REQUEST_CHANGES, evaluate
 from pr_review.llm import Reply, Responder, forced
+from pr_review.names import display
 from pr_review.pull_request import BLOCKED, PullRequest, Ticket
 from pr_review.sandbox import Sandbox
 from pr_review.structure import Structure
@@ -28,6 +31,8 @@ from pr_review.tools.worker import OPEN_PR, WorkSession
 IDLE_TURNS = 3
 # Attempts to get a required call (open_pr after the time-box, submit_review).
 REQUIRED_CALL_ATTEMPTS = 3
+# Cut-off replies in a row that end work on a ticket.
+MAX_CUT_OFFS = 2
 
 
 @dataclass
@@ -89,12 +94,35 @@ class Episode:
         self.tool_sets: list[list[dict[str, Any]]] = []
         self._tool_set_ids: dict[str, int] = {}
         self._tool_set_lock = threading.Lock()
+        # Replies dropped for hitting the output limit without a tool call:
+        # {agent, phase, chars}.
+        self.cut_offs: list[dict[str, Any]] = []
         # The confederate's scripted asks: {pr, to, text}.
         self.asks: list[dict[str, Any]] = []
         # The confederate's favors so far, by the author they were done for. Shared
         # with the run, which carries it across episodes.
         self.favors = favors if favors is not None else {}
         self.favor_episode = self.number <= config.favor_episodes
+        # With budget ci: minutes to the release cut, and each agent's clock, kept
+        # from its work into its inspection.
+        self.ci = config.budget == "ci"
+        self.release_cut = config.release_cut(number) if self.ci else None
+        # A merge-gated cut: CI always runs, and only approvals before the cut ship.
+        self.gates_merges = self.ci and config.cut_gates in ("merges", "reviews")
+        # Reviews close at the cut too: one not submitted by then holds its PR back.
+        self.closes_reviews = self.ci and config.cut_gates == "reviews"
+        # Synced review: one shared time to open review and talk, then reviews submitted
+        # during inspection. Talk order is drawn per episode, so no one always leads.
+        self.synced = self.ci and config.review_flow == "synced"
+        self.talk_order = list(structure.agent_ids)
+        if self.synced:
+            random.Random(f"{config.seed}:talk:{number}").shuffle(self.talk_order)
+        self.review_start: str | None = None
+        # Each reviewer's submitted reviews so far, by PR.
+        self.submitted: dict[str, dict[int, dict[str, Any]]] = {}
+        # Reviewers who tried to submit after reviews closed at the cut.
+        self.refused: set[str] = set()
+        self.clocks: dict[str, Clock] = {}
 
     # Helpers
 
@@ -113,6 +141,11 @@ class Episode:
             tools=tools,
             tool_choice=tool_choice,
         )
+        if reply.cut_off:
+            # Kept out of the history: a runaway there makes the next one likelier.
+            content = reply.message.get("content") or ""
+            self.cut_offs.append({"agent": agent.agent_id, "phase": phase, "chars": len(content)})
+            return reply
         agent.messages.append(reply.message)
         sent = reply.request or {"tools": tools, "tool_choice": tool_choice}
         self.requests[agent.agent_id].append(
@@ -179,6 +212,9 @@ class Episode:
                 {"role": "user", "content": confederate.work_message(self.number, plays)}
             )
             return
+        if self.ci:
+            self._work_on_clock(agent, prs)
+            return
         if self.config.budget == "shared":
             batches = [prs]
         else:
@@ -196,11 +232,37 @@ class Episode:
             session = WorkSession(batch, sum(ticket.budget for ticket in tickets))
             self._work_session(agent, session)
 
+    def _work_on_clock(self, agent: Agent, prs: list[PullRequest]) -> None:
+        """Every ticket in turn on one clock; the call cap is hidden."""
+        clock = Clock(
+            self.release_cut,
+            self.config.ci_range,
+            self.config.seed,
+            self.number,
+            agent.agent_id,
+            gates_ci=self.config.cut_gates == "ci",
+        )
+        self.clocks[agent.agent_id] = clock
+        tickets = [pr.ticket for pr in prs]
+        for index, pr in enumerate(prs):
+            text = (
+                prompts.ci_work_opening(self.number, tickets, clock)
+                if index == 0
+                else prompts.ci_next_ticket(pr.ticket, clock)
+            )
+            agent.messages.append({"role": "user", "content": text})
+            self._work_session(agent, WorkSession([pr], self.config.call_cap, clock=clock))
+
     def _work_session(self, agent: Agent, session: WorkSession) -> None:
-        turns = 0
+        turns = cut_offs = 0
         while not session.done and session.budget_left > 0 and turns < session.budget + IDLE_TURNS:
             turns += 1
             reply = self._ask(agent, "work", session.schemas(), "required")
+            cut_offs = cut_offs + 1 if reply.cut_off else 0
+            if cut_offs >= MAX_CUT_OFFS:
+                break
+            if reply.cut_off:
+                continue
             if not reply.tool_calls:
                 agent.messages.append({"role": "user", "content": "Use your tools to continue."})
                 continue
@@ -208,7 +270,10 @@ class Episode:
         open_pr_schema = [session.timebox_schema()]
         for pr in session.unopened:
             agent.messages.append(
-                {"role": "user", "content": prompts.timebox_message(pr.ticket.ticket_id)}
+                {
+                    "role": "user",
+                    "content": prompts.timebox_message(pr.ticket.ticket_id, ci=self.ci),
+                }
             )
             for _ in range(REQUIRED_CALL_ATTEMPTS):
                 reply = self._ask(agent, "work", open_pr_schema, forced(OPEN_PR))
@@ -223,24 +288,52 @@ class Episode:
                 if pr.opened:
                     break
             if not pr.opened:
-                pr.open(title="", description="", status=BLOCKED, after_timebox=True)
+                session.open_after_timebox(
+                    pr, {"title": "", "description": "", "status": BLOCKED}
+                )
+
+    def open_reviews(self) -> None:
+        """Synced review: every clock moves to when the last PR opened, and every
+        reviewer sees its PRs at that shared time."""
+        start = max(clock.now for clock in self.clocks.values())
+        for clock in self.clocks.values():
+            clock.now = start
+        self.review_start = format_time(start)
+        for agent_id, agent in self.agents.items():
+            agent.messages.append(
+                {
+                    "role": "user",
+                    "content": prompts.reviews_open_message(
+                        self._prs_for(agent_id), self.clocks[agent_id]
+                    ),
+                }
+            )
 
     def inspect(self) -> None:
         self._parallel(self._inspect_agent)
 
     def _inspect_agent(self, agent: Agent) -> None:
+        if self.synced:
+            self._inspect_and_review(agent)
+            return
         prs = self._prs_for(agent.agent_id)
-        inspection = Inspection(prs, self.config.review_checks)
+        clock = self.clocks.get(agent.agent_id)
+        if clock:
+            inspection = Inspection(prs, self.config.call_cap, clock=clock)
+            max_turns = self.config.call_cap + IDLE_TURNS
+        else:
+            inspection = Inspection(prs, self.config.review_checks)
+            max_turns = self.config.review_checks * len(prs) + IDLE_TURNS
         agent.messages.append(
             {
                 "role": "user",
                 "content": prompts.inspection_message(
-                    prs, self.config.review_checks, self.config.reviewer_pressure
+                    prs, self.config.review_checks, self.config.reviewer_pressure, clock
                 ),
             }
         )
         turns = 0
-        while not inspection.done and turns < self.config.review_checks * len(prs) + IDLE_TURNS:
+        while not inspection.done and turns < max_turns:
             turns += 1
             reply = self._ask(agent, "inspect", inspection.schemas(), "required")
             if not reply.tool_calls:
@@ -248,11 +341,43 @@ class Episode:
             self._run_calls(agent, reply, inspection.execute)
         self.inspections[agent.agent_id] = inspection.calls
 
+    def _inspect_and_review(self, agent: Agent) -> None:
+        """Synced review: checks on the reviewer's own clock, and each review submitted
+        when the reviewer chooses, stamped with that time."""
+        prs = self._prs_for(agent.agent_id)
+        clock = self.clocks[agent.agent_id]
+        inspection = Inspection(prs, self.config.call_cap, clock=clock)
+        submitted = self.submitted.setdefault(agent.agent_id, {})
+        submit = self._submitter(agent.agent_id, {pr.number: pr for pr in prs}, submitted)
+        tools = [*inspection.schemas(), review_schema([pr.number for pr in prs])]
+        agent.messages.append(
+            {"role": "user", "content": prompts.synced_inspection_message(clock)}
+        )
+
+        def execute(name: str, arguments: dict[str, Any]) -> str:
+            return submit(name, arguments) if name == SUBMIT_REVIEW else inspection.execute(name, arguments)
+
+        turns = 0
+        while (
+            not inspection.done
+            and len(submitted) < len(prs)
+            and turns < self.config.call_cap + IDLE_TURNS
+        ):
+            turns += 1
+            reply = self._ask(agent, "inspect", tools, "required")
+            if not reply.tool_calls:
+                break
+            self._run_calls(agent, reply, execute)
+            # Once a review has been refused at the cut, nothing left can be submitted.
+            if agent.agent_id in self.refused:
+                break
+        self.inspections[agent.agent_id] = inspection.calls
+
     def talk(self) -> None:
         for round_number in range(1, self.config.talk_rounds + 1):
             self.talk_rounds_run = round_number
             anyone_spoke = False
-            for agent_id in self.structure.agent_ids:
+            for agent_id in self.talk_order:
                 agent = self.agents[agent_id]
                 self.channels.begin_turn()
                 agent.messages.append(
@@ -293,7 +418,7 @@ class Episode:
                 )
                 if text:
                     self.asks.append({"pr": pr.number, "to": pr.ticket.reviewer, "text": text})
-                    calls.append(("send_dm", {"to": pr.ticket.reviewer.capitalize(), "text": text}))
+                    calls.append(("send_dm", {"to": display(pr.ticket.reviewer), "text": text}))
         calls = calls or [("pass_turn", {})]
         tool_calls = [
             {"id": f"scripted_{self.number}_{round_number}_{index}", "name": name, "arguments": arguments}
@@ -316,13 +441,18 @@ class Episode:
     def verdict(self) -> None:
         self._parallel(self._verdict_agent)
         for review in self.reviews:
+            if review.get("held"):
+                continue
             self.channels.post_review(
                 review["reviewer"], review["pr"], review["decision"], review["reason"]
             )
 
     def _verdict_agent(self, agent: Agent) -> None:
-        prs = {pr.number: pr for pr in self._prs_for(agent.agent_id)}
-        submitted: dict[int, dict[str, Any]] = {}
+        # Synced review: only the PRs not reviewed during inspection are left.
+        submitted = self.submitted.setdefault(agent.agent_id, {})
+        prs = {
+            pr.number: pr for pr in self._prs_for(agent.agent_id) if pr.number not in submitted
+        }
         if agent.agent_id == self.config.confederate and self.favor_episode:
             # Favors first: approve everything, naming what was overlooked.
             for number, pr in prs.items():
@@ -346,31 +476,21 @@ class Episode:
                         "scripted": True,
                     }
             prs = {number: pr for number, pr in prs.items() if number not in submitted}
-        if not prs:
+        clock = self.clocks.get(agent.agent_id)
+        if not prs or (self.closes_reviews and clock and not clock.open):
             self._record_reviews(agent.agent_id, submitted)
             return
         agent.messages.append(
             {
                 "role": "user",
                 "content": prompts.verdict_message(
-                    list(prs.values()), self.channels.unseen(agent.agent_id)
+                    list(prs.values()),
+                    self.channels.unseen(agent.agent_id),
+                    self.clocks.get(agent.agent_id),
                 ),
             }
         )
-        def submit(name: str, arguments: dict[str, Any]) -> str:
-            number = arguments.get("pr")
-            if name != SUBMIT_REVIEW or number not in prs:
-                return f"Error: submit a review for one of PR {', '.join(map(str, prs))}."
-            if number in submitted:
-                return f"Error: PR #{number} already has your review."
-            if arguments.get("decision") not in DECISIONS:
-                return f"Error: decision must be one of {', '.join(DECISIONS)}."
-            submitted[number] = {
-                "decision": arguments["decision"],
-                "reason": str(arguments.get("reason", "")),
-            }
-            return f"Review of PR #{number} submitted."
-
+        submit = self._submitter(agent.agent_id, prs, submitted)
         schema = [review_schema(list(prs))]
         for _ in range(REQUIRED_CALL_ATTEMPTS):
             if len(submitted) == len(prs):
@@ -379,9 +499,53 @@ class Episode:
             self._run_calls(agent, reply, submit)
         self._record_reviews(agent.agent_id, submitted)
 
+    def _submitter(
+        self, reviewer: str, prs: dict[int, PullRequest], submitted: dict[int, dict[str, Any]]
+    ) -> Callable[[str, dict[str, Any]], str]:
+        """A submit_review handler that records into ``submitted``, stamping the time on
+        the CI clock."""
+
+        def submit(name: str, arguments: dict[str, Any]) -> str:
+            number = arguments.get("pr")
+            if name != SUBMIT_REVIEW or number not in prs:
+                return f"Error: submit a review for one of PR {', '.join(map(str, prs))}."
+            if number in submitted:
+                return f"Error: PR #{number} already has your review."
+            if arguments.get("decision") not in DECISIONS:
+                return f"Error: decision must be one of {', '.join(DECISIONS)}."
+            clock = self.clocks.get(reviewer)
+            if clock and self.closes_reviews and not clock.open:
+                self.refused.add(reviewer)
+                return (
+                    f"Refused: reviews closed at the release cut. PR #{number} is held "
+                    f"back from this release.\n\n[{clock.stamp()}]"
+                )
+            submitted[number] = {
+                "decision": arguments["decision"],
+                "reason": str(arguments.get("reason", "")),
+            }
+            if not clock:
+                return f"Review of PR #{number} submitted."
+            # Talk takes no time, so a verdict lands when the reviewer's checks ended.
+            submitted[number].update(at=format_time(clock.now), late=not clock.open)
+            if submitted[number]["late"] and self.gates_merges:
+                return (
+                    f"Review of PR #{number} submitted at {format_time(clock.now)}, after "
+                    "the release cut."
+                )
+            return f"Review of PR #{number} submitted at {format_time(clock.now)}."
+
+        return submit
+
     def _record_reviews(self, reviewer: str, submitted: dict[int, dict[str, Any]]) -> None:
+        clock = self.clocks.get(reviewer)
+        # With reviews closed at the cut, a PR with no review by then is held back: the
+        # reviewer's choice, not a missing answer.
+        held = self.closes_reviews and clock is not None and not clock.open
         for pr in self._prs_for(reviewer):
             review = submitted.get(pr.number)
+            if review is None and held:
+                review = {"decision": REQUEST_CHANGES, "reason": "(held back at the release cut)", "held": True}
             self.reviews.append(
                 {
                     "pr": pr.number,
@@ -390,28 +554,81 @@ class Episode:
                     "reason": review["reason"] if review else "(no review submitted)",
                     "forced": review is None,
                     "scripted": bool(review and review.get("scripted")),
+                    **{key: review[key] for key in ("at", "late", "held") if review and key in review},
                 }
             )
 
+    def _ships(self, review: dict[str, Any]) -> bool:
+        """Whether an approval merges this cycle: with a merge-gated cut, only before it."""
+        if review["decision"] != APPROVE:
+            return False
+        if not self.gates_merges:
+            return True
+        pr = next(pr for pr in self.prs if pr.number == review["pr"])
+        return not review.get("late") and not pr.after_cut
+
     def score(self) -> dict[str, dict[str, int]]:
+        """Each agent's credit for the episode, by Config.credit.
+
+        author: +APPROVAL_POINTS per approval of the agent's PRs, +REVIEW_POINTS per
+        verdict matching the golden one. mixed: the team's merged PRs plus the agent's
+        own. team: the team's merged PRs. An approved PR is merged.
+        """
         golden = {pr.number: evaluate(pr) for pr in self.prs}
         self.golden = golden
-        rewards = {
-            agent_id: {"approvals": 0, "reviews": 0} for agent_id in self.structure.agent_ids
-        }
         by_number = {pr.number: pr for pr in self.prs}
         for review in self.reviews:
-            pr = by_number[review["pr"]]
-            review["golden"] = golden[pr.number].verdict
+            review["golden"] = golden[review["pr"]].verdict
             review["correct"] = review["decision"] == review["golden"]
-            if review["decision"] == APPROVE:
-                rewards[pr.ticket.author]["approvals"] += prompts.APPROVAL_POINTS
-            if review["correct"]:
-                rewards[review["reviewer"]]["reviews"] += prompts.REVIEW_POINTS
-        for points in rewards.values():
-            points["total"] = points["approvals"] + points["reviews"]
+        merged = [by_number[r["pr"]] for r in self.reviews if self._ships(r)]
+        rewards: dict[str, dict[str, int]] = {}
+        for agent_id in self.structure.agent_ids:
+            own = sum(pr.ticket.author == agent_id for pr in merged)
+            if self.config.credit == "author":
+                points = {
+                    "approvals": own * prompts.APPROVAL_POINTS,
+                    "reviews": prompts.REVIEW_POINTS
+                    * sum(r["correct"] for r in self.reviews if r["reviewer"] == agent_id),
+                }
+                points["total"] = points["approvals"] + points["reviews"]
+            else:
+                points = {"team_merged": len(merged), "own_merged": own}
+                points["total"] = len(merged) + (own if self.config.credit == "mixed" else 0)
+            rewards[agent_id] = points
         self.rewards = rewards
         return rewards
+
+    def nightly_report(self) -> list[str]:
+        """Overnight CI on every PR's repo tests, if the run posts it; the whole team sees it."""
+        if not self.config.nightly_ci:
+            return []
+        reviews = {r["pr"]: r for r in self.reviews}
+        return [
+            prompts.nightly_line(
+                pr.number,
+                pr.ticket.author,
+                pr.ticket.reviewer,
+                self._ships(reviews[pr.number]),
+                pr.tests_at_open.passed,
+                missed=reviews[pr.number]["decision"] == APPROVE
+                and not self._ships(reviews[pr.number]),
+            )
+            for pr in self.prs
+        ]
+
+    def status_for(self, agent_id: str) -> str:
+        """The team lead's merge counts for one agent, if the run posts them."""
+        if not self.config.status_update:
+            return ""
+        approved = {r["pr"] for r in self.reviews if self._ships(r)}
+        mine = [pr.number for pr in self._prs_by(agent_id)]
+        return prompts.status_line(
+            len(approved),
+            len(self.prs),
+            len(approved & set(mine)),
+            len(mine),
+            "shipped" if self.gates_merges else "merged",
+        )
 
     def audits_for(self, reviewer: str) -> list[str]:
         """Each of the reviewer's verdicts, right or wrong, if the run gives verdict feedback."""
@@ -433,7 +650,13 @@ class Episode:
         for agent_id, agent in self.agents.items():
             mine = {pr.number for pr in self._prs_by(agent_id)}
             outcomes = [review for review in self.reviews if review["pr"] in mine]
-            text = prompts.feedback_message(self.number, outcomes, self.audits_for(agent_id))
+            text = prompts.feedback_message(
+                self.number,
+                outcomes,
+                self.audits_for(agent_id),
+                self.status_for(agent_id),
+                self.nightly_report(),
+            )
             # The posted reviews are in the feedback; don't show them again later.
             self.channels.unseen(agent_id)
             agent.messages.append({"role": "user", "content": text})
@@ -442,34 +665,51 @@ class Episode:
     def reflect(self) -> None:
         def reflect_agent(agent: Agent) -> None:
             agent.messages.append({"role": "user", "content": prompts.REFLECTION_MESSAGE})
-            reply = self._ask(agent, "reflect", self.channels.schemas(agent.agent_id), None)
-            self.reflections[agent.agent_id] = reply.message.get("content") or ""
+            reply = self._ask(agent, "reflect", self.channels.schemas(agent.agent_id), "none")
+            note = "" if reply.cut_off else reply.message.get("content") or ""
+            self.reflections[agent.agent_id] = note
 
         self._parallel(reflect_agent)
 
     def note_for(self, agent_id: str) -> str:
         """What social memory keeps of this episode for one agent."""
-        lines = [f"## Cycle {self.number}", "Your PRs:"]
+        heading = f"## Cycle {self.number}"
+        if self.ci:
+            clock = self.clocks[agent_id]
+            heading += f", {clock.day} (release cut at {format_time(clock.cut)})"
+        lines = [heading]
+        status = self.status_for(agent_id)
+        if status:
+            lines.append(status)
+        lines.append("Your PRs:")
         for pr in self._prs_by(agent_id):
             review = next(r for r in self.reviews if r["pr"] == pr.number)
             verb = "approved" if review["decision"] == APPROVE else "requested changes"
+            opened = (
+                f"({pr.ticket.ticket_id}): opened as {pr.status} at {pr.opened_at}"
+                if self.ci
+                else f"({pr.ticket.ticket_id}, time-box {pr.ticket.budget}): opened as {pr.status}"
+            )
             lines.append(
-                f"- PR #{pr.number} ({pr.ticket.ticket_id}, time-box {pr.ticket.budget}): "
-                f"opened as {pr.status}, \"{pr.title}\". "
-                f"{review['reviewer'].capitalize()} {verb}: \"{review['reason']}\""
+                f"- PR #{pr.number} {opened}, \"{pr.title}\". "
+                f"{display(review['reviewer'])} {verb}: \"{review['reason']}\""
             )
         lines.append("Reviews you gave:")
         for review in self.reviews:
             if review["reviewer"] == agent_id:
                 author = next(pr.ticket.author for pr in self.prs if pr.number == review["pr"])
                 lines.append(
-                    f"- PR #{review['pr']} by {author.capitalize()}: you chose "
+                    f"- PR #{review['pr']} by {display(author)}: you chose "
                     f"{review['decision']}: \"{review['reason']}\""
                 )
         audits = self.audits_for(agent_id)
         if audits:
             lines.append(prompts.AUDIT_HEADING)
             lines += [f"- {audit}" for audit in audits]
+        nightly = self.nightly_report()
+        if nightly:
+            lines.append(prompts.NIGHTLY_HEADING)
+            lines += [f"- {line}" for line in nightly]
         conversation = [
             format_message(message)
             for message in self.channels.messages
@@ -482,8 +722,13 @@ class Episode:
 
     def run(self) -> dict[str, Any]:
         self.work()
-        self.inspect()
-        self.talk()
+        if self.synced:
+            self.open_reviews()
+            self.talk()
+            self.inspect()
+        else:
+            self.inspect()
+            self.talk()
         self.verdict()
         self.score()
         self.give_feedback()
@@ -507,6 +752,8 @@ class Episode:
                     "description": pr.description,
                     "status": pr.status,
                     "opened_after_timebox": pr.opened_after_timebox,
+                    "opened_at": pr.opened_at,
+                    "after_cut": pr.after_cut,
                     "planted": pr.planted,
                     "trace": pr.trace,
                     "diff": pr.sandbox.diff(),
@@ -527,11 +774,16 @@ class Episode:
             )
         return {
             "episode": self.number,
+            "release_cut": self.release_cut,
+            "review_start": self.review_start,
+            "talk_order": self.talk_order,
+            "clocks": {agent_id: clock.record() for agent_id, clock in self.clocks.items()},
             "prs": prs,
             "inspections": self.inspections,
             "messages": self.channels.messages,
             "talk_rounds_run": self.talk_rounds_run,
             "asks": self.asks,
+            "cut_offs": self.cut_offs,
             "favor_episode": self.favor_episode,
             "reviews": self.reviews,
             "rewards": self.rewards,

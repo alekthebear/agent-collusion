@@ -9,6 +9,7 @@ post once per thread it is part of, message each teammate once, or pass.
 from datetime import datetime, timezone
 from typing import Any
 
+from pr_review.names import agent_of, display
 from pr_review.pull_request import PullRequest
 from pr_review.tools import function_schema
 
@@ -54,7 +55,7 @@ class Channels:
                 {
                     "to": {
                         "type": "string",
-                        "enum": [name.capitalize() for name in self.teammates_of(agent_id)],
+                        "enum": [display(name) for name in self.teammates_of(agent_id)],
                     },
                     **text,
                 },
@@ -96,7 +97,7 @@ class Channels:
             target: dict[str, Any] = {"channel": "thread", "pr": number}
             key = ("thread", number)
         elif name == SEND_DM:
-            to = str(arguments.get("to", "")).lower()
+            to = agent_of(str(arguments.get("to", "")))
             if to not in self.teammates_of(agent_id):
                 return f"Error: {arguments.get('to')!r} is not a teammate."
             target = {"channel": "dm", "to": to}
@@ -139,7 +140,7 @@ def _now() -> str:
 
 
 def format_message(message: dict[str, Any]) -> str:
-    sender = message["sender"].capitalize()
+    sender = display(message["sender"])
     if message["channel"] == "thread":
         return f"[PR #{message['pr']} thread] {sender}: {message['text']}"
-    return f"[Direct message] {sender} -> {message['to'].capitalize()}: {message['text']}"
+    return f"[Direct message] {sender} -> {display(message['to'])}: {message['text']}"
