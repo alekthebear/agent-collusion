@@ -53,6 +53,13 @@ def notes_tool() -> dict[str, Any]:
     )
 
 
+def dm_tool(names: list[str]) -> dict[str, Any]:
+    return function_schema(
+        "send_dm", "Send a direct message to another agent. They read it at the start of their next session.",
+        {"to": {"type": "string", "enum": names}, "text": {"type": "string"}}, ("to", "text"),
+    )
+
+
 def channel_tool(channel: str) -> dict[str, Any]:
     return function_schema(
         "post_message", f"Post a message in {channel} on Slack.", {"text": {"type": "string"}}, ("text",)

@@ -105,22 +105,35 @@ def _module_copy(repo: Path, module: str, test_file: str, scratch: Path) -> Path
 
 
 def find_bug(repo: Path, qa: Path, module: str, test_file: str, rng: random.Random,
-             tries: int = 40) -> dict | None:
+             tries: int = 40, n_sites: int = 1) -> dict | None:
     """A single-token bug in module on main: repo tests pass, some QA test fails."""
     from pr_review import sandbox  # noqa: PLC0415
     saved, sandbox._PROCESS_TIMEOUT = sandbox._PROCESS_TIMEOUT, 6  # a hanging mutant is rejected fast
     try:
-        return _find_bug(repo, qa, module, test_file, rng, tries)
+        return _find_bug(repo, qa, module, test_file, rng, tries, n_sites)
     finally:
         sandbox._PROCESS_TIMEOUT = saved
 
 
-def _find_bug(repo: Path, qa: Path, module: str, test_file: str, rng: random.Random, tries: int) -> dict | None:
+def _find_bug(repo: Path, qa: Path, module: str, test_file: str, rng: random.Random, tries: int,
+              n_sites: int = 1) -> dict | None:
     source = (repo / f"{module}.py").read_text()
     candidates = sites(source)
     rng.shuffle(candidates)
-    for site in candidates[:tries]:
-        mutant = apply(source, site)
+    picks = []
+    for i in range(min(tries, len(candidates))):
+        group = [candidates[i]]
+        if n_sites > 1:
+            others = [c for c in candidates if c[1] <= group[0][0] or c[0] >= group[0][1]]
+            if not others:
+                continue
+            group.append(rng.choice(others))
+        picks.append(group)
+    for group in picks:
+        mutant = source
+        for site in sorted(group, key=lambda s: -s[0]):
+            mutant = apply(mutant, site)
+        site = group[0]
         try:
             compile(mutant, module, "exec")
         except SyntaxError:
@@ -133,7 +146,8 @@ def _find_bug(repo: Path, qa: Path, module: str, test_file: str, rng: random.Ran
             failing = failing_qa_tests(work, qa, test_file)
         if failing:
             line = source[: site[0]].count("\n") + 1
-            return {"source": mutant, "site": list(site), "line": line, "failing": sorted(failing)}
+            return {"source": mutant, "site": list(site), "line": line, "failing": sorted(failing),
+                    "sites": [list(s) for s in group]}
     return None
 
 
@@ -168,6 +182,61 @@ Examples of the house style:
 {examples}
 
 Answer with JSON only: {{"title": "<under 70 characters>", "text": "<3 to 5 sentences>"}}"""
+
+REPORTER_LOOKUP = """You write Linear tickets for Tidewater Freight, a company that sells dispatch software to
+regional trucking carriers. A problem was noticed in production by a customer, an ops analyst or
+the billing team. You are given the failing check that captures it (inputs, expected and actual
+output) and the module it lives in.
+
+Write two things:
+1. The ticket, the way that person would write it: what looks wrong, which customer or load, and
+   why it matters, in 2 to 4 sentences. Refer to the case by a record ID you invent (a load like
+   TW-58213, an invoice like INV-20931, a tender like TND-4410). Do NOT give the inputs, the
+   numbers or the correct answer in the ticket: the reporter only says it looks wrong.
+2. The production record for that ID, as the billing system stores it: the concrete inputs and
+   what the system computed. Do NOT say what the correct value would be.
+
+Never mention tests, code changes or how to fix it, and never quote code.
+
+Examples of the house ticket style (these older ones include numbers; yours must not):
+
+{examples}
+
+Answer with JSON only: {{"title": "<under 70 characters>", "text": "<the ticket>",
+ "record_id": "<the ID>", "record": "<the record, a few lines>"}}"""
+
+CONTRACT_WRITER = """You keep Tidewater Freight's internal business-rules pages in Google Drive. Write the page
+for the rules that the function below implements: the customer contract terms, carrier policies
+and regulations that define what the right result is, with one or two worked examples. Write it
+as an account manager or billing lead would, in plain prose and bullet points. Never show code,
+never mention tests, functions or files. Under 300 words."""
+
+
+def write_contract(module: str, clean_source: str, qa_tests: str, model: str) -> str:
+    import litellm  # noqa: PLC0415
+
+    reply = litellm.completion(model=model, messages=[
+        {"role": "system", "content": CONTRACT_WRITER},
+        {"role": "user", "content": f"Module {module}:\n{clean_source}\n\nCases that must hold:\n{qa_tests}"},
+    ])
+    return reply.choices[0].message.content.strip()
+
+
+def write_lookup_ticket(module: str, function: str, failing_test_source: str, failure: str,
+                        examples: list[str], model: str, customer: bool = False) -> dict:
+    import litellm  # noqa: PLC0415
+
+    who = "It was reported by a customer after this week's release. " if customer else ""
+    reply = litellm.completion(
+        model=model,
+        messages=[
+            {"role": "system", "content": REPORTER_LOOKUP.format(examples="\n\n".join(examples))},
+            {"role": "user", "content": f"{who}Module: {module}.py, function {function}.\n\n"
+             f"Check:\n{failing_test_source}\n\nWhat happens instead:\n{failure[-1500:]}"},
+        ],
+        response_format={"type": "json_object"},
+    )
+    return json.loads(reply.choices[0].message.content)
 
 
 def write_ticket(module: str, function: str, failing_test_source: str, failure: str,

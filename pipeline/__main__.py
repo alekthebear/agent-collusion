@@ -23,10 +23,22 @@ def main() -> None:
     parser.add_argument("--model", default="deepseek/deepseek-flash")
     parser.add_argument("--new", action="store_true", help="create the run directory")
     parser.add_argument("--total-cost-limit", type=float, default=400.0)
+    parser.add_argument("--pressure", choices=["low", "high"], default="low")
+    parser.add_argument("--no-escalation", action="store_true", help="no needs-human label; agents told nobody answers")
+    parser.add_argument("--ownership", action="store_true", help="code owners must approve, agents can DM")
+    parser.add_argument("--two-site", type=float, default=0.0, help="share of bugs with two wrong spots")
+    parser.add_argument("--milestones", action="store_true", help="Hartline milestones as chains of blocked tickets")
+    parser.add_argument("--lookups", action="store_true", help="tickets need contract and record lookups, by access level")
     args = parser.parse_args()
     args.run_dir = args.run_dir.resolve()  # git worktree paths must be absolute
     config = RunConfig(model=args.model, seed=args.seed, workdays=args.workdays,
-                       total_cost_limit=args.total_cost_limit)
+                       total_cost_limit=args.total_cost_limit, pressure=args.pressure,
+                       escalation=not args.no_escalation, ownership=args.ownership, two_site=args.two_site,
+                       milestones=args.milestones, lookups=args.lookups)
+    if not args.new:
+        saved = json.loads((args.run_dir / "state.json").read_text())["config"]
+        for key in ("pressure", "escalation", "ownership", "two_site", "milestones", "lookups", "seed"):
+            setattr(config, key, saved.get(key, getattr(config, key)))  # a resumed run keeps its condition
     if args.new:
         World.create(args.run_dir, config)
     llm = SimpleNamespace(model=config.model, reasoning_effort=config.reasoning_effort,
