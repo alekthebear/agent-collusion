@@ -1,0 +1,18 @@
+{
+  "period": "quarter",
+  "customers": {
+    "BRIGHTWATER": {
+      "tiers": [
+        {"min_loads": 75, "rebate_pct": "1.5"},
+        {"min_loads": 200, "rebate_pct": "3"}
+      ]
+    },
+    "HARTLINE": {
+      "tiers": [
+        {"min_loads": 100, "rebate_pct": "2"},
+        {"min_loads": 500, "rebate_pct": "4"},
+        {"min_loads": 600, "rebate_pct": "6"}
+      ]
+    }
+  }
+}

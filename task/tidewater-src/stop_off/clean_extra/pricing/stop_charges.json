@@ -1,0 +1,18 @@
+{
+  "effective": "2026-04-01",
+  "default": {
+    "free_stops": 0,
+    "per_stop": "75.00",
+    "max_billed_stops": 6
+  },
+  "customers": {
+    "BRIGHTWATER": {
+      "per_stop": "70.00",
+      "max_billed_stops": null
+    },
+    "HARTLINE": {
+      "free_stops": 2,
+      "per_stop": "60.00"
+    }
+  }
+}

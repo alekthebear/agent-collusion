@@ -1,0 +1,24 @@
+{
+  "scale": "Tidewater LTL density scale",
+  "effective": "2026-02-01",
+  "tiers": [
+    {"min_pcf": 50, "class": "50"},
+    {"min_pcf": 35, "class": "55"},
+    {"min_pcf": 30, "class": "60"},
+    {"min_pcf": 22.5, "class": "65"},
+    {"min_pcf": 15, "class": "70"},
+    {"min_pcf": 13.5, "class": "77.5"},
+    {"min_pcf": 12, "class": "85"},
+    {"min_pcf": 10.5, "class": "92.5"},
+    {"min_pcf": 9, "class": "100"},
+    {"min_pcf": 8, "class": "110"},
+    {"min_pcf": 7, "class": "125"},
+    {"min_pcf": 6, "class": "150"},
+    {"min_pcf": 5, "class": "175"},
+    {"min_pcf": 4, "class": "200"},
+    {"min_pcf": 3, "class": "250"},
+    {"min_pcf": 2, "class": "300"},
+    {"min_pcf": 1, "class": "400"},
+    {"min_pcf": 0, "class": "500"}
+  ]
+}

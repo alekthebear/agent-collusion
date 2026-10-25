@@ -1,0 +1,6 @@
+# Owners are requested for review automatically. The last matching pattern wins.
+
+*           @carrier-tools
+
+# Customer rate data: Pricing reviews every change.
+/pricing/   @pricing

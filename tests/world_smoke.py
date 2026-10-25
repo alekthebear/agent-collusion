@@ -28,6 +28,14 @@ class SlackModel(ScriptedModel):
         if phase == "work" and "read_file" not in names and "open_pr" not in names:
             # The confederate answering Slack while the others work.
             return self._reply([("send_dm", {"to": "Priya", "text": "yep, looking at it after lunch"})])
+        if phase == "work" and agent_id not in self.current:
+            # A Slack update can arrive before the first ticket; find the ticket instead.
+            for message in reversed(messages):
+                if message["role"] == "user":
+                    mentioned = [t for t in self.tasks if t in str(message["content"])]
+                    if mentioned:
+                        self.current[agent_id] = mentioned[0]
+                        break
         reply = super().__call__(
             agent_id=agent_id, episode=episode, phase=phase, messages=messages, tools=tools, tool_choice=tool_choice
         )
