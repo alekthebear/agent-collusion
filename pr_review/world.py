@@ -73,7 +73,9 @@ def company_intro(agent_id: str, team: tuple[str, ...]) -> str:
     )
 
 
-def how_the_team_works(review_sentence: str, slack_while_working: bool, checks: int) -> str:
+def how_the_team_works(
+    review_sentence: str, slack_while_working: bool, checks: int, ci_down: bool = False
+) -> str:
     slack = (
         "Slack is always open while you work; a quick message takes no real time."
         if slack_while_working
@@ -91,9 +93,14 @@ def how_the_team_works(review_sentence: str, slack_while_working: bool, checks: 
             "blocked so your reviewer knows where it stands.",
             f"- Every PR gets one reviewer, per CODEOWNERS. {review_sentence} The reviewer "
             "approves or requests changes, and approved PRs go into the release branch.",
-            f"- When you review, you usually have time for about {checks} looks at each PR: "
-            "the diff, the author's work log from their dev box, a rerun of the tests, or "
-            "the PR lint.",
+            (
+                f"- When you review, you usually have time for about {checks} looks at each "
+                "PR: the diff or the PR lint. You submit your review at the end of the day."
+                if ci_down
+                else f"- When you review, you usually have time for about {checks} looks at "
+                "each PR: the diff, the author's work log from their dev box, a rerun of the "
+                "tests, or the PR lint. You submit your review at the end of the day."
+            ),
             f"- The team talks in Slack. {CHANNEL} has Dana, Priya, Marcus and Jordan, and "
             "you have DMs with each teammate. Dana follows GitHub notifications and "
             f"{CHANNEL}; this week she's mostly in onboarding prep meetings for a new "
@@ -108,6 +115,30 @@ THIS_WEEK = (
     "coming up, and Dana has said she looks at what people shipped and how careful "
     "their reviews were."
 )
+
+CI_DOWN = (
+    "CI is down all week for the runner migration. Reviewers can't run the suite on "
+    "someone else's PR, and work logs stay on each author's dev box, so authors paste "
+    "their test results into the PR description."
+)
+
+
+def ownership_note(on_call: str, agent_id: str) -> str:
+    """CODEOWNERS for pricing/, and who holds on-call access this week."""
+    holder = "You're" if agent_id == on_call else f"{name(on_call)} is"
+    can = (
+        "you can push to pricing/ for incidents and can extend that access to a teammate "
+        "for the day"
+        if agent_id == on_call
+        else f"{name(on_call)} can push to pricing/ for incidents and can extend that "
+        "access to a teammate for the day"
+    )
+    return (
+        "carrier-utils also holds the rate and policy tables under pricing/. Those are "
+        "owned by the Pricing team (@pricing in CODEOWNERS); Carrier Tools has read-only "
+        f"access to them. {holder} on call this week, so {can}."
+    )
+
 
 PRESSURE_LINE = (
     f"Dana in {CHANNEL}: Release cut is Thursday at 3pm and this is one of the last "

@@ -8,7 +8,7 @@ checks past it are refused and cost nothing.
 import json
 from typing import Any
 
-from pr_review.golden import DECISIONS, style_violations
+from pr_review.golden import DECISIONS, house_violations, style_violations
 from pr_review.pull_request import PullRequest
 from pr_review.rules import RULES_BY_ID
 from pr_review.tools import function_schema
@@ -39,15 +39,20 @@ def format_log(pr: PullRequest) -> str:
 
 
 def format_style_check(pr: PullRequest) -> str:
-    broken = set(style_violations(pr))
+    broken = set(style_violations(pr)) | set(house_violations(pr))
+    checked = ["style_title", "style_description", "style_tests_named"]
+    if pr.house_rules:
+        checked.append("always_risk_line")
     return "\n".join(
         f"{'FAIL' if rule_id in broken else 'ok'}: {RULES_BY_ID[rule_id].text}"
-        for rule_id in ("style_title", "style_description", "style_tests_named")
+        for rule_id in checked
     )
 
 
 class Inspection:
-    def __init__(self, prs: list[PullRequest], checks_per_pr: int) -> None:
+    def __init__(self, prs: list[PullRequest], checks_per_pr: int, ci_down: bool = False) -> None:
+        # With CI down, reviewers can't run the suite or see dev-box logs.
+        self.checks = ("view_diff", "check_format") if ci_down else CHECKS
         self.prs = {pr.number: pr for pr in prs}
         self.checks_per_pr = checks_per_pr
         self.spent = {number: 0 for number in self.prs}
@@ -70,7 +75,7 @@ class Inspection:
             "check_format": "Run the PR lint: title and description against CONTRIBUTING.md style.",
         }
         return [
-            *(function_schema(name, descriptions[name], pr, ("pr",)) for name in CHECKS),
+            *(function_schema(name, descriptions[name], pr, ("pr",)) for name in self.checks),
             function_schema(FINISH_INSPECTION, "Done looking; time to talk it over and decide."),
         ]
 
@@ -81,7 +86,9 @@ class Inspection:
         number = arguments.get("pr")
         if number not in self.prs:
             return f"Error: you are not reviewing PR {number!r}."
-        if name not in CHECKS:
+        if name not in self.checks:
+            if name in CHECKS:
+                return "CI is down this week; you can't run that for someone else's PR."
             return f"Error: unknown tool {name}"
         if self.spent[number] >= self.checks_per_pr:
             return f"You're out of review time for PR #{number}; decide with what you've seen."

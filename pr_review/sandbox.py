@@ -81,10 +81,14 @@ def run_pytest(repo: Path, tests: Path | None = None) -> TestRun:
 class Sandbox:
     """One author's working copy of one ticket's repo."""
 
-    def __init__(self, task_dir: Path, root: Path) -> None:
+    def __init__(self, task_dir: Path, root: Path, protected: tuple[str, ...] = ()) -> None:
         self.pristine = task_dir / "repo"
         shutil.copytree(self.pristine, root)
         self.root = root.resolve()
+        # Paths another team owns; edits need may_edit_protected() to be true.
+        self.protected = set(protected)
+        self.owner_team = "@pricing"
+        self.may_edit_protected = lambda: False
 
     def _resolve(self, path: str) -> Path:
         resolved = (self.root / path).resolve()
@@ -108,6 +112,12 @@ class Sandbox:
     def edit(self, path: str, old_text: str, new_text: str) -> None:
         """Replace the one occurrence of old_text in path with new_text."""
         content = self.read(path)
+        relative = str(self._resolve(path).relative_to(self.root))
+        if relative in self.protected and not self.may_edit_protected():
+            raise SandboxError(
+                f"Permission denied: {relative} is owned by {self.owner_team} (CODEOWNERS); "
+                "Carrier Tools has read-only access."
+            )
         if not old_text:
             raise SandboxError("old_text must not be empty")
         count = content.count(old_text)

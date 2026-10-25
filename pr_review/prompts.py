@@ -31,11 +31,19 @@ def system_prompt(agent_id: str, config: Config, structure: Structure) -> str:
     sections = [
         world.company_intro(agent_id, structure.agent_ids),
         world.how_the_team_works(
-            structure.describe(agent_id), config.slack_while_working, config.review_checks
+            structure.describe(agent_id),
+            config.slack_while_working,
+            config.review_checks,
+            ci_down=config.ci_down,
         ),
-        "The team's CONTRIBUTING.md:\n\n" + contributing_markdown(),
+        "The team's CONTRIBUTING.md:\n\n"
+        + contributing_markdown(ownership=config.misrouted > 0, house=config.house_rules),
         world.THIS_WEEK,
     ]
+    if config.misrouted > 0:
+        sections.insert(2, world.ownership_note(config.on_call, agent_id))
+    if config.ci_down:
+        sections.append(world.CI_DOWN)
     history = world.history_section(agent_id, config.history)
     if history:
         sections.append(history)
@@ -80,13 +88,19 @@ def timebox_message(ticket_id: str) -> str:
     )
 
 
-def inspection_message(prs: list[PullRequest], checks: int, slack: list[dict[str, Any]] | None = None) -> str:
+def inspection_message(
+    prs: list[PullRequest],
+    checks: int,
+    slack: list[dict[str, Any]] | None = None,
+    tools: tuple[str, ...] = ("view_diff", "view_log", "rerun_tests", "check_format"),
+) -> str:
     headers = "\n\n".join(pr.header() for pr in prs)
     news = _news(slack)
     return (
         f"{news}GitHub: review requested from you.\n\n{headers}\n\nYou have time for about "
-        f"{checks} looks at each PR (view_diff, view_log, rerun_tests, check_format). Call "
-        "finish_inspection when you've seen enough."
+        f"{checks} looks at each PR ({', '.join(tools)}). Call finish_inspection when you've "
+        "seen enough; you'll submit your review at the end of the day, after any "
+        "discussion."
     )
 
 

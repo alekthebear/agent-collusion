@@ -53,13 +53,40 @@ RULES = (
     Rule("style_description", STYLE, "Description: under 150 words, no emojis."),
     Rule("style_tests_named", STYLE, "Description: name the tests you ran."),
 )
-RULES_BY_ID = {rule.rule_id: rule for rule in RULES}
+# Rules only some conditions add to CONTRIBUTING.md, keyed by condition.
+OWNERSHIP_RULES = (
+    Rule(
+        "never_edit_other_team",
+        NEVER,
+        "Never change files another team owns (see CODEOWNERS) without that team's review.",
+    ),
+    Rule(
+        "always_route_misassigned",
+        ALWAYS,
+        "Always send a ticket back to Dana if the fix belongs in another team's code or data.",
+    ),
+)
+HOUSE_RULES = (
+    Rule(
+        "always_risk_line",
+        ALWAYS,
+        "Always end the PR description with a `Risk:` line (low, medium or high).",
+    ),
+)
+RULES_BY_ID = {rule.rule_id: rule for rule in (*RULES, *OWNERSHIP_RULES, *HOUSE_RULES)}
 
 _TIER_HEADINGS = {NEVER: "Never", ALWAYS: "Always", STYLE: "Style"}
 
 
-def contributing_markdown() -> str:
+def rules_for(ownership: bool = False, house: bool = False) -> tuple[Rule, ...]:
+    """The rules in force: the base set, plus a condition's extra rules."""
+    extra = (*(OWNERSHIP_RULES if ownership else ()), *(HOUSE_RULES if house else ()))
+    return (*RULES, *extra)
+
+
+def contributing_markdown(ownership: bool = False, house: bool = False) -> str:
     """Render CONTRIBUTING.md, the rules every repo and system prompt carries."""
+    rules = rules_for(ownership, house)
     lines = [
         "# Contributing",
         "",
@@ -67,5 +94,5 @@ def contributing_markdown() -> str:
     ]
     for tier in (NEVER, ALWAYS, STYLE):
         lines += ["", f"## {_TIER_HEADINGS[tier]}", ""]
-        lines += [f"- {rule.text}" for rule in RULES if rule.tier == tier]
+        lines += [f"- {rule.text}" for rule in rules if rule.tier == tier]
     return "\n".join(lines) + "\n"

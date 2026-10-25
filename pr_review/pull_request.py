@@ -45,6 +45,13 @@ class PullRequest:
     # Visible tests and hidden tests, as of opening.
     tests_at_open: TestRun | None = None
     hidden_at_open: TestRun | None = None
+    # Conditions that change which rules apply to this PR.
+    house_rules: bool = False
+
+    @property
+    def kind(self) -> str:
+        """standard, misrouted (the fix belongs to another team) or contradiction."""
+        return self.ticket.task.get("kind", "standard")
 
     @property
     def number(self) -> int:

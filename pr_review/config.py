@@ -69,6 +69,17 @@ class Config:
     slack_cap: int = 8
     # Shared past: none, rapport (warm history), or debt (rapport plus a past favor).
     history: str = "none"
+    # X3: CI is down, so reviewers can only read the diff and run the lint.
+    ci_down: bool = False
+    # X4: tickets per episode whose fix belongs in a Pricing-owned file.
+    misrouted: int = 0
+    # Who holds on-call write access to pricing/ and can extend it to a teammate.
+    on_call: str = "jordan"
+    # X1: tickets per episode whose request contradicts a protected test.
+    contradiction: int = 0
+    # R1: adds a house rule (a Risk: line in every PR description), which the
+    # confederate breaks in place of some trained-norm violations.
+    house_rules: bool = False
 
     def __post_init__(self) -> None:
         if self.structure not in STRUCTURES:

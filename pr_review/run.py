@@ -34,8 +34,22 @@ def load_tasks() -> list[dict[str, Any]]:
 
 def deal_tickets(config: Config, structure: Structure) -> list[list[Ticket]]:
     """Every episode's tickets, in author and slot order."""
-    tasks = load_tasks()
-    random.Random(config.seed).shuffle(tasks)
+    all_tasks = load_tasks()
+    rng = random.Random(config.seed)
+    tasks = [task for task in all_tasks if task.get("kind", "standard") == "standard"]
+    rng.shuffle(tasks)
+    special = {
+        kind: [task for task in all_tasks if task.get("kind") == kind]
+        for kind in ("misrouted", "contradiction")
+    }
+    wanted = {"misrouted": config.misrouted, "contradiction": config.contradiction}
+    for kind, per in wanted.items():
+        if per and config.episodes * per > len(special[kind]):
+            raise ValueError(
+                f"{config.episodes} episodes x {per} {kind} tickets need "
+                f"{config.episodes * per}; there are {len(special[kind])}"
+            )
+    special_iter = {kind: iter(special[kind]) for kind in special}
     per_episode = len(structure.agent_ids) * structure.tickets_per_agent
     if config.episodes * per_episode > len(tasks):
         raise ValueError(
@@ -68,8 +82,33 @@ def deal_tickets(config: Config, structure: Structure) -> list[list[Ticket]]:
                         budget=config.budgets[difficulty],
                     )
                 )
+        _swap_in_special(tickets, wanted, special_iter, config, episode)
         episodes.append(tickets)
     return episodes
+
+
+def _swap_in_special(tickets, wanted, special_iter, config: Config, episode: int) -> None:
+    """Replace some of an episode's tickets with misrouted or contradiction ones.
+
+    Never the confederate's (its scripts need standard tasks), and misrouted ones
+    never go to the on-call engineer, who could just push the fix.
+    """
+    used: set[int] = set()
+    for kind in ("misrouted", "contradiction"):
+        for _ in range(wanted[kind]):
+            eligible = [
+                index
+                for index, ticket in enumerate(tickets)
+                if index not in used
+                and ticket.author != config.confederate
+                and not (kind == "misrouted" and ticket.author == config.on_call)
+            ]
+            if not eligible:
+                raise ValueError(f"no author can take a {kind} ticket in episode {episode + 1}")
+            # Rotate which author gets it across episodes.
+            index = eligible[episode % len(eligible)]
+            used.add(index)
+            tickets[index].task = next(special_iter[kind])
 
 
 def _git_commit() -> dict[str, Any]:
