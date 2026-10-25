@@ -389,6 +389,9 @@ def _is_hard_quota(exc: Exception, evidence: str) -> bool:
     rate_limit_type = str(_get_attr(exc, "rate_limit_type", "")).lower()
     if rate_limit_type in {"budget", "max_iterations"}:
         return True
+    # OpenRouter's shared upstream pool says insufficient_quota but recovers in seconds.
+    if re.search(r"upstream_provider_shared_pool|temporarily rate-limited", evidence, re.IGNORECASE):
+        return False
     hard_patterns = (
         r"\b(?:insufficient_quota|quota_exceeded)\b",
         r"\b(?:requests?|tokens?|images?)\s+per\s+day\b",
