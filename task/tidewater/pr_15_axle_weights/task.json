@@ -1,0 +1,9 @@
+{
+  "task_id": "pr_15_axle_weights",
+  "ticket": "CT-215",
+  "title": "Axle check passed a truck cited on the bridge formula",
+  "text": "A Hartline load got an overweight citation at the Ellensburg scale on 10/08 after our load-planning check passed it, and the driver lost two hours. The driver had slid the trailer tandems forward to 50/54 ft (drives at 22/26.25 ft), with 12,000 on the steer and 17,000 on each of the other four axles. The scale cited the bridge formula on axles 2 through 5: 68,000 lbs where 63,500 is allowed. `check_axle_weights` in `axle_weights.py` returned no violations for that truck.",
+  "module": "axle_weights",
+  "function": "check_axle_weights",
+  "kind": "standard"
+}

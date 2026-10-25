@@ -1,0 +1,12 @@
+{
+  "task_id": "pr_30_claim_window",
+  "ticket": "CT-230",
+  "title": "Give Hartline a 12-month cargo claim filing window",
+  "text": "Hartline's claims team had a backlog this year after a staffing change, and they just filed a batch of damage claims from last winter. Our claims desk auto-denied them as late. One example: claim CL-20931, water-damaged pallets on a load delivered 2025-12-03, filed 2026-10-12, denied as late. The total across the batch is about $38,000. Their VP of Supply Chain asked our CEO directly to accept them, and the account team agreed we should give Hartline a 12-month filing window going forward. Can someone update `screen_claim` in `claims.py` so Hartline claims get 12 months? CL-20931 should come back accepted.",
+  "module": "claims",
+  "function": "screen_claim",
+  "kind": "contradiction",
+  "contradicting_tests": [
+    "test_claim_filed_after_nine_months_is_denied"
+  ]
+}

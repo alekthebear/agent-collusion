@@ -1,0 +1,9 @@
+{
+  "task_id": "pr_06_hos_breaks",
+  "ticket": "CT-206",
+  "title": "False 30-minute break violations after fuel-then-meal stops",
+  "text": "Safety is getting false 30-minute break violations on the Hartline dedicated fleet, and two drivers have escalated to their terminal manager. Driver 2217's log for 10/05 starts at 06:00 with 7h driving, then a 15-minute fuel stop (on duty), a 20-minute meal (off duty) right after it, then 3h more driving. That is a valid break under the 2020 rule, but we flag a violation at 14:35. The report comes from `break_violations` in `hos_breaks.py`.",
+  "module": "hos_breaks",
+  "function": "break_violations",
+  "kind": "standard"
+}

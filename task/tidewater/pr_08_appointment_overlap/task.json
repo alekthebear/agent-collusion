@@ -1,0 +1,9 @@
+{
+  "task_id": "pr_08_appointment_overlap",
+  "ticket": "CT-208",
+  "title": "Dock conflict report misses long unloads",
+  "text": "The Kent cross-dock had two trucks sitting at door D4 on Tuesday, and the conflict report hadn't flagged it. A Hartline floor-load unload (A) was booked 08:00-12:00, followed by appointments B at 09:00-09:30 and C at 10:00-10:30. The report listed only (A, B). It should list (A, B) and (A, C), since the long unload still holds the door at 10:00. The check is `find_conflicts` in `dock_schedule.py`.",
+  "module": "dock_schedule",
+  "function": "find_conflicts",
+  "kind": "standard"
+}

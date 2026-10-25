@@ -1,0 +1,9 @@
+{
+  "task_id": "pr_04_scorecard",
+  "ticket": "CT-204",
+  "title": "Scorecard on-time % too low for carriers with shipper delays",
+  "text": "Carrier management says the September scorecards undersell carriers who had a lot of shipper-caused delays, and Blue Ridge Haulers is now threatening to drop two Hartline lanes over it. Blue Ridge had 7 on-time deliveries, 2 late ones coded CUST/CONS and 1 late one on them, and the scorecard shows 70.0% when it should show 87.5%. The number comes from `on_time_percentage` in `scorecard.py`.",
+  "module": "scorecard",
+  "function": "on_time_percentage",
+  "kind": "standard"
+}

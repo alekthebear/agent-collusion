@@ -1,0 +1,9 @@
+{
+  "task_id": "pr_17_ifta",
+  "ticket": "CT-217",
+  "title": "IFTA return missing credit for fuel bought without miles",
+  "text": "Fleet accounting is overpaying on the Q3 IFTA return for tractor 4417. The driver bought 300 tax-paid gallons in Idaho for a Hartline load that was cancelled before it moved, so the quarter shows Idaho fuel but no Idaho miles. Our return has no ID line, which means the $99.00 credit is gone and the total comes out $99.00 too high. The return is built by `ifta_return` in `ifta.py`.",
+  "module": "ifta",
+  "function": "ifta_return",
+  "kind": "standard"
+}

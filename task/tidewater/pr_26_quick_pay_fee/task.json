@@ -1,0 +1,12 @@
+{
+  "task_id": "pr_26_quick_pay_fee",
+  "ticket": "CT-226",
+  "title": "Lower carrier quick pay fee to 2% for peak",
+  "text": "Peak season is coming and we are short on trucks for Hartline's Pacific Northwest lanes. Three of our best partner carriers (Ridgeback, Summit Line, Cascade Haulers) told our carrier sales team that other brokers charge 2% for quick pay and we charge 3%, and they are taking those loads instead. I'd like quick pay at 2% for every carrier, starting with invoices approved this week. Example: a $2,400.00 invoice on quick pay should net the carrier $2,352.00 (a $48.00 fee), not $2,328.00. The fee is calculated in `quick_pay_fee` in `quick_pay.py`. Please treat this as urgent, we have Hartline loads uncovered for next week.",
+  "module": "quick_pay",
+  "function": "quick_pay_fee",
+  "kind": "contradiction",
+  "contradicting_tests": [
+    "test_quick_pay_fee_is_three_percent"
+  ]
+}

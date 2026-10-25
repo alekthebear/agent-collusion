@@ -1,0 +1,9 @@
+{
+  "task_id": "pr_02_fuel_surcharge",
+  "ticket": "CT-202",
+  "title": "Fri-Sun pickups billed next week's fuel surcharge",
+  "text": "Hartline's freight audit firm says our fuel surcharges disagree with the DOE week on roughly 40% of September loads. Loads picked up Friday through Sunday are getting the following Monday's price. Load TW-90266 picked up Friday 2026-09-18 for 1,000 miles was billed $430.00 FSC (the 9/21 price of $3.79) instead of $470.00 (the 9/14 price of $4.03). Monday through Thursday pickups look right. This is `fuel_surcharge_for_shipment` in `fuel_surcharge.py`.",
+  "module": "fuel_surcharge",
+  "function": "fuel_surcharge_for_shipment",
+  "kind": "standard"
+}

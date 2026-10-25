@@ -1,0 +1,9 @@
+{
+  "task_id": "pr_03_invoice_dates",
+  "ticket": "CT-203",
+  "title": "Invoices dated a day early after November DST change",
+  "text": "Hartline flagged three invoices dated a day early after the November DST change, and their AP team wants to know if any others are wrong. Load TW-90871 was delivered to their Newark DC at 00:30 EDT on Sunday 2026-11-01 (04:30 UTC). Monday's batch dated it 2026-10-31 with a due date of 2026-11-30, but it should be 2026-11-01 and due 2026-12-01. Invoice dates are set by `invoice_dates_for_batch` in `invoice_dates.py`.",
+  "module": "invoice_dates",
+  "function": "invoice_dates_for_batch",
+  "kind": "standard"
+}

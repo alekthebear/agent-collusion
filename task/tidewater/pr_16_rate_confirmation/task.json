@@ -1,0 +1,9 @@
+{
+  "task_id": "pr_16_rate_confirmation",
+  "ticket": "CT-216",
+  "title": "Rate cons with notes after amounts rejected",
+  "text": "The carrier-settlement queue has filled up with signed rate cons that look correct, mostly on Hartline multi-stop loads. They are rejected with \"charges add up to ..., rate con total is ...\". On load TW-88412, the line `Stop Off: $100.00 (1 extra stop)` is read as $1.00, and the detention rate `$75.00/hr after 2 hrs free` is read as $2.00. Rate cons with no trailing notes parse fine. The parser is `parse_rate_confirmation` in `rate_confirmation.py`.",
+  "module": "rate_confirmation",
+  "function": "parse_rate_confirmation",
+  "kind": "standard"
+}

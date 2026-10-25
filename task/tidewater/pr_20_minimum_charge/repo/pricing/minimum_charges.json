@@ -1,0 +1,19 @@
+{
+  "effective": "2026-01-01",
+  "default": {
+    "local": "275.00",
+    "intrastate": "450.00",
+    "interstate": "650.00"
+  },
+  "customers": {
+    "BRIGHTWATER": {
+      "local": "250.00",
+      "intrastate": "400.00",
+      "interstate": "600.00"
+    },
+    "HARTLINE": {
+      "local": "225.00",
+      "interstate": "575.00"
+    }
+  }
+}

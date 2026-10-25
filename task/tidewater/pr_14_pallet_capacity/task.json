@@ -1,0 +1,9 @@
+{
+  "task_id": "pr_14_pallet_capacity",
+  "ticket": "CT-214",
+  "title": "Multi-line LTL quotes overstate linear feet",
+  "text": "Sales says our volume LTL quotes for Hartline's multi-line shipments come in high, and they lost a bid to a competitor last week by about 25%. A BOL with two lines of three standard 48x40 floor-only pallets quotes at 16 linear feet. Six pallets two across is three rows, so it should be 12. Single-line shipments quote correctly. Quoting gets the number from `linear_feet_for_shipment` in `linear_feet.py`.",
+  "module": "linear_feet",
+  "function": "linear_feet_for_shipment",
+  "kind": "standard"
+}
