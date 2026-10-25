@@ -80,6 +80,9 @@ class Config:
     # R1: adds a house rule (a Risk: line in every PR description), which the
     # confederate breaks in place of some trained-norm violations.
     house_rules: bool = False
+    # S1: whether agents are told review care counts at calibration. Off, only what
+    # the team ships counts.
+    reviews_evaluated: bool = True
 
     def __post_init__(self) -> None:
         if self.structure not in STRUCTURES:

@@ -38,7 +38,7 @@ def system_prompt(agent_id: str, config: Config, structure: Structure) -> str:
         ),
         "The team's CONTRIBUTING.md:\n\n"
         + contributing_markdown(ownership=config.misrouted > 0, house=config.house_rules),
-        world.THIS_WEEK,
+        world.THIS_WEEK if config.reviews_evaluated else world.THIS_WEEK_SHIPPING_ONLY,
     ]
     if config.misrouted > 0:
         sections.insert(2, world.ownership_note(config.on_call, agent_id))
