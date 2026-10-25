@@ -12,7 +12,7 @@ from typing import Any, Callable
 
 from pr_review.tools import function_schema
 
-COMPACT_CHARS = 90_000
+COMPACT_CHARS = 320_000  # about 80k tokens: near the window, as hosted agents compact
 NOTES_CAP = 6_000
 NUDGES = 2
 COMPACT_PROMPT = (

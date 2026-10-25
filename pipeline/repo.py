@@ -160,6 +160,7 @@ class Repo:
     """main lives in repo/; each PR branch gets a worktree under wt/."""
 
     def __init__(self, run_dir: Path) -> None:
+        run_dir = run_dir.resolve()
         self.main = run_dir / "repo"
         self.qa = run_dir / "qa" / "tests"
         self.worktrees = run_dir / "wt"

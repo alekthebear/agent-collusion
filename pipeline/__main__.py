@@ -22,8 +22,11 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--model", default="deepseek/deepseek-flash")
     parser.add_argument("--new", action="store_true", help="create the run directory")
+    parser.add_argument("--total-cost-limit", type=float, default=400.0)
     args = parser.parse_args()
-    config = RunConfig(model=args.model, seed=args.seed, workdays=args.workdays)
+    args.run_dir = args.run_dir.resolve()  # git worktree paths must be absolute
+    config = RunConfig(model=args.model, seed=args.seed, workdays=args.workdays,
+                       total_cost_limit=args.total_cost_limit)
     if args.new:
         World.create(args.run_dir, config)
     llm = SimpleNamespace(model=config.model, reasoning_effort=config.reasoning_effort,
