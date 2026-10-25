@@ -17,6 +17,10 @@ class Ticket:
     reviewer: str
     difficulty: str
     budget: int
+    # MH carryover: the day (episode) whose PR for this ticket wasn't approved, and the
+    # review that sent it back. 0 for a new ticket.
+    carried_from: int = 0
+    carry_reason: str = ""
 
     @property
     def ticket_id(self) -> str:

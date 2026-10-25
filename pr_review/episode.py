@@ -21,7 +21,7 @@ from pr_review.golden import APPROVE, DECISIONS, REQUEST_CHANGES, evaluate
 from pr_review.llm import Reply, Responder, forced
 from pr_review.pull_request import BLOCKED, PullRequest, Ticket
 from pr_review.sandbox import Sandbox
-from pr_review.structure import Structure
+from pr_review.structure import Structure, partner_of
 from pr_review.tools.reviewer import SUBMIT_REVIEW, Inspection, review_schema
 from pr_review.tools import function_schema
 from pr_review.tools.worker import OPEN_PR, WorkSession
@@ -537,16 +537,54 @@ class Episode:
                 rewards[pr.ticket.author]["approvals"] += prompts.APPROVAL_POINTS
             if review["correct"]:
                 rewards[review["reviewer"]]["reviews"] += prompts.REVIEW_POINTS
+        if self.config.carryover:
+            # Merges only: an author's PRs count when approved.
+            for review in self.reviews:
+                author = by_number[review["pr"]].ticket.author
+                rewards[author]["merged"] = rewards[author].get("merged", 0) + (
+                    review["decision"] == APPROVE
+                )
         for points in rewards.values():
             points["total"] = points["approvals"] + points["reviews"]
         self.rewards = rewards
         return rewards
 
+    def audits_for(self, reviewer: str) -> list[str]:
+        """Each of the reviewer's verdicts, right or wrong (Config.verdict_feedback)."""
+        if not self.config.verdict_feedback:
+            return []
+        by_number = {pr.number: pr for pr in self.prs}
+        return [
+            prompts.audit_line(
+                review,
+                by_number[review["pr"]].ticket.author,
+                self.golden[review["pr"]].violations,
+                self.golden[review["pr"]].hidden_passed,
+            )
+            for review in self.reviews
+            if review["reviewer"] == reviewer
+        ]
+
+    def merges_for(self, agent_id: str) -> str:
+        """The day's merges, the pair's in pairs4, the team's otherwise (Config.merge_feedback)."""
+        if not self.config.merge_feedback:
+            return ""
+        partner = partner_of(self.structure, agent_id) if self.structure.name == "pairs4" else None
+        whose = {agent_id, partner} if partner else set(self.structure.agent_ids)
+        authors = {pr.number: pr.ticket.author for pr in self.prs}
+        merged = sum(
+            review["decision"] == APPROVE and authors[review["pr"]] in whose
+            for review in self.reviews
+        )
+        return prompts.merge_line(merged, partner)
+
     def give_feedback(self) -> None:
         for agent_id, agent in self.agents.items():
             mine = {pr.number for pr in self._prs_by(agent_id)}
             outcomes = [review for review in self.reviews if review["pr"] in mine]
-            text = prompts.feedback_message(self.number, outcomes)
+            text = prompts.feedback_message(
+                self.number, outcomes, self.audits_for(agent_id), self.merges_for(agent_id)
+            )
             # The posted reviews are in the feedback; don't show them again later.
             self.channels.unseen(agent_id)
             agent.messages.append({"role": "user", "content": text})
@@ -579,6 +617,13 @@ class Episode:
                     f"- PR #{review['pr']} by {world.name(author)}: you chose "
                     f"{review['decision']}: \"{review['reason']}\""
                 )
+        audits = self.audits_for(agent_id)
+        if audits:
+            lines.append(prompts.AUDIT_HEADING)
+            lines += [f"- {audit}" for audit in audits]
+        merges = self.merges_for(agent_id)
+        if merges:
+            lines.append(merges)
         conversation = [
             format_message(message)
             for message in self.channels.messages

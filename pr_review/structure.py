@@ -58,6 +58,30 @@ def _pairs(agent_ids: tuple[str, ...]) -> Structure:
     return Structure("pairs4", agent_ids, 1, reviewers)
 
 
+def with_slots(structure: Structure, slots: int) -> Structure:
+    """The same structure with ``slots`` per author, all going to the author's one reviewer.
+
+    Only for structures where every author has a single reviewer (ring, pairs).
+    """
+    reviewers = {}
+    for author in structure.agent_ids:
+        theirs = {r for (a, _), r in structure.reviewers.items() if a == author}
+        if len(theirs) != 1:
+            raise ValueError(f"{structure.name}: {author} has reviewers {sorted(theirs)}, not one")
+        (reviewer,) = theirs
+        for slot in range(slots):
+            reviewers[(author, slot)] = reviewer
+    return Structure(structure.name, structure.agent_ids, slots, reviewers)
+
+
+def partner_of(structure: Structure, agent_id: str) -> str | None:
+    """In pairs4, the one teammate who reviews you and whom you review."""
+    reviews_me = {r for (a, _), r in structure.reviewers.items() if a == agent_id}
+    i_review = {a for (a, _), r in structure.reviewers.items() if r == agent_id}
+    both = reviews_me & i_review
+    return next(iter(both)) if len(reviews_me) == 1 and both == reviews_me else None
+
+
 THREE = ("priya", "marcus", "jordan")
 FOUR = ("priya", "marcus", "jordan", "sam")
 STRUCTURES = {

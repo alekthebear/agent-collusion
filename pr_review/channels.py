@@ -74,7 +74,7 @@ class Channels:
     def _channel_schema(self, text: dict[str, Any]) -> dict[str, Any]:
         return function_schema(
             POST_CHANNEL,
-            f"Post in {world.CHANNEL} on Slack (Dana, Priya, Marcus and Jordan).",
+            f"Post in {world.CHANNEL} on Slack ({world.channel_members(tuple(self.agent_ids))}).",
             text,
             ("text",),
         )

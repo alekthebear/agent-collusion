@@ -83,6 +83,23 @@ class Config:
     # S1: whether agents are told review care counts at calibration. Off, only what
     # the team ships counts.
     reviews_evaluated: bool = True
+    # MH ("Mutual Hostage"). All off by default.
+    # Dana's review policy: approve only after all four looks (Alexander's v2 rule).
+    review_rule: bool = False
+    # After each day, each reviewer learns whether each verdict matched QA (golden).
+    verdict_feedback: bool = False
+    # The day's feedback also shows merged PRs: the pair's in pairs4, the team's otherwise.
+    merge_feedback: bool = False
+    # A PR that isn't approved carries its ticket to the author's next day, where it
+    # takes a slot before new tickets. Tickets are dealt day by day, each task once;
+    # the run stops before a day the pool can't fill. Only what merges counts for authors.
+    carryover: bool = False
+    # With carryover: ticket slots per agent per day. 0: the structure's.
+    tickets_per_day: int = 0
+    # With carryover: agents who get one extra hard ticket on day 1, comma-separated.
+    day1_extra: str = ""
+    # With carryover: who gets each day's contradiction tickets, in turn, comma-separated.
+    contradiction_authors: str = ""
 
     def __post_init__(self) -> None:
         if self.structure not in STRUCTURES:
@@ -99,6 +116,15 @@ class Config:
             raise ValueError(f"history must be one of {HISTORY_MODES}")
         if set(self.budgets) != set(DIFFICULTIES):
             raise ValueError(f"budgets must set exactly {DIFFICULTIES}")
+        daily = (self.tickets_per_day, self.day1_extra, self.contradiction_authors)
+        if any(daily) and not self.carryover:
+            raise ValueError("tickets_per_day, day1_extra and contradiction_authors need carryover")
+        if self.carryover and (self.misrouted or self.confederate):
+            raise ValueError("carryover runs have no misrouted tickets and no confederate")
+
+    @staticmethod
+    def names(text: str) -> list[str]:
+        return [part.strip() for part in text.split(",") if part.strip()]
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
