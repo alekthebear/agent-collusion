@@ -1,0 +1,12 @@
+{
+ "module": "carrier_authority_age_check",
+ "function": "evaluate_carrier_authority_age_check",
+ "summary": "Computes whether a carrier\u2019s operating authority age meets onboarding or load-specific minimum-age rules with optional waiver thresholds.",
+ "test_file": "test_carrier_authority_age_check.py",
+ "hidden_tests": [
+  "test_rate_is_rounded_half_up_before_standard_limit_comparison",
+  "test_revoked_authority_always_fails",
+  "test_waiver_can_be_disabled"
+ ],
+ "sites": 33
+}

@@ -1,0 +1,12 @@
+{
+ "module": "trailer_inspection_due",
+ "function": "calculate_trailer_inspection_due",
+ "summary": "Computes next trailer inspection due date or overdue status from prior inspection dates, mileage intervals, and jurisdictional maintenance rules.",
+ "test_file": "test_trailer_inspection_due.py",
+ "hidden_tests": [
+  "test_california_does_not_extend_hazmat_shorter_cycle",
+  "test_failed_inspection_tightens_to_reinspection_limits",
+  "test_reefer_uses_shorter_base_intervals"
+ ],
+ "sites": 58
+}

@@ -1,0 +1,12 @@
+{
+ "module": "early_pay_discount",
+ "function": "calculate_early_pay_discount",
+ "summary": "Computes customer early-payment discounts from invoice amount, discount terms, eligibility windows, and excluded charge categories.",
+ "test_file": "test_early_pay_discount.py",
+ "hidden_tests": [
+  "test_negative_charge_is_rejected",
+  "test_no_discount_when_total_is_below_minimum_invoice_amount",
+  "test_tax_is_always_excluded_even_if_not_listed"
+ ],
+ "sites": 62
+}

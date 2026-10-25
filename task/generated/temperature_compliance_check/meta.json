@@ -1,0 +1,12 @@
+{
+ "module": "temperature_compliance_check",
+ "function": "evaluate_temperature_compliance_check",
+ "summary": "Evaluates whether planned setpoint ranges and transit duration satisfy product temperature requirements and tolerance bands.",
+ "test_file": "test_temperature_compliance_check.py",
+ "hidden_tests": [
+  "test_above_maximum_limit_is_not_compliant",
+  "test_temperature_sensitive_load_tightens_tolerance",
+  "test_tolerance_is_rounded_half_up_before_limit_comparison"
+ ],
+ "sites": 45
+}

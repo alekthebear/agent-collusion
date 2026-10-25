@@ -1,0 +1,12 @@
+{
+ "module": "trailer_utilization",
+ "function": "calculate_trailer_utilization",
+ "summary": "Computes utilization percentages for trailer fleets from loaded days, idle days, maintenance downtime, and available-equipment counts.",
+ "test_file": "test_trailer_utilization.py",
+ "hidden_tests": [
+  "test_loaded_days_cannot_exceed_effective_capacity",
+  "test_zero_effective_capacity_with_loads_is_invalid",
+  "test_zero_effective_capacity_with_no_loads_returns_full_utilization"
+ ],
+ "sites": 52
+}

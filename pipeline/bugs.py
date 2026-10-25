@@ -10,6 +10,7 @@ formatting stay. Ticket text is written from the failing QA case by a separate m
 import ast
 import json
 import random
+import re
 import shutil
 import tempfile
 from pathlib import Path
@@ -18,10 +19,12 @@ from pipeline.repo import failing_qa_tests, run_pytest
 
 SWAPS = {
     ast.Lt: "<=", ast.LtE: "<", ast.Gt: ">=", ast.GtE: ">", ast.Eq: "!=", ast.NotEq: "==",
+    ast.In: "not in", ast.NotIn: "in", ast.Is: "is not", ast.IsNot: "is",
     ast.Add: "-", ast.Sub: "+", ast.Mult: "/", ast.FloorDiv: "/", ast.Mod: "//",
 }
 OP_TEXT = {
     ast.Lt: "<", ast.LtE: "<=", ast.Gt: ">", ast.GtE: ">=", ast.Eq: "==", ast.NotEq: "!=",
+    ast.In: "in", ast.NotIn: "not in", ast.Is: "is", ast.IsNot: "is not",
     ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.FloorDiv: "//", ast.Mod: "%",
 }
 NAME_SWAPS = {
@@ -77,6 +80,20 @@ def sites(source: str) -> list[tuple[int, int, str, str]]:
             pos = between(node.values[0], node.values[1], token)
             if pos:
                 out.append((*pos, token, "or" if token == "and" else "and"))
+        elif isinstance(node, ast.AugAssign) and type(node.op) in (ast.Add, ast.Sub):
+            token = "+=" if isinstance(node.op, ast.Add) else "-="
+            pos = between(node.target, node.value, token)
+            if pos:
+                out.append((*pos, token, "-=" if token == "+=" else "+="))
+        elif isinstance(node, (ast.If, ast.While)) and not isinstance(node.test, ast.Constant):
+            a, b = span(node.test)
+            out.append((a, b, source[a:b], f"not ({source[a:b]})"))
+        elif (isinstance(node, ast.Constant) and isinstance(node.value, str)
+              and re.fullmatch(r"\d+(\.\d+)?", node.value)):
+            a, b = span(node)
+            digits = node.value
+            last = int(digits[-1])
+            out.append((a + 1 + len(digits) - 1, a + 1 + len(digits), digits[-1], str((last + 1) % 10)))
         elif isinstance(node, ast.Name) and node.id in NAME_SWAPS:
             a, b = span(node)
             out.append((a, b, node.id, NAME_SWAPS[node.id]))
@@ -105,18 +122,21 @@ def _module_copy(repo: Path, module: str, test_file: str, scratch: Path) -> Path
 
 
 def find_bug(repo: Path, qa: Path, module: str, test_file: str, rng: random.Random,
-             tries: int = 40, n_sites: int = 1) -> dict | None:
+             tries: int = 60, n_sites: int = 1, already_failing: set[str] | None = None) -> dict | None:
     """A single-token bug in module on main: repo tests pass, some QA test fails."""
     from pr_review import sandbox  # noqa: PLC0415
     saved, sandbox._PROCESS_TIMEOUT = sandbox._PROCESS_TIMEOUT, 6  # a hanging mutant is rejected fast
     try:
-        return _find_bug(repo, qa, module, test_file, rng, tries, n_sites)
+        bug = _find_bug(repo, qa, module, test_file, rng, tries, n_sites, already_failing or set())
+        if bug is None and n_sites == 1:
+            bug = _find_bug(repo, qa, module, test_file, rng, tries, 2, already_failing or set())
+        return bug
     finally:
         sandbox._PROCESS_TIMEOUT = saved
 
 
 def _find_bug(repo: Path, qa: Path, module: str, test_file: str, rng: random.Random, tries: int,
-              n_sites: int = 1) -> dict | None:
+              n_sites: int = 1, already_failing: set[str] = frozenset()) -> dict | None:
     source = (repo / f"{module}.py").read_text()
     candidates = sites(source)
     rng.shuffle(candidates)
@@ -144,7 +164,7 @@ def _find_bug(repo: Path, qa: Path, module: str, test_file: str, rng: random.Ran
             if not run_pytest(work).passed:
                 continue  # the repo's own tests would catch it
             failing = failing_qa_tests(work, qa, test_file)
-        if failing:
+        if failing - set(already_failing):
             line = source[: site[0]].count("\n") + 1
             return {"source": mutant, "site": list(site), "line": line, "failing": sorted(failing),
                     "sites": [list(s) for s in group]}

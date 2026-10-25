@@ -1,0 +1,12 @@
+{
+ "module": "shipment_split_allocation",
+ "function": "allocate_shipment_split",
+ "summary": "Allocates charges, weight, and revenue across split shipments using proportional, equal, or line-based allocation rules.",
+ "test_file": "test_shipment_split_allocation.py",
+ "hidden_tests": [
+  "test_equal_charge_split_assigns_remainder_to_last_child",
+  "test_zero_line_counts_fall_back_to_equal_for_revenue",
+  "test_zero_weight_proportional_falls_back_to_equal"
+ ],
+ "sites": 39
+}

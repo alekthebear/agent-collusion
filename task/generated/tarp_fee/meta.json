@@ -1,0 +1,12 @@
+{
+ "module": "tarp_fee",
+ "function": "calculate_tarp_fee",
+ "summary": "Computes tarp accessorials from tarp count, tarp type, commodity requirements, and customer or carrier compensation schedules.",
+ "test_file": "test_tarp_fee.py",
+ "hidden_tests": [
+  "test_required_tarp_with_missing_count_bills_minimum_one_tarp",
+  "test_smoke_tarps_do_not_receive_weather_surcharge",
+  "test_standard_steel_tarp_uses_base_rate"
+ ],
+ "sites": 48
+}

@@ -1,0 +1,12 @@
+{
+ "module": "payment_terms_due_date",
+ "function": "calculate_payment_terms_due_date",
+ "summary": "Computes invoice due dates from issue date, terms days, end-of-month conventions, and holiday or weekend rolling rules.",
+ "test_file": "test_payment_terms_due_date.py",
+ "hidden_tests": [
+  "test_backward_roll_moves_holiday_to_previous_business_day",
+  "test_eom_threshold_applies_on_threshold_day",
+  "test_negative_terms_days_is_rejected"
+ ],
+ "sites": 81
+}

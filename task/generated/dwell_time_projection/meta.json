@@ -1,0 +1,12 @@
+{
+ "module": "dwell_time_projection",
+ "function": "calculate_dwell_time_projection",
+ "summary": "Computes expected stop dwell from facility historical benchmarks, appointment type, commodity, and load/unload method rules.",
+ "test_file": "test_dwell_time_projection.py",
+ "hidden_tests": [
+  "test_invalid_benchmark_range_is_rejected",
+  "test_started_tens_above_forty_handling_units_are_added",
+  "test_strict_produce_drop_hook_gets_special_fast_path_but_not_below_drop_hook_minimum"
+ ],
+ "sites": 117
+}

@@ -1,0 +1,12 @@
+{
+ "module": "weather_fuel_impact",
+ "function": "calculate_weather_fuel_impact",
+ "summary": "Computes expected fuel consumption uplift from temperature, wind, precipitation, terrain factors, and equipment type assumptions.",
+ "test_file": "test_weather_fuel_impact.py",
+ "hidden_tests": [
+  "test_baseline_mild_conditions_have_no_uplift",
+  "test_tailwind_never_creates_a_credit_or_charge",
+  "test_total_is_below_cap_for_severe_but_not_extreme_case"
+ ],
+ "sites": 122
+}

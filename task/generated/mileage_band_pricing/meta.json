@@ -1,0 +1,12 @@
+{
+ "module": "mileage_band_pricing",
+ "function": "calculate_mileage_band_pricing",
+ "summary": "Computes charges from mileage bands, lane tiers, and breakpoint logic with optional directional or region-specific modifiers.",
+ "test_file": "test_mileage_band_pricing.py",
+ "hidden_tests": [
+  "test_hazmat_is_applied_after_breakpoint_discount",
+  "test_remote_region_surcharge_does_not_apply_below_100_miles",
+  "test_short_shuttle_uses_contract_minimum_charge"
+ ],
+ "sites": 80
+}

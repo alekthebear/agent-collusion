@@ -1,0 +1,12 @@
+{
+ "module": "trailer_pool_balance",
+ "function": "calculate_trailer_pool_balance",
+ "summary": "Computes trailer pool surplus or deficit by location from starting inventory, inbound and outbound events, and target pool levels.",
+ "test_file": "test_trailer_pool_balance.py",
+ "hidden_tests": [
+  "test_exact_target_has_no_charge_or_credit",
+  "test_inventory_is_floored_at_zero_before_balance",
+  "test_shortage_below_deadband_is_ignored"
+ ],
+ "sites": 46
+}

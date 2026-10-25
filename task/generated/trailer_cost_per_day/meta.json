@@ -1,0 +1,12 @@
+{
+ "module": "trailer_cost_per_day",
+ "function": "calculate_trailer_cost_per_day",
+ "summary": "Computes trailer ownership or lease cost per day from depreciation, financing, fixed expenses, and available days.",
+ "test_file": "test_trailer_cost_per_day.py",
+ "hidden_tests": [
+  "test_leased_trailer_uses_lease_cost_instead_of_depreciation_and_financing",
+  "test_reefer_adds_daily_surcharge",
+  "test_salvage_cannot_exceed_purchase_price"
+ ],
+ "sites": 68
+}

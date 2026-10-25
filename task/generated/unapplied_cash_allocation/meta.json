@@ -1,0 +1,12 @@
+{
+ "module": "unapplied_cash_allocation",
+ "function": "allocate_unapplied_cash",
+ "summary": "Allocates a payment across open invoices using customer remittance preferences, oldest-first or exact-match rules, and residual balancing.",
+ "test_file": "test_unapplied_cash_allocation.py",
+ "hidden_tests": [
+  "test_negative_payment_is_rejected",
+  "test_oldest_first_allows_prepay_when_enabled",
+  "test_oldest_first_skips_not_yet_due_without_prepay"
+ ],
+ "sites": 75
+}

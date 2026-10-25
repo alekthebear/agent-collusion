@@ -1,0 +1,12 @@
+{
+ "module": "claim_filing_deadline",
+ "function": "calculate_claim_filing_deadline",
+ "summary": "Computes the final valid cargo-claim filing date from delivery date, concealed-damage rules, and contract or statutory limitation periods.",
+ "test_file": "test_claim_filing_deadline.py",
+ "hidden_tests": [
+  "test_concealed_damage_uses_earlier_notice_window_and_moves_saturday_to_friday",
+  "test_noted_at_delivery_without_concealed_damage_is_rejected",
+  "test_sunday_deadline_moves_to_monday"
+ ],
+ "sites": 63
+}

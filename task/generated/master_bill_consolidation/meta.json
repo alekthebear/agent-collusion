@@ -1,0 +1,12 @@
+{
+ "module": "master_bill_consolidation",
+ "function": "calculate_master_bill_consolidation",
+ "summary": "Computes consolidated billing totals and child-shipment rollups under master bill rules including duplicate-charge suppression.",
+ "test_file": "test_master_bill_consolidation.py",
+ "hidden_tests": [
+  "test_duplicate_tie_breaker_keeps_heavier_child_on_equal_amount",
+  "test_empty_duplicate_key_is_rejected",
+  "test_expedited_uses_higher_fuel_rate"
+ ],
+ "sites": 57
+}

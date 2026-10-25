@@ -1,0 +1,12 @@
+{
+ "module": "short_pay_variance",
+ "function": "calculate_short_pay_variance",
+ "summary": "Computes underpayment variance between expected and received invoice amounts, allocating differences by disputed charge categories.",
+ "test_file": "test_short_pay_variance.py",
+ "hidden_tests": [
+  "test_cash_tolerance_ignores_small_short_pay_at_boundary",
+  "test_early_pay_discount_reduces_expected_amount",
+  "test_unexplained_carries_remaining_short_pay_after_disputes"
+ ],
+ "sites": 53
+}

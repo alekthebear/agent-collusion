@@ -1,0 +1,12 @@
+{
+ "module": "maintenance_fund_contribution",
+ "function": "calculate_maintenance_fund_contribution",
+ "summary": "Computes maintenance-fund deductions from mileage, percentage-of-revenue, or flat periodic rules with cap enforcement.",
+ "test_file": "test_maintenance_fund_contribution.py",
+ "hidden_tests": [
+  "test_quarter_waiver_zeroes_contribution_regardless_of_basis",
+  "test_revenue_plan_rounds_half_up_to_cent",
+  "test_revenue_plan_skips_when_linehaul_below_minimum"
+ ],
+ "sites": 72
+}

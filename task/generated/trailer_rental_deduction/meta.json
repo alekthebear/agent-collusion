@@ -1,0 +1,12 @@
+{
+ "module": "trailer_rental_deduction",
+ "function": "calculate_trailer_rental_deduction",
+ "summary": "Computes trailer rental charges owed by an owner-operator from rental periods, weekly proration rules, and utilization-based waivers.",
+ "test_file": "test_trailer_rental_deduction.py",
+ "hidden_tests": [
+  "test_damage_hold_is_added_after_other_charges",
+  "test_return_before_pickup_is_rejected",
+  "test_seven_billable_days_convert_to_weekly_rate"
+ ],
+ "sites": 74
+}

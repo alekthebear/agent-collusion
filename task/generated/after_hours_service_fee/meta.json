@@ -1,0 +1,12 @@
+{
+ "module": "after_hours_service_fee",
+ "function": "calculate_after_hours_service_fee",
+ "summary": "Computes after-hours service charges from appointment time, local business-hour calendars, day-of-week rules, and contractual premiums.",
+ "test_file": "test_after_hours_service_fee.py",
+ "hidden_tests": [
+  "test_exactly_two_hours_before_open_is_shoulder_fee",
+  "test_inside_business_hours_is_free",
+  "test_saturday_uses_flat_weekend_fee"
+ ],
+ "sites": 63
+}

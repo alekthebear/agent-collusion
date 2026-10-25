@@ -1,0 +1,12 @@
+{
+ "module": "cash_advance_setoff",
+ "function": "calculate_cash_advance_setoff",
+ "summary": "Computes settlement deductions for prior cash advances using repayment percentages, minimum net-pay protections, and outstanding balances.",
+ "test_file": "test_cash_advance_setoff.py",
+ "hidden_tests": [
+  "test_other_deductions_can_reduce_payable_to_zero",
+  "test_outstanding_below_collectible_minimum_is_not_set_off",
+  "test_standard_repayment_uses_linehaul_only"
+ ],
+ "sites": 55
+}

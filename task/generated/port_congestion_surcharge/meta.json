@@ -1,0 +1,12 @@
+{
+ "module": "port_congestion_surcharge",
+ "function": "calculate_port_congestion_surcharge",
+ "summary": "Computes congestion surcharges from terminal congestion tier, transaction type, appointment delays, and effective-date business rules.",
+ "test_file": "test_port_congestion_surcharge.py",
+ "hidden_tests": [
+  "test_late_arrival_more_than_thirty_minutes_cuts_total_in_half",
+  "test_terminal_cap_limits_total_after_addons",
+  "test_weekend_premium_applies_only_at_tier_two_or_three"
+ ],
+ "sites": 101
+}

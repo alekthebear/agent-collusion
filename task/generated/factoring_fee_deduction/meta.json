@@ -1,0 +1,12 @@
+{
+ "module": "factoring_fee_deduction",
+ "function": "calculate_factoring_fee_deduction",
+ "summary": "Computes factoring-fee deductions from eligible receivable amounts, fee rates, reserve percentages, and exclusion rules.",
+ "test_file": "test_factoring_fee_deduction.py",
+ "hidden_tests": [
+  "test_credit_hold_blocks_funding_entirely",
+  "test_linehaul_only_uses_base_fee_and_reserve",
+  "test_minimum_advance_boundary_blocks_small_funding"
+ ],
+ "sites": 56
+}

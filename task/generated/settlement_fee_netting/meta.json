@@ -1,0 +1,12 @@
+{
+ "module": "settlement_fee_netting",
+ "function": "calculate_settlement_fee_netting",
+ "summary": "Computes net payable after offsetting reciprocal receivables and payables subject to legal-entity and aging eligibility rules.",
+ "test_file": "test_settlement_fee_netting.py",
+ "hidden_tests": [
+  "test_credit_hold_receivable_nets_at_half_value",
+  "test_disputed_or_unapproved_receivables_are_not_eligible",
+  "test_payable_must_be_ready_and_not_too_old"
+ ],
+ "sites": 54
+}

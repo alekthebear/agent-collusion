@@ -1,0 +1,12 @@
+{
+ "module": "cost_plus_price",
+ "function": "calculate_cost_plus_price",
+ "summary": "Computes sell price from carrier or modeled cost plus markup percentages or fixed margin adders under configurable inclusion rules.",
+ "test_file": "test_cost_plus_price.py",
+ "hidden_tests": [
+  "test_cost_above_mid_break_gets_high_markup",
+  "test_fuel_and_accessorials_are_included_by_default",
+  "test_minimum_margin_applies_when_fixed_adder_is_too_small"
+ ],
+ "sites": 46
+}

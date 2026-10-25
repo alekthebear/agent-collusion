@@ -1,0 +1,12 @@
+{
+ "module": "freeze_protection_fee",
+ "function": "calculate_freeze_protection_fee",
+ "summary": "Computes freeze-protection accessorials from temperature thresholds, lane seasonality, equipment type, and contractual daily or trip pricing.",
+ "test_file": "test_freeze_protection_fee.py",
+ "hidden_tests": [
+  "test_forecast_above_threshold_is_free",
+  "test_north_lane_outside_season_is_free",
+  "test_threshold_below_34_is_not_billable"
+ ],
+ "sites": 71
+}

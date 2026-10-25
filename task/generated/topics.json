@@ -1,0 +1,702 @@
+[
+ {
+  "module": "layover_pay",
+  "function": "calculate_layover_pay",
+  "summary": "Computes layover compensation from arrived/available timestamps, free-time thresholds, day-count rules, and contract caps, returning payable layover units and amount."
+ },
+ {
+  "module": "driver_assist_fee",
+  "function": "calculate_driver_assist_fee",
+  "summary": "Computes driver-assist charges from pieces, weight, time, or flat-fee rules, applying customer-specific minimums, maximums, and per-stop conditions."
+ },
+ {
+  "module": "lumper_reimbursement",
+  "function": "calculate_lumper_reimbursement",
+  "summary": "Computes reimbursable lumper amount from receipts, approval limits, markups, and pass-through policies, returning carrier pay and customer bill values."
+ },
+ {
+  "module": "escort_fee",
+  "function": "calculate_escort_fee",
+  "summary": "Computes escort or pilot-car charges from route segments, jurisdiction requirements, trip counts, and contracted pass-through or marked-up billing rules."
+ },
+ {
+  "module": "permits_fee",
+  "function": "calculate_permits_fee",
+  "summary": "Computes oversize or overweight permit charges from state-level permit schedules, number of jurisdictions, and billing markup policies."
+ },
+ {
+  "module": "tarp_fee",
+  "function": "calculate_tarp_fee",
+  "summary": "Computes tarp accessorials from tarp count, tarp type, commodity requirements, and customer or carrier compensation schedules."
+ },
+ {
+  "module": "strap_fee",
+  "function": "calculate_strap_fee",
+  "summary": "Computes securement charges from strap count, chain count, commodity minimum-securement rules, and contractual per-unit fees."
+ },
+ {
+  "module": "team_driver_premium",
+  "function": "calculate_team_driver_premium",
+  "summary": "Computes team-service premium based on miles, urgency tier, service-level commitments, and contract-specific multipliers or flat additions."
+ },
+ {
+  "module": "inside_delivery_fee",
+  "function": "calculate_inside_delivery_fee",
+  "summary": "Computes inside-delivery accessorials from service level, floor count, elevator availability, piece count, and minimum charge rules."
+ },
+ {
+  "module": "residential_delivery_fee",
+  "function": "calculate_residential_delivery_fee",
+  "summary": "Computes residential delivery charges using destination type, shipment mode, parcel/LTL thresholds, and customer contract tariffs."
+ },
+ {
+  "module": "limited_access_fee",
+  "function": "calculate_limited_access_fee",
+  "summary": "Computes limited-access surcharges from destination category mappings, stop type, and tariff rules including one-time-per-stop application."
+ },
+ {
+  "module": "sort_segregate_fee",
+  "function": "calculate_sort_segregate_fee",
+  "summary": "Computes sort-and-segregate charges from SKU count, pallet count, line-item complexity, labor-time rules, and per-stop minimums."
+ },
+ {
+  "module": "freeze_protection_fee",
+  "function": "calculate_freeze_protection_fee",
+  "summary": "Computes freeze-protection accessorials from temperature thresholds, lane seasonality, equipment type, and contractual daily or trip pricing."
+ },
+ {
+  "module": "after_hours_service_fee",
+  "function": "calculate_after_hours_service_fee",
+  "summary": "Computes after-hours service charges from appointment time, local business-hour calendars, day-of-week rules, and contractual premiums."
+ },
+ {
+  "module": "weekend_service_fee",
+  "function": "calculate_weekend_service_fee",
+  "summary": "Computes weekend service surcharges based on pickup or delivery day, service commitment, and lane- or customer-specific fee schedules."
+ },
+ {
+  "module": "redelivery_fee",
+  "function": "calculate_redelivery_fee",
+  "summary": "Computes redelivery charges from failed-attempt reasons, customer fault rules, distance retraced, and tariff minimums."
+ },
+ {
+  "module": "reconsignment_fee",
+  "function": "calculate_reconsignment_fee",
+  "summary": "Computes reconsignment charges from instruction timing, miles already traveled, stop changes, and tariff or contractual flat-fee rules."
+ },
+ {
+  "module": "diversion_fee",
+  "function": "calculate_diversion_fee",
+  "summary": "Computes diversion charges from in-transit reroute timing, route delta miles, extra stops, and diversion tariff logic."
+ },
+ {
+  "module": "pallet_exchange_balance",
+  "function": "calculate_pallet_exchange_balance",
+  "summary": "Computes pallet exchange debits or credits from pallet type, pallets tendered and returned, tolerance rules, and reimbursement schedules."
+ },
+ {
+  "module": "pallet_weight_allowance",
+  "function": "calculate_pallet_weight_allowance",
+  "summary": "Computes net freight weight from gross weight, pallet count, pallet tare schedules, and commodity-specific allowance caps."
+ },
+ {
+  "module": "washout_fee",
+  "function": "calculate_washout_fee",
+  "summary": "Computes trailer washout reimbursement from commodity contamination class, required wash level, receipt limits, and contract pass-through policies."
+ },
+ {
+  "module": "truck_order_not_used_fee",
+  "function": "calculate_truck_order_not_used_fee",
+  "summary": "Computes truck-order-not-used charges from cancellation timing, dispatch status milestones, deadhead incurred, and contract-specific TONU formulas distinct from general tonu rules."
+ },
+ {
+  "module": "carrier_insurance_check",
+  "function": "evaluate_carrier_insurance_check",
+  "summary": "Evaluates whether liability, cargo, and other insurance coverages satisfy customer and load requirements, returning compliance flags and deficiency reasons."
+ },
+ {
+  "module": "carrier_authority_age_check",
+  "function": "evaluate_carrier_authority_age_check",
+  "summary": "Computes whether a carrier\u2019s operating authority age meets onboarding or load-specific minimum-age rules with optional waiver thresholds."
+ },
+ {
+  "module": "safety_score_gate",
+  "function": "evaluate_safety_score_gate",
+  "summary": "Evaluates carrier eligibility against safety score thresholds, intervention status, and configurable exception rules, returning pass/fail and violated criteria."
+ },
+ {
+  "module": "equipment_certification_check",
+  "function": "evaluate_equipment_certification_check",
+  "summary": "Checks whether required equipment certifications such as food-grade, liftgate, or air-ride meet load requirements using effective dates and type matches."
+ },
+ {
+  "module": "trailer_inspection_due",
+  "function": "calculate_trailer_inspection_due",
+  "summary": "Computes next trailer inspection due date or overdue status from prior inspection dates, mileage intervals, and jurisdictional maintenance rules."
+ },
+ {
+  "module": "driver_medical_due",
+  "function": "calculate_driver_medical_due",
+  "summary": "Computes CDL medical card expiration status, grace-period handling, and next due threshold for dispatch eligibility."
+ },
+ {
+  "module": "drug_testing_pool_requirement",
+  "function": "calculate_drug_testing_pool_requirement",
+  "summary": "Computes required random-test selection counts from active driver population, period rates, and regulatory rounding rules."
+ },
+ {
+  "module": "oversize_compliance_check",
+  "function": "evaluate_oversize_compliance_check",
+  "summary": "Evaluates whether dimensions and weight exceed legal limits by jurisdiction and determines which permit or escort requirement flags apply."
+ },
+ {
+  "module": "seal_requirement_check",
+  "function": "evaluate_seal_requirement_check",
+  "summary": "Computes whether a load requires trailer seals based on commodity, customer, border crossing, and security-program rules."
+ },
+ {
+  "module": "temperature_compliance_check",
+  "function": "evaluate_temperature_compliance_check",
+  "summary": "Evaluates whether planned setpoint ranges and transit duration satisfy product temperature requirements and tolerance bands."
+ },
+ {
+  "module": "chainup_requirement",
+  "function": "calculate_chainup_requirement",
+  "summary": "Computes whether chains are required on a route from elevation, season, weather flags, and state chain-law rules."
+ },
+ {
+  "module": "driver_endorsement_check",
+  "function": "evaluate_driver_endorsement_check",
+  "summary": "Evaluates whether a driver\u2019s endorsements such as hazmat, tanker, or doubles satisfy load and equipment requirements."
+ },
+ {
+  "module": "tractor_trailer_match",
+  "function": "evaluate_tractor_trailer_match",
+  "summary": "Computes whether a tractor and trailer pairing is valid based on fifth-wheel, axle, ABS, reefer power, and connection compatibility rules."
+ },
+ {
+  "module": "weight_distribution",
+  "function": "calculate_weight_distribution",
+  "summary": "Computes estimated axle-group loading from cargo placement, trailer geometry, and tandem positions, returning legal and target balance values."
+ },
+ {
+  "module": "cube_utilization",
+  "function": "calculate_cube_utilization",
+  "summary": "Computes trailer cube used, remaining capacity, and utilization percentage from shipment dimensions, stackability rules, and equipment interior dimensions."
+ },
+ {
+  "module": "pallet_fit_plan",
+  "function": "calculate_pallet_fit_plan",
+  "summary": "Computes pallet fit counts and layout feasibility from pallet footprints, trailer dimensions, turn allowances, and no-stack constraints."
+ },
+ {
+  "module": "multi_stop_route_miles",
+  "function": "calculate_multi_stop_route_miles",
+  "summary": "Computes total route miles from an ordered stop sequence, stop coordinates or mile legs, and optional out-of-route penalties."
+ },
+ {
+  "module": "empty_miles",
+  "function": "calculate_empty_miles",
+  "summary": "Computes non-revenue miles from tractor start position, repositioning legs, and loaded-route segmentation rules."
+ },
+ {
+  "module": "deadhead_pay",
+  "function": "calculate_deadhead_pay",
+  "summary": "Computes payable deadhead compensation from approved empty miles, free-mile thresholds, pay rate type, and contract caps."
+ },
+ {
+  "module": "loaded_miles_pay",
+  "function": "calculate_loaded_miles_pay",
+  "summary": "Computes linehaul pay from loaded miles under practical, shortest, or paid-mile rules with customer or carrier mileage overrides."
+ },
+ {
+  "module": "multi_pick_multi_drop_sequence_score",
+  "function": "calculate_multi_pick_multi_drop_sequence_score",
+  "summary": "Computes a route sequence score from backtracking, service windows, handling complexity, and detention risk factors for dispatch comparison."
+ },
+ {
+  "module": "appointment_feasibility",
+  "function": "evaluate_appointment_feasibility",
+  "summary": "Evaluates whether a proposed pickup and delivery appointment set is feasible given transit time, dwell assumptions, and HOS-derived available hours."
+ },
+ {
+  "module": "dwell_time_projection",
+  "function": "calculate_dwell_time_projection",
+  "summary": "Computes expected stop dwell from facility historical benchmarks, appointment type, commodity, and load/unload method rules."
+ },
+ {
+  "module": "relay_split_plan",
+  "function": "calculate_relay_split_plan",
+  "summary": "Computes relay handoff mile splits, timing, and pay apportionment between drivers based on route legs and service constraints."
+ },
+ {
+  "module": "bounce_distance",
+  "function": "calculate_bounce_distance",
+  "summary": "Computes repositioning distance from delivery to next likely freight origin or terminal under configurable bounce-planning rules."
+ },
+ {
+  "module": "service_failure_risk",
+  "function": "calculate_service_failure_risk",
+  "summary": "Computes a risk score for missing service commitments using remaining miles, available hours, weather penalty inputs, and stop complexity factors."
+ },
+ {
+  "module": "drop_hook_feasibility",
+  "function": "evaluate_drop_hook_feasibility",
+  "summary": "Evaluates whether a load can be executed as drop-and-hook from trailer availability, yard inventory assumptions, and customer equipment rules."
+ },
+ {
+  "module": "yard_move_time",
+  "function": "calculate_yard_move_time",
+  "summary": "Computes expected yard move duration from facility size, spot distance, congestion factor, and trailer readiness assumptions."
+ },
+ {
+  "module": "spotting_fee",
+  "function": "calculate_spotting_fee",
+  "summary": "Computes trailer spotting charges from move count, standby time, hostler type, and contractual minimum billing increments."
+ },
+ {
+  "module": "trailer_pool_balance",
+  "function": "calculate_trailer_pool_balance",
+  "summary": "Computes trailer pool surplus or deficit by location from starting inventory, inbound and outbound events, and target pool levels."
+ },
+ {
+  "module": "yard_storage_fee",
+  "function": "calculate_yard_storage_fee",
+  "summary": "Computes storage charges for trailers or containers from dwell duration, free days, day-rate tiers, and customer-specific caps."
+ },
+ {
+  "module": "trailer_utilization",
+  "function": "calculate_trailer_utilization",
+  "summary": "Computes utilization percentages for trailer fleets from loaded days, idle days, maintenance downtime, and available-equipment counts."
+ },
+ {
+  "module": "pickup_number_validation",
+  "function": "validate_pickup_number",
+  "summary": "Evaluates whether a pickup number format and checksum satisfy customer-specific validation rules, returning validity and normalized form."
+ },
+ {
+  "module": "bol_reference_parser",
+  "function": "parse_bol_references",
+  "summary": "Computes normalized bill-of-lading reference components from raw strings using token rules, prefix mappings, and duplicate suppression."
+ },
+ {
+  "module": "po_aggregation",
+  "function": "aggregate_purchase_orders",
+  "summary": "Computes grouped purchase-order totals, distinct counts, and billing splits from shipment line associations and customer consolidation rules."
+ },
+ {
+  "module": "shipment_split_allocation",
+  "function": "allocate_shipment_split",
+  "summary": "Allocates charges, weight, and revenue across split shipments using proportional, equal, or line-based allocation rules."
+ },
+ {
+  "module": "master_bill_consolidation",
+  "function": "calculate_master_bill_consolidation",
+  "summary": "Computes consolidated billing totals and child-shipment rollups under master bill rules including duplicate-charge suppression."
+ },
+ {
+  "module": "edi_204_stop_normalizer",
+  "function": "normalize_edi_204_stops",
+  "summary": "Computes a standardized stop sequence and roles from EDI 204 stop segments using stop-type precedence and de-duplication rules."
+ },
+ {
+  "module": "edi_214_status_mapping",
+  "function": "map_edi_214_status",
+  "summary": "Maps raw EDI 214 event codes into canonical tracking statuses using code tables, exception precedence, and milestone business rules."
+ },
+ {
+  "module": "edi_210_charge_mapping",
+  "function": "map_edi_210_charges",
+  "summary": "Computes normalized invoice charge categories from EDI 210 line items using accessorial code maps, precedence rules, and fallback defaults."
+ },
+ {
+  "module": "edi_997_ack_status",
+  "function": "calculate_edi_997_ack_status",
+  "summary": "Computes functional acknowledgment outcome from accepted and rejected transaction counts with control-number balancing rules."
+ },
+ {
+  "module": "edi_control_number_rollover",
+  "function": "calculate_edi_control_number_rollover",
+  "summary": "Computes the next EDI control number given current value, min/max bounds, and rollover policies."
+ },
+ {
+  "module": "edi_segment_count",
+  "function": "calculate_edi_segment_count",
+  "summary": "Computes expected segment counts for transaction validation from segment lists while applying ST/SE inclusion rules."
+ },
+ {
+  "module": "edi_n1_role_resolver",
+  "function": "resolve_edi_n1_roles",
+  "summary": "Computes canonical business-party roles from EDI N1 qualifiers using transaction-type-specific precedence rules."
+ },
+ {
+  "module": "edi_l11_reference_priority",
+  "function": "prioritize_edi_l11_references",
+  "summary": "Computes preferred shipment references from multiple EDI L11 identifiers using qualifier ranking and customer-specific selection rules."
+ },
+ {
+  "module": "edi_unit_normalization",
+  "function": "normalize_edi_units",
+  "summary": "Converts EDI-provided units of measure into canonical internal units with transaction-specific overrides and rounding rules."
+ },
+ {
+  "module": "edi_date_qualifier_resolver",
+  "function": "resolve_edi_date_qualifiers",
+  "summary": "Computes canonical milestone dates from EDI date/time qualifiers using event precedence and timezone-offset assumptions."
+ },
+ {
+  "module": "linehaul_rate_per_mile",
+  "function": "calculate_linehaul_rate_per_mile",
+  "summary": "Computes linehaul amount from paid miles and contracted per-mile rates with breakpoints, minimums, and rounding rules."
+ },
+ {
+  "module": "linehaul_rate_per_hundredweight",
+  "function": "calculate_linehaul_rate_per_hundredweight",
+  "summary": "Computes charges from billed weight under CWT tariffs, weight breaks, deficit rating logic, and minimum charges."
+ },
+ {
+  "module": "linehaul_rate_per_piece",
+  "function": "calculate_linehaul_rate_per_piece",
+  "summary": "Computes linehaul from piece count using per-piece tariffs, break thresholds, and stop- or shipment-level minimums."
+ },
+ {
+  "module": "contract_margin_floor",
+  "function": "calculate_contract_margin_floor",
+  "summary": "Computes minimum customer sell rate required to satisfy margin targets after carrier cost, fuel, and expected accessorial assumptions."
+ },
+ {
+  "module": "buy_sell_spread",
+  "function": "calculate_buy_sell_spread",
+  "summary": "Computes gross spread and margin percentage between customer charge and carrier cost with inclusion rules for fuel and accessorial components."
+ },
+ {
+  "module": "cost_plus_price",
+  "function": "calculate_cost_plus_price",
+  "summary": "Computes sell price from carrier or modeled cost plus markup percentages or fixed margin adders under configurable inclusion rules."
+ },
+ {
+  "module": "target_rate_from_margin",
+  "function": "calculate_target_rate_from_margin",
+  "summary": "Computes the customer rate needed to achieve a target gross margin percentage from projected cost and surcharge composition."
+ },
+ {
+  "module": "mode_conversion_factor",
+  "function": "calculate_mode_conversion_factor",
+  "summary": "Computes equivalent rating factors when converting between truckload, LTL, drayage, or flatbed pricing bases using configured formulas."
+ },
+ {
+  "module": "density_based_class",
+  "function": "calculate_density_based_class",
+  "summary": "Computes NMFC-style density class from weight and cubic dimensions using density brackets and dimensional rounding rules."
+ },
+ {
+  "module": "dimensional_weight",
+  "function": "calculate_dimensional_weight",
+  "summary": "Computes dimensional billed weight from shipment dimensions, divisor tables, and mode-specific rounding rules."
+ },
+ {
+  "module": "deficit_weight_pricing",
+  "function": "calculate_deficit_weight_pricing",
+  "summary": "Computes whether rating at the next weight break yields a lower total charge and returns the applicable deficit-rated amount."
+ },
+ {
+  "module": "mileage_band_pricing",
+  "function": "calculate_mileage_band_pricing",
+  "summary": "Computes charges from mileage bands, lane tiers, and breakpoint logic with optional directional or region-specific modifiers."
+ },
+ {
+  "module": "base_plate_apportionment",
+  "function": "calculate_base_plate_apportionment",
+  "summary": "Computes apportioned registration cost allocation by jurisdiction from fleet miles and registration schedules for internal settlement purposes."
+ },
+ {
+  "module": "road_use_tax",
+  "function": "calculate_road_use_tax",
+  "summary": "Computes road-use tax liability from taxable miles, jurisdiction rates, and exempt-mile rules."
+ },
+ {
+  "module": "toll_allocation",
+  "function": "allocate_toll_costs",
+  "summary": "Allocates toll costs to loads, drivers, or customers based on route segments, loaded versus empty legs, and split-allocation rules."
+ },
+ {
+  "module": "owner_operator_linehaul_settlement",
+  "function": "calculate_owner_operator_linehaul_settlement",
+  "summary": "Computes owner-operator linehaul settlement from gross linehaul revenue, pay percentage or rate basis, authorized deductions, and settlement caps."
+ },
+ {
+  "module": "owner_operator_fuel_share",
+  "function": "calculate_owner_operator_fuel_share",
+  "summary": "Computes owner-operator fuel surcharge share from billed FSC, contract split percentages, and inclusion or exclusion of empty-mile components."
+ },
+ {
+  "module": "owner_operator_accessorial_settlement",
+  "function": "calculate_owner_operator_accessorial_settlement",
+  "summary": "Computes payable accessorial amounts to owner-operators from billed accessorials, pass-through rules, and item-specific pay percentages."
+ },
+ {
+  "module": "escrow_withholding",
+  "function": "calculate_escrow_withholding",
+  "summary": "Computes escrow deductions and remaining balances for owner-operators based on weekly withholding rules, balance caps, and release schedules."
+ },
+ {
+  "module": "maintenance_fund_contribution",
+  "function": "calculate_maintenance_fund_contribution",
+  "summary": "Computes maintenance-fund deductions from mileage, percentage-of-revenue, or flat periodic rules with cap enforcement."
+ },
+ {
+  "module": "cash_advance_setoff",
+  "function": "calculate_cash_advance_setoff",
+  "summary": "Computes settlement deductions for prior cash advances using repayment percentages, minimum net-pay protections, and outstanding balances."
+ },
+ {
+  "module": "factoring_fee_deduction",
+  "function": "calculate_factoring_fee_deduction",
+  "summary": "Computes factoring-fee deductions from eligible receivable amounts, fee rates, reserve percentages, and exclusion rules."
+ },
+ {
+  "module": "trailer_rental_deduction",
+  "function": "calculate_trailer_rental_deduction",
+  "summary": "Computes trailer rental charges owed by an owner-operator from rental periods, weekly proration rules, and utilization-based waivers."
+ },
+ {
+  "module": "insurance_deduction",
+  "function": "calculate_insurance_deduction",
+  "summary": "Computes settlement insurance deductions from enrolled coverage types, policy period proration, and contribution schedules."
+ },
+ {
+  "module": "chargeback_allocation",
+  "function": "allocate_chargebacks",
+  "summary": "Allocates cargo claims, service penalties, or other chargebacks to settlements using fault percentages, cap rules, and multi-load attribution logic."
+ },
+ {
+  "module": "owner_operator_net_settlement",
+  "function": "calculate_owner_operator_net_settlement",
+  "summary": "Computes final owner-operator net settlement by combining gross pay, reimbursements, deductions, reserves, and minimum-net-pay rules."
+ },
+ {
+  "module": "per_diem_pay",
+  "function": "calculate_per_diem_pay",
+  "summary": "Computes non-taxable per diem amounts from nights away, dispatch-day rules, and owner-operator or driver eligibility limits."
+ },
+ {
+  "module": "mileage_payroll",
+  "function": "calculate_mileage_payroll",
+  "summary": "Computes driver payroll from payable miles, pay rates, split-team logic, and guaranteed minimum compensation rules."
+ },
+ {
+  "module": "hourly_payroll",
+  "function": "calculate_hourly_payroll",
+  "summary": "Computes payroll from worked hours, overtime thresholds, premium categories, and rounding increments."
+ },
+ {
+  "module": "stop_payroll",
+  "function": "calculate_stop_payroll",
+  "summary": "Computes stop pay from compensated pickup and delivery counts, excluded stop types, and team or trainer split rules."
+ },
+ {
+  "module": "detention_payroll",
+  "function": "calculate_detention_payroll",
+  "summary": "Computes driver detention payroll from unpaid free time, approved detention windows, and pay-rate tiers independent of customer billing rules."
+ },
+ {
+  "module": "layover_payroll",
+  "function": "calculate_layover_payroll",
+  "summary": "Computes driver layover payroll from qualifying layover events, 24-hour qualification rules, and flat or tiered pay schedules."
+ },
+ {
+  "module": "breakdown_pay",
+  "function": "calculate_breakdown_pay",
+  "summary": "Computes driver breakdown compensation from repair downtime, waiting thresholds, and daily or hourly pay caps."
+ },
+ {
+  "module": "bonus_eligibility",
+  "function": "evaluate_bonus_eligibility",
+  "summary": "Evaluates payroll bonus eligibility from service, safety, utilization, and attendance metrics against configurable threshold rules."
+ },
+ {
+  "module": "bonus_payout",
+  "function": "calculate_bonus_payout",
+  "summary": "Computes bonus amounts from eligible performance metrics, tier tables, and payout caps or floors."
+ },
+ {
+  "module": "trainer_pay_split",
+  "function": "calculate_trainer_pay_split",
+  "summary": "Computes payroll allocation between trainer and trainee based on miles, trip phases, and training-program split percentages."
+ },
+ {
+  "module": "settlement_period_cutoff",
+  "function": "calculate_settlement_period_cutoff",
+  "summary": "Computes which settlement period a load belongs to from delivery, paperwork-received, or approval dates using cutoff calendars."
+ },
+ {
+  "module": "unapplied_cash_allocation",
+  "function": "allocate_unapplied_cash",
+  "summary": "Allocates a payment across open invoices using customer remittance preferences, oldest-first or exact-match rules, and residual balancing."
+ },
+ {
+  "module": "payment_terms_due_date",
+  "function": "calculate_payment_terms_due_date",
+  "summary": "Computes invoice due dates from issue date, terms days, end-of-month conventions, and holiday or weekend rolling rules."
+ },
+ {
+  "module": "early_pay_discount",
+  "function": "calculate_early_pay_discount",
+  "summary": "Computes customer early-payment discounts from invoice amount, discount terms, eligibility windows, and excluded charge categories."
+ },
+ {
+  "module": "late_fee",
+  "function": "calculate_late_fee",
+  "summary": "Computes late-payment charges from overdue days, grace periods, statutory or contractual rate methods, and compounding rules."
+ },
+ {
+  "module": "settlement_fee_netting",
+  "function": "calculate_settlement_fee_netting",
+  "summary": "Computes net payable after offsetting reciprocal receivables and payables subject to legal-entity and aging eligibility rules."
+ },
+ {
+  "module": "reserve_release",
+  "function": "calculate_reserve_release",
+  "summary": "Computes releasable reserve amounts from aging thresholds, claim holds, and minimum-balance retention rules."
+ },
+ {
+  "module": "short_pay_variance",
+  "function": "calculate_short_pay_variance",
+  "summary": "Computes underpayment variance between expected and received invoice amounts, allocating differences by disputed charge categories."
+ },
+ {
+  "module": "invoice_status_transition",
+  "function": "calculate_invoice_status_transition",
+  "summary": "Computes the next invoice state from approval, send, payment, dispute, and void flags using deterministic status precedence rules."
+ },
+ {
+  "module": "credit_hold_check",
+  "function": "evaluate_credit_hold_check",
+  "summary": "Evaluates whether a customer should be on credit hold based on aging balances, credit limit usage, dispute exceptions, and grace rules."
+ },
+ {
+  "module": "bad_debt_reserve",
+  "function": "calculate_bad_debt_reserve",
+  "summary": "Computes expected credit-loss reserve from receivable aging buckets, customer risk classes, and recovery-rate assumptions."
+ },
+ {
+  "module": "claim_liability_estimate",
+  "function": "calculate_claim_liability_estimate",
+  "summary": "Computes estimated cargo-claim liability from declared value, shipment weight, released-value limits, salvage offsets, and deductible rules."
+ },
+ {
+  "module": "claim_filing_deadline",
+  "function": "calculate_claim_filing_deadline",
+  "summary": "Computes the final valid cargo-claim filing date from delivery date, concealed-damage rules, and contract or statutory limitation periods."
+ },
+ {
+  "module": "concealed_damage_window",
+  "function": "calculate_concealed_damage_window",
+  "summary": "Computes whether a concealed-damage notice was timely given delivery date, notice timestamp, and customer-specific business-day rules."
+ },
+ {
+  "module": "salvage_recovery",
+  "function": "calculate_salvage_recovery",
+  "summary": "Computes net claim exposure after salvage percentage, recovery value, disposal costs, and insurer participation rules."
+ },
+ {
+  "module": "claim_pro_rata_allocation",
+  "function": "allocate_claim_pro_rata",
+  "summary": "Allocates a claim amount across line items, packages, or involved carriers based on value, weight, fault, or contractual contribution rules."
+ },
+ {
+  "module": "osd_variance",
+  "function": "calculate_osd_variance",
+  "summary": "Computes overage-shortage-damage variance by comparing tendered, loaded, delivered, and exception quantities under tolerance rules."
+ },
+ {
+  "module": "service_failure_penalty",
+  "function": "calculate_service_failure_penalty",
+  "summary": "Computes contractual penalties for missed appointments or service failures from breach type, grace periods, and cap rules."
+ },
+ {
+  "module": "weather_fuel_impact",
+  "function": "calculate_weather_fuel_impact",
+  "summary": "Computes expected fuel consumption uplift from temperature, wind, precipitation, terrain factors, and equipment type assumptions."
+ },
+ {
+  "module": "idling_fuel_burn",
+  "function": "calculate_idling_fuel_burn",
+  "summary": "Computes fuel consumed during idling from idle hours, engine burn rates, APUs, and reefer interaction rules."
+ },
+ {
+  "module": "reefer_fuel_burn",
+  "function": "calculate_reefer_fuel_burn",
+  "summary": "Computes reefer fuel usage from setpoint, ambient conditions, mode, run hours, and trailer-specific burn-rate tables."
+ },
+ {
+  "module": "fuel_stop_planner",
+  "function": "calculate_fuel_stop_plan",
+  "summary": "Computes optimal fuel stop intervals from tank capacity, usable reserve, route miles, mpg assumptions, and stop-count minimization rules."
+ },
+ {
+  "module": "fuel_purchase_allocation",
+  "function": "allocate_fuel_purchases",
+  "summary": "Allocates fuel purchases across trips or jurisdictions using odometer spans, trip dates, and proportional-mile or actual-consumption rules."
+ },
+ {
+  "module": "tractor_cost_per_mile",
+  "function": "calculate_tractor_cost_per_mile",
+  "summary": "Computes tractor operating cost per mile from fixed costs, variable costs, utilization assumptions, and maintenance reserves."
+ },
+ {
+  "module": "trailer_cost_per_day",
+  "function": "calculate_trailer_cost_per_day",
+  "summary": "Computes trailer ownership or lease cost per day from depreciation, financing, fixed expenses, and available days."
+ },
+ {
+  "module": "maintenance_interval",
+  "function": "calculate_maintenance_interval",
+  "summary": "Computes next maintenance due thresholds from current miles, engine hours, prior service points, and service schedule rules."
+ },
+ {
+  "module": "tire_wear_cost",
+  "function": "calculate_tire_wear_cost",
+  "summary": "Computes per-mile tire expense from tire set cost, expected life, retread cycles, and position-specific wear factors."
+ },
+ {
+  "module": "battery_replacement_cycle",
+  "function": "calculate_battery_replacement_cycle",
+  "summary": "Computes expected battery replacement timing from age, climate factor, voltage trend inputs, and preventive-maintenance thresholds."
+ },
+ {
+  "module": "trailer_turn_time",
+  "function": "calculate_trailer_turn_time",
+  "summary": "Computes trailer turn time from drop, unload, reload, and release milestones using configurable inclusion rules for yard dwell."
+ },
+ {
+  "module": "container_per_diem",
+  "function": "calculate_container_per_diem",
+  "summary": "Computes container per diem charges from free-time clocks, calendar type, terminal rules, and daily tiered rates."
+ },
+ {
+  "module": "demurrage_fee",
+  "function": "calculate_demurrage_fee",
+  "summary": "Computes demurrage from terminal dwell beyond free time, storage calendars, merchant-haulage rules, and escalating rate schedules."
+ },
+ {
+  "module": "chassis_split_fee",
+  "function": "calculate_chassis_split_fee",
+  "summary": "Computes chassis split charges from terminal and yard locations, extra dray miles, dual transaction rules, and contractual fees."
+ },
+ {
+  "module": "drayage_turn_time",
+  "function": "calculate_drayage_turn_time",
+  "summary": "Computes drayage turn time from in-gate, out-gate, and terminal transaction milestones with split-move handling rules."
+ },
+ {
+  "module": "port_congestion_surcharge",
+  "function": "calculate_port_congestion_surcharge",
+  "summary": "Computes congestion surcharges from terminal congestion tier, transaction type, appointment delays, and effective-date business rules."
+ },
+ {
+  "module": "cross_border_brokerage_fee",
+  "function": "calculate_cross_border_brokerage_fee",
+  "summary": "Computes brokerage-related charges from border crossing type, entry count, commodity complexity, and tariff or pass-through rules."
+ }
+]

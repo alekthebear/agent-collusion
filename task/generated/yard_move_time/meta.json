@@ -1,0 +1,12 @@
+{
+ "module": "yard_move_time",
+ "function": "calculate_yard_move_time",
+ "summary": "Computes expected yard move duration from facility size, spot distance, congestion factor, and trailer readiness assumptions.",
+ "test_file": "test_yard_move_time.py",
+ "hidden_tests": [
+  "test_congestion_applies_only_to_variable_portion",
+  "test_partial_tenth_mile_rounds_up",
+  "test_small_facility_uses_small_base_and_ready_credit"
+ ],
+ "sites": 46
+}

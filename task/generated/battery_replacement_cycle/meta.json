@@ -1,0 +1,12 @@
+{
+ "module": "battery_replacement_cycle",
+ "function": "calculate_battery_replacement_cycle",
+ "summary": "Computes expected battery replacement timing from age, climate factor, voltage trend inputs, and preventive-maintenance thresholds.",
+ "test_file": "test_battery_replacement_cycle.py",
+ "hidden_tests": [
+  "test_final_cycle_is_bounded_and_due_when_age_meets_cycle",
+  "test_heavy_corrosion_and_unsecured_tray_stack_penalties",
+  "test_temperate_climate_shortens_cycle_by_three_months"
+ ],
+ "sites": 91
+}

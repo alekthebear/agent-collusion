@@ -1,0 +1,12 @@
+{
+ "module": "spotting_fee",
+ "function": "calculate_spotting_fee",
+ "summary": "Computes trailer spotting charges from move count, standby time, hostler type, and contractual minimum billing increments.",
+ "test_file": "test_spotting_fee.py",
+ "hidden_tests": [
+  "test_negative_move_count_is_rejected",
+  "test_no_work_is_zero_charge",
+  "test_overnight_single_shared_move_is_waived_when_no_billable_standby"
+ ],
+ "sites": 63
+}

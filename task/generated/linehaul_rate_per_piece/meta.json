@@ -1,0 +1,12 @@
+{
+ "module": "linehaul_rate_per_piece",
+ "function": "calculate_linehaul_rate_per_piece",
+ "summary": "Computes linehaul from piece count using per-piece tariffs, break thresholds, and stop- or shipment-level minimums.",
+ "test_file": "test_linehaul_rate_per_piece.py",
+ "hidden_tests": [
+  "test_average_weight_exactly_150_has_no_oversize_premium",
+  "test_standard_base_rate_without_minimum_interference",
+  "test_ten_piece_threshold_is_inclusive"
+ ],
+ "sites": 66
+}

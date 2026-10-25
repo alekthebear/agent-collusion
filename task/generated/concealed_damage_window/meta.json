@@ -1,0 +1,12 @@
+{
+ "module": "concealed_damage_window",
+ "function": "calculate_concealed_damage_window",
+ "summary": "Computes whether a concealed-damage notice was timely given delivery date, notice timestamp, and customer-specific business-day rules.",
+ "test_file": "test_concealed_damage_window.py",
+ "hidden_tests": [
+  "test_delivery_after_dock_close_starts_count_next_day",
+  "test_notice_before_delivery_is_rejected",
+  "test_standard_window_allows_five_business_days_including_delivery_day"
+ ],
+ "sites": 55
+}

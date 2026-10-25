@@ -1,0 +1,12 @@
+{
+ "module": "reefer_fuel_burn",
+ "function": "calculate_reefer_fuel_burn",
+ "summary": "Computes reefer fuel usage from setpoint, ambient conditions, mode, run hours, and trailer-specific burn-rate tables.",
+ "test_file": "test_reefer_fuel_burn.py",
+ "hidden_tests": [
+  "test_door_open_surcharge_applies_only_above_45_minutes",
+  "test_negative_run_hours_is_rejected",
+  "test_start_stop_long_window_uses_duty_factor"
+ ],
+ "sites": 83
+}

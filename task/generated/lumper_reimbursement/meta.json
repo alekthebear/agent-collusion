@@ -1,0 +1,12 @@
+{
+ "module": "lumper_reimbursement",
+ "function": "calculate_lumper_reimbursement",
+ "summary": "Computes reimbursable lumper amount from receipts, approval limits, markups, and pass-through policies, returning carrier pay and customer bill values.",
+ "test_file": "test_lumper_reimbursement.py",
+ "hidden_tests": [
+  "test_approval_limit_caps_carrier_pay_without_preapproval",
+  "test_pass_through_only_skips_markup_and_honors_customer_cap",
+  "test_standard_receipt_gets_markup_on_customer_bill"
+ ],
+ "sites": 41
+}

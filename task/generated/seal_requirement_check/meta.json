@@ -1,0 +1,12 @@
+{
+ "module": "seal_requirement_check",
+ "function": "evaluate_seal_requirement_check",
+ "summary": "Computes whether a load requires trailer seals based on commodity, customer, border crossing, and security-program rules.",
+ "test_file": "test_seal_requirement_check.py",
+ "hidden_tests": [
+  "test_cross_border_bulk_equipment_is_exempt",
+  "test_hartline_at_five_pallets_requires_seal",
+  "test_produce_requires_seal_at_weight_threshold"
+ ],
+ "sites": 48
+}

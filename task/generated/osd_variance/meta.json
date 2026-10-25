@@ -1,0 +1,12 @@
+{
+ "module": "osd_variance",
+ "function": "calculate_osd_variance",
+ "summary": "Computes overage-shortage-damage variance by comparing tendered, loaded, delivered, and exception quantities under tolerance rules.",
+ "test_file": "test_osd_variance.py",
+ "hidden_tests": [
+  "test_all_tendered_units_damaged_becomes_full_loss",
+  "test_damage_reduces_clean_delivery",
+  "test_zero_tender_returns_clean_delivered_as_overage"
+ ],
+ "sites": 43
+}

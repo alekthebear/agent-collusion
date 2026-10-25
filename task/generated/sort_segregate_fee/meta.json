@@ -1,0 +1,12 @@
+{
+ "module": "sort_segregate_fee",
+ "function": "calculate_sort_segregate_fee",
+ "summary": "Computes sort-and-segregate charges from SKU count, pallet count, line-item complexity, labor-time rules, and per-stop minimums.",
+ "test_file": "test_sort_segregate_fee.py",
+ "hidden_tests": [
+  "test_custom_terms_can_exceed_minimum_with_exact_computation",
+  "test_majority_special_lines_add_complexity_surcharge",
+  "test_more_than_two_pallets_triggers_billing"
+ ],
+ "sites": 79
+}

@@ -1,0 +1,12 @@
+{
+ "module": "mode_conversion_factor",
+ "function": "calculate_mode_conversion_factor",
+ "summary": "Computes equivalent rating factors when converting between truckload, LTL, drayage, or flatbed pricing bases using configured formulas.",
+ "test_file": "test_mode_conversion_factor.py",
+ "hidden_tests": [
+  "test_base_factor_is_used_when_no_adjustments_apply",
+  "test_hazmat_to_drayage_uses_smaller_uplift",
+  "test_long_haul_to_truckload_gets_distance_discount"
+ ],
+ "sites": 109
+}

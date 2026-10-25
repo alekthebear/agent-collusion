@@ -1,0 +1,12 @@
+{
+ "module": "carrier_insurance_check",
+ "function": "evaluate_carrier_insurance_check",
+ "summary": "Evaluates whether liability, cargo, and other insurance coverages satisfy customer and load requirements, returning compliance flags and deficiency reasons.",
+ "test_file": "test_carrier_insurance_check.py",
+ "hidden_tests": [
+  "test_hazmat_requires_one_million_liability_even_if_customer_minimum_is_lower",
+  "test_negative_shipment_value_is_rejected",
+  "test_refrigerated_load_requires_at_least_100000_cargo"
+ ],
+ "sites": 65
+}

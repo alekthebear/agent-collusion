@@ -1,0 +1,12 @@
+{
+ "module": "road_use_tax",
+ "function": "calculate_road_use_tax",
+ "summary": "Computes road-use tax liability from taxable miles, jurisdiction rates, and exempt-mile rules.",
+ "test_file": "test_road_use_tax.py",
+ "hidden_tests": [
+  "test_bulk_discount_applies_only_above_one_thousand_taxable_miles",
+  "test_exempt_miles_cannot_exceed_road_miles",
+  "test_negative_values_are_rejected"
+ ],
+ "sites": 36
+}

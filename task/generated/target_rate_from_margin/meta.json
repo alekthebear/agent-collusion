@@ -1,0 +1,12 @@
+{
+ "module": "target_rate_from_margin",
+ "function": "calculate_target_rate_from_margin",
+ "summary": "Computes the customer rate needed to achieve a target gross margin percentage from projected cost and surcharge composition.",
+ "test_file": "test_target_rate_from_margin.py",
+ "hidden_tests": [
+  "test_all_in_floor_applies_to_tiny_quote",
+  "test_low_cost_load_uses_85_profit_floor_when_margin_result_is_too_low",
+  "test_partial_discount_applies_when_above_minimum_profit_guardrail"
+ ],
+ "sites": 46
+}

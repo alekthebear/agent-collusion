@@ -1,0 +1,12 @@
+{
+ "module": "stop_payroll",
+ "function": "calculate_stop_payroll",
+ "summary": "Computes stop pay from compensated pickup and delivery counts, excluded stop types, and team or trainer split rules.",
+ "test_file": "test_stop_payroll.py",
+ "hidden_tests": [
+  "test_custom_rate_and_free_stop_threshold_apply_exactly",
+  "test_first_two_compensated_stops_are_unpaid",
+  "test_third_compensated_stop_earns_one_stop_rate"
+ ],
+ "sites": 36
+}

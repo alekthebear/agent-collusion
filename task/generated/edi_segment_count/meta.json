@@ -1,0 +1,12 @@
+{
+ "module": "edi_segment_count",
+ "function": "calculate_edi_segment_count",
+ "summary": "Computes expected segment counts for transaction validation from segment lists while applying ST/SE inclusion rules.",
+ "test_file": "test_edi_segment_count.py",
+ "hidden_tests": [
+  "test_ignores_blank_and_whitespace_entries",
+  "test_nte_after_se_is_not_counted",
+  "test_nte_inside_envelope_is_counted"
+ ],
+ "sites": 39
+}

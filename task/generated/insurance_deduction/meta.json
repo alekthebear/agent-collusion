@@ -1,0 +1,12 @@
+{
+ "module": "insurance_deduction",
+ "function": "calculate_insurance_deduction",
+ "summary": "Computes settlement insurance deductions from enrolled coverage types, policy period proration, and contribution schedules.",
+ "test_file": "test_insurance_deduction.py",
+ "hidden_tests": [
+  "test_small_subtotal_is_waived",
+  "test_termination_stops_billing_after_termination_date",
+  "test_total_is_capped_per_settlement"
+ ],
+ "sites": 66
+}

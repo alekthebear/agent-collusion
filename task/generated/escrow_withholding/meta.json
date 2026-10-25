@@ -1,0 +1,12 @@
+{
+ "module": "escrow_withholding",
+ "function": "calculate_escrow_withholding",
+ "summary": "Computes escrow deductions and remaining balances for owner-operators based on weekly withholding rules, balance caps, and release schedules.",
+ "test_file": "test_escrow_withholding.py",
+ "hidden_tests": [
+  "test_balance_already_at_cap_has_no_withholding",
+  "test_release_request_blocks_new_withholding",
+  "test_settlement_at_protected_threshold_still_withholds"
+ ],
+ "sites": 60
+}

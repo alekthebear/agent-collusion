@@ -1,0 +1,12 @@
+{
+ "module": "bonus_payout",
+ "function": "calculate_bonus_payout",
+ "summary": "Computes bonus amounts from eligible performance metrics, tier tables, and payout caps or floors.",
+ "test_file": "test_bonus_payout.py",
+ "hidden_tests": [
+  "test_on_time_below_threshold_is_ineligible",
+  "test_payout_is_capped_at_profile_cap",
+  "test_preventable_accident_zeroes_out_otherwise_eligible_bonus"
+ ],
+ "sites": 78
+}

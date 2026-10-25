@@ -1,0 +1,12 @@
+{
+ "module": "chassis_split_fee",
+ "function": "calculate_chassis_split_fee",
+ "summary": "Computes chassis split charges from terminal and yard locations, extra dray miles, dual transaction rules, and contractual fees.",
+ "test_file": "test_chassis_split_fee.py",
+ "hidden_tests": [
+  "test_after_hours_surcharge_applies_at_1800_boundary",
+  "test_exact_included_miles_boundary_has_no_mileage_charge",
+  "test_weekend_is_after_hours_even_in_daytime"
+ ],
+ "sites": 50
+}

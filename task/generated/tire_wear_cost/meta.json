@@ -1,0 +1,12 @@
+{
+ "module": "tire_wear_cost",
+ "function": "calculate_tire_wear_cost",
+ "summary": "Computes per-mile tire expense from tire set cost, expected life, retread cycles, and position-specific wear factors.",
+ "test_file": "test_tire_wear_cost.py",
+ "hidden_tests": [
+  "test_drive_position_uses_base_life_without_retreads",
+  "test_unknown_position_is_rejected",
+  "test_zero_miles_returns_zero_cost"
+ ],
+ "sites": 46
+}

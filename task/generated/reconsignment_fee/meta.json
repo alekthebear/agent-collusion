@@ -1,0 +1,12 @@
+{
+ "module": "reconsignment_fee",
+ "function": "calculate_reconsignment_fee",
+ "summary": "Computes reconsignment charges from instruction timing, miles already traveled, stop changes, and tariff or contractual flat-fee rules.",
+ "test_file": "test_reconsignment_fee.py",
+ "hidden_tests": [
+  "test_same_city_tariff_change_owes_base_but_no_mileage",
+  "test_same_location_clerical_correction_is_free_after_dispatch",
+  "test_total_fee_is_capped"
+ ],
+ "sites": 65
+}

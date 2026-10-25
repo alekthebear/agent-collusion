@@ -1,0 +1,12 @@
+{
+ "module": "multi_pick_multi_drop_sequence_score",
+ "function": "calculate_multi_pick_multi_drop_sequence_score",
+ "summary": "Computes a route sequence score from backtracking, service windows, handling complexity, and detention risk factors for dispatch comparison.",
+ "test_file": "test_multi_pick_multi_drop_sequence_score.py",
+ "hidden_tests": [
+  "test_common_two_by_two_pattern_gets_efficiency_credit",
+  "test_detention_risk_uses_thresholds_and_congestion_flag",
+  "test_stops_over_six_add_network_complexity_points"
+ ],
+ "sites": 137
+}

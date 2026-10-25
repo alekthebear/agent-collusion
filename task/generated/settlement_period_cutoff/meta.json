@@ -1,0 +1,12 @@
+{
+ "module": "settlement_period_cutoff",
+ "function": "calculate_settlement_period_cutoff",
+ "summary": "Computes which settlement period a load belongs to from delivery, paperwork-received, or approval dates using cutoff calendars.",
+ "test_file": "test_settlement_period_cutoff.py",
+ "hidden_tests": [
+  "test_frozen_friday_after_1700_moves_to_following_friday",
+  "test_hazmat_adds_one_business_day",
+  "test_missing_paperwork_requires_approval"
+ ],
+ "sites": 68
+}

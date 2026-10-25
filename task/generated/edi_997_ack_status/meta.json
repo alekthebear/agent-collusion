@@ -1,0 +1,12 @@
+{
+ "module": "edi_997_ack_status",
+ "function": "calculate_edi_997_ack_status",
+ "summary": "Computes functional acknowledgment outcome from accepted and rejected transaction counts with control-number balancing rules.",
+ "test_file": "test_edi_997_ack_status.py",
+ "hidden_tests": [
+  "test_balanced_all_accepted_is_accepted",
+  "test_balanced_all_rejected_is_rejected",
+  "test_rounded_overage_above_tolerance_is_count_mismatch"
+ ],
+ "sites": 41
+}

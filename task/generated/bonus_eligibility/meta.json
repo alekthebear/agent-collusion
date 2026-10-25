@@ -1,0 +1,12 @@
+{
+ "module": "bonus_eligibility",
+ "function": "evaluate_bonus_eligibility",
+ "summary": "Evaluates payroll bonus eligibility from service, safety, utilization, and attendance metrics against configurable threshold rules.",
+ "test_file": "test_bonus_eligibility.py",
+ "hidden_tests": [
+  "test_linehaul_exact_thresholds_are_eligible",
+  "test_on_time_deliveries_cannot_exceed_total",
+  "test_preventable_accident_is_hard_disqualifier_even_with_leave"
+ ],
+ "sites": 65
+}

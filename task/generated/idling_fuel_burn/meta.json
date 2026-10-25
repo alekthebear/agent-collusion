@@ -1,0 +1,12 @@
+{
+ "module": "idling_fuel_burn",
+ "function": "calculate_idling_fuel_burn",
+ "summary": "Computes fuel consumed during idling from idle hours, engine burn rates, APUs, and reefer interaction rules.",
+ "test_file": "test_idling_fuel_burn.py",
+ "hidden_tests": [
+  "test_apu_applies_in_moderate_temperature_inclusive_boundary",
+  "test_partial_tenth_hour_rounds_up_after_grace",
+  "test_reefer_does_not_change_apu_decision"
+ ],
+ "sites": 48
+}

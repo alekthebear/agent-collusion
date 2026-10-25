@@ -1,0 +1,12 @@
+{
+ "module": "permits_fee",
+ "function": "calculate_permits_fee",
+ "summary": "Computes oversize or overweight permit charges from state-level permit schedules, number of jurisdictions, and billing markup policies.",
+ "test_file": "test_permits_fee.py",
+ "hidden_tests": [
+  "test_higher_of_size_and_weight_fee_is_used_not_both",
+  "test_no_permit_when_within_size_and_weight_limits",
+  "test_short_single_state_run_is_exempt_even_if_it_would_need_permit"
+ ],
+ "sites": 79
+}

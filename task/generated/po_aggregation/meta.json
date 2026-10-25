@@ -1,0 +1,12 @@
+{
+ "module": "po_aggregation",
+ "function": "aggregate_purchase_orders",
+ "summary": "Computes grouped purchase-order totals, distinct counts, and billing splits from shipment line associations and customer consolidation rules.",
+ "test_file": "test_po_aggregation.py",
+ "hidden_tests": [
+  "test_exceeding_po_limit_marks_group_not_consolidated",
+  "test_groups_ignore_ship_date_when_customer_does_not_split",
+  "test_negative_values_are_rejected"
+ ],
+ "sites": 37
+}

@@ -1,0 +1,12 @@
+{
+ "module": "edi_204_stop_normalizer",
+ "function": "normalize_edi_204_stops",
+ "summary": "Computes a standardized stop sequence and roles from EDI 204 stop segments using stop-type precedence and de-duplication rules.",
+ "test_file": "test_edi_204_stop_normalizer.py",
+ "hidden_tests": [
+  "test_blank_appointment_only_matches_blank_appointment",
+  "test_delivery_role_outranks_pickup_for_single_code_precedence_but_mixed_when_both_present",
+  "test_missing_and_nonpositive_sequences_sort_after_positive_sequences"
+ ],
+ "sites": 60
+}

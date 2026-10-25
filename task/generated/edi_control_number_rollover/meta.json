@@ -1,0 +1,12 @@
+{
+ "module": "edi_control_number_rollover",
+ "function": "calculate_edi_control_number_rollover",
+ "summary": "Computes the next EDI control number given current value, min/max bounds, and rollover policies.",
+ "test_file": "test_edi_control_number_rollover.py",
+ "hidden_tests": [
+  "test_hitting_maximum_exactly_is_allowed_without_rollover",
+  "test_holdback_consuming_entire_window_is_rejected",
+  "test_rollover_disabled_raises_when_step_passes_maximum"
+ ],
+ "sites": 57
+}

@@ -1,0 +1,12 @@
+{
+ "module": "per_diem_pay",
+ "function": "calculate_per_diem_pay",
+ "summary": "Computes non-taxable per diem amounts from nights away, dispatch-day rules, and owner-operator or driver eligibility limits.",
+ "test_file": "test_per_diem_pay.py",
+ "hidden_tests": [
+  "test_dispatch_day_at_cutoff_is_not_paid",
+  "test_ineligible_trip_pays_nothing",
+  "test_zero_nights_away_pays_nothing"
+ ],
+ "sites": 50
+}

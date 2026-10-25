@@ -1,0 +1,12 @@
+{
+ "module": "redelivery_fee",
+ "function": "calculate_redelivery_fee",
+ "summary": "Computes redelivery charges from failed-attempt reasons, customer fault rules, distance retraced, and tariff minimums.",
+ "test_file": "test_redelivery_fee.py",
+ "hidden_tests": [
+  "test_carrier_fault_reason_is_not_billable",
+  "test_no_one_available_without_kept_appointment_is_not_billable",
+  "test_second_failure_adds_surcharge_and_no_residential_discount"
+ ],
+ "sites": 44
+}

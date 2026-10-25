@@ -1,0 +1,12 @@
+{
+ "module": "base_plate_apportionment",
+ "function": "calculate_base_plate_apportionment",
+ "summary": "Computes apportioned registration cost allocation by jurisdiction from fleet miles and registration schedules for internal settlement purposes.",
+ "test_file": "test_base_plate_apportionment.py",
+ "hidden_tests": [
+  "test_negative_miles_are_rejected",
+  "test_weight_on_tier_boundary_uses_matching_tier",
+  "test_zero_miles_receive_zero_amount"
+ ],
+ "sites": 42
+}

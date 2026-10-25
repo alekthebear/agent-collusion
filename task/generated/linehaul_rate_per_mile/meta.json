@@ -1,0 +1,12 @@
+{
+ "module": "linehaul_rate_per_mile",
+ "function": "calculate_linehaul_rate_per_mile",
+ "summary": "Computes linehaul amount from paid miles and contracted per-mile rates with breakpoints, minimums, and rounding rules.",
+ "test_file": "test_linehaul_rate_per_mile.py",
+ "hidden_tests": [
+  "test_hazmat_is_skipped_under_50_miles",
+  "test_long_haul_discount_applies_at_1000_miles",
+  "test_multiple_premiums_stack_when_eligible"
+ ],
+ "sites": 54
+}

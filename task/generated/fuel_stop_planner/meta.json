@@ -1,0 +1,12 @@
+{
+ "module": "fuel_stop_planner",
+ "function": "calculate_fuel_stop_plan",
+ "summary": "Computes optimal fuel stop intervals from tank capacity, usable reserve, route miles, mpg assumptions, and stop-count minimization rules.",
+ "test_file": "test_fuel_stop_planner.py",
+ "hidden_tests": [
+  "test_mountain_route_reduces_range_and_can_add_a_stop",
+  "test_reefer_support_applies_extra_discount",
+  "test_standard_route_uses_rounded_down_25_mile_leg_range"
+ ],
+ "sites": 60
+}

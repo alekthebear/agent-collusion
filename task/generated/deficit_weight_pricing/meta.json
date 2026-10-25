@@ -1,0 +1,12 @@
+{
+ "module": "deficit_weight_pricing",
+ "function": "calculate_deficit_weight_pricing",
+ "summary": "Computes whether rating at the next weight break yields a lower total charge and returns the applicable deficit-rated amount.",
+ "test_file": "test_deficit_weight_pricing.py",
+ "hidden_tests": [
+  "test_nonpositive_weight_is_rejected",
+  "test_rounds_half_up_to_cents",
+  "test_uses_deficit_when_next_break_lowers_total_charge"
+ ],
+ "sites": 40
+}

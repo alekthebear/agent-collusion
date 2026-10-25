@@ -1,0 +1,12 @@
+{
+ "module": "toll_allocation",
+ "function": "allocate_toll_costs",
+ "summary": "Allocates toll costs to loads, drivers, or customers based on route segments, loaded versus empty legs, and split-allocation rules.",
+ "test_file": "test_toll_allocation.py",
+ "hidden_tests": [
+  "test_loaded_segment_at_threshold_is_customer_facing",
+  "test_loaded_segment_bills_customer_by_default",
+  "test_waived_zero_toll_and_zero_miles_segments_are_ignored"
+ ],
+ "sites": 40
+}

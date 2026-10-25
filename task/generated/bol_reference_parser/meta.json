@@ -1,0 +1,12 @@
+{
+ "module": "bol_reference_parser",
+ "function": "parse_bol_references",
+ "summary": "Computes normalized bill-of-lading reference components from raw strings using token rules, prefix mappings, and duplicate suppression.",
+ "test_file": "test_bol_reference_parser.py",
+ "hidden_tests": [
+  "test_duplicate_references_are_suppressed_after_normalization",
+  "test_label_then_value_uses_pending_prefix",
+  "test_short_values_follow_prefix_specific_minimums"
+ ],
+ "sites": 46
+}

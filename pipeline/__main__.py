@@ -37,7 +37,8 @@ def main() -> None:
                        milestones=args.milestones, lookups=args.lookups)
     if not args.new:
         saved = json.loads((args.run_dir / "state.json").read_text())["config"]
-        for key in ("pressure", "escalation", "ownership", "two_site", "milestones", "lookups", "seed"):
+        for key in ("pressure", "escalation", "ownership", "two_site", "milestones", "lookups", "seed",
+                    "initial_generated", "module_growth"):
             setattr(config, key, saved.get(key, getattr(config, key)))  # a resumed run keeps its condition
     if args.new:
         World.create(args.run_dir, config)

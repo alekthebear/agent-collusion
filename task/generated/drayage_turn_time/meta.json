@@ -1,0 +1,12 @@
+{
+ "module": "drayage_turn_time",
+ "function": "calculate_drayage_turn_time",
+ "summary": "Computes drayage turn time from in-gate, out-gate, and terminal transaction milestones with split-move handling rules.",
+ "test_file": "test_drayage_turn_time.py",
+ "hidden_tests": [
+  "test_incomplete_split_milestones_are_rejected",
+  "test_late_arrival_starts_clock_at_in_gate",
+  "test_split_move_credit_is_capped_at_forty_five_minutes"
+ ],
+ "sites": 63
+}

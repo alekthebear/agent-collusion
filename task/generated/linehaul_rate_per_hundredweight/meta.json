@@ -1,0 +1,12 @@
+{
+ "module": "linehaul_rate_per_hundredweight",
+ "function": "calculate_linehaul_rate_per_hundredweight",
+ "summary": "Computes charges from billed weight under CWT tariffs, weight breaks, deficit rating logic, and minimum charges.",
+ "test_file": "test_linehaul_rate_per_hundredweight.py",
+ "hidden_tests": [
+  "test_deficit_rating_does_not_apply_outside_window",
+  "test_fragile_uplift_drops_off_at_2000_pounds",
+  "test_minimum_charge_controls_small_discounted_shipment"
+ ],
+ "sites": 125
+}

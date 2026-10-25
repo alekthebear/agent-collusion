@@ -1,0 +1,12 @@
+{
+ "module": "multi_stop_route_miles",
+ "function": "calculate_multi_stop_route_miles",
+ "summary": "Computes total route miles from an ordered stop sequence, stop coordinates or mile legs, and optional out-of-route penalties.",
+ "test_file": "test_multi_stop_route_miles.py",
+ "hidden_tests": [
+  "test_derived_miles_used_when_leg_missing",
+  "test_first_stop_cannot_have_inbound_leg_miles",
+  "test_very_short_derived_leg_floors_to_one_mile"
+ ],
+ "sites": 86
+}

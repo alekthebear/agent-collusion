@@ -1,0 +1,12 @@
+{
+ "module": "owner_operator_linehaul_settlement",
+ "function": "calculate_owner_operator_linehaul_settlement",
+ "summary": "Computes owner-operator linehaul settlement from gross linehaul revenue, pay percentage or rate basis, authorized deductions, and settlement caps.",
+ "test_file": "test_owner_operator_linehaul_settlement.py",
+ "hidden_tests": [
+  "test_authorized_deductions_reduce_net",
+  "test_negative_gross_linehaul_is_rejected",
+  "test_percentage_pay_basis_rounds_half_up_to_cent"
+ ],
+ "sites": 55
+}

@@ -1,0 +1,12 @@
+{
+ "module": "truck_order_not_used_fee",
+ "function": "calculate_truck_order_not_used_fee",
+ "summary": "Computes truck-order-not-used charges from cancellation timing, dispatch status milestones, deadhead incurred, and contract-specific TONU formulas distinct from general tonu rules.",
+ "test_file": "test_truck_order_not_used_fee.py",
+ "hidden_tests": [
+  "test_deadhead_miles_round_up_to_next_whole_mile",
+  "test_no_truck_assigned_is_free",
+  "test_non_stackable_uses_larger_of_tonu_and_deadhead"
+ ],
+ "sites": 71
+}

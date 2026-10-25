@@ -1,0 +1,12 @@
+{
+ "module": "mileage_payroll",
+ "function": "calculate_mileage_payroll",
+ "summary": "Computes driver payroll from payable miles, pay rates, split-team logic, and guaranteed minimum compensation rules.",
+ "test_file": "test_mileage_payroll.py",
+ "hidden_tests": [
+  "test_exact_threshold_miles_can_still_trigger_guarantee",
+  "test_half_up_rounding_applies_to_fractional_cent_mileage",
+  "test_team_split_gives_extra_odd_mile_to_first_seat"
+ ],
+ "sites": 61
+}

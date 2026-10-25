@@ -1,0 +1,12 @@
+{
+ "module": "owner_operator_accessorial_settlement",
+ "function": "calculate_owner_operator_accessorial_settlement",
+ "summary": "Computes payable accessorial amounts to owner-operators from billed accessorials, pass-through rules, and item-specific pay percentages.",
+ "test_file": "test_owner_operator_accessorial_settlement.py",
+ "hidden_tests": [
+  "test_layover_only_pays_on_amount_above_deductible",
+  "test_lumper_requires_receipt_for_full_reimbursement",
+  "test_unknown_code_uses_default_percentage_with_half_up_rounding"
+ ],
+ "sites": 58
+}

@@ -1,0 +1,12 @@
+{
+ "module": "oversize_compliance_check",
+ "function": "evaluate_oversize_compliance_check",
+ "summary": "Evaluates whether dimensions and weight exceed legal limits by jurisdiction and determines which permit or escort requirement flags apply.",
+ "test_file": "test_oversize_compliance_check.py",
+ "hidden_tests": [
+  "test_hazmat_width_over_twelve_feet_is_rejected",
+  "test_nevada_weight_limit_allows_heavy_divisible_load",
+  "test_width_over_twelve_feet_requires_one_escort"
+ ],
+ "sites": 81
+}

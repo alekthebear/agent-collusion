@@ -1,0 +1,12 @@
+{
+ "module": "buy_sell_spread",
+ "function": "calculate_buy_sell_spread",
+ "summary": "Computes gross spread and margin percentage between customer charge and carrier cost with inclusion rules for fuel and accessorial components.",
+ "test_file": "test_buy_sell_spread.py",
+ "hidden_tests": [
+  "test_cancelled_not_moved_load_returns_zeroes",
+  "test_negative_component_is_rejected",
+  "test_unapproved_accessorial_is_excluded"
+ ],
+ "sites": 48
+}

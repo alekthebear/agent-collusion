@@ -1,0 +1,12 @@
+{
+ "module": "claim_pro_rata_allocation",
+ "function": "allocate_claim_pro_rata",
+ "summary": "Allocates a claim amount across line items, packages, or involved carriers based on value, weight, fault, or contractual contribution rules.",
+ "test_file": "test_claim_pro_rata_allocation.py",
+ "hidden_tests": [
+  "test_cap_limits_party_and_remainder_moves_to_uncapped_party",
+  "test_minimum_amount_acts_as_floor",
+  "test_zero_total_basis_assigns_entire_claim_to_first_eligible"
+ ],
+ "sites": 89
+}

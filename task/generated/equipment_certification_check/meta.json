@@ -1,0 +1,12 @@
+{
+ "module": "equipment_certification_check",
+ "function": "evaluate_equipment_certification_check",
+ "summary": "Checks whether required equipment certifications such as food-grade, liftgate, or air-ride meet load requirements using effective dates and type matches.",
+ "test_file": "test_equipment_certification_check.py",
+ "hidden_tests": [
+  "test_air_ride_ignores_score_thresholds",
+  "test_case_and_whitespace_normalize_for_type_match",
+  "test_liftgate_with_score_below_threshold_fails"
+ ],
+ "sites": 33
+}

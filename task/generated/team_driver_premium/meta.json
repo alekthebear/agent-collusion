@@ -1,0 +1,12 @@
+{
+ "module": "team_driver_premium",
+ "function": "calculate_team_driver_premium",
+ "summary": "Computes team-service premium based on miles, urgency tier, service-level commitments, and contract-specific multipliers or flat additions.",
+ "test_file": "test_team_driver_premium.py",
+ "hidden_tests": [
+  "test_300_miles_starts_tiered_premium",
+  "test_contract_multiplier_applies_before_flat_addition",
+  "test_negative_miles_are_rejected"
+ ],
+ "sites": 63
+}

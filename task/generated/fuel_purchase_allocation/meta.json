@@ -1,0 +1,12 @@
+{
+ "module": "fuel_purchase_allocation",
+ "function": "allocate_fuel_purchases",
+ "summary": "Allocates fuel purchases across trips or jurisdictions using odometer spans, trip dates, and proportional-mile or actual-consumption rules.",
+ "test_file": "test_fuel_purchase_allocation.py",
+ "hidden_tests": [
+  "test_invalid_odometer_span_is_rejected",
+  "test_remaining_gallons_allocate_by_proportional_miles",
+  "test_zero_mile_eligible_trips_fall_back_to_first_trip"
+ ],
+ "sites": 63
+}

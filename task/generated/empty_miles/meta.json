@@ -1,0 +1,12 @@
+{
+ "module": "empty_miles",
+ "function": "calculate_empty_miles",
+ "summary": "Computes non-revenue miles from tractor start position, repositioning legs, and loaded-route segmentation rules.",
+ "test_file": "test_empty_miles.py",
+ "hidden_tests": [
+  "test_border_crossing_does_not_add_admin_miles_when_no_empty_miles_count",
+  "test_cancelled_segment_counts_half_of_approach_miles",
+  "test_hazmat_adds_buffer_to_each_counted_empty_leg"
+ ],
+ "sites": 31
+}

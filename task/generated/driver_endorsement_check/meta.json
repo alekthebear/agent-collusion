@@ -1,0 +1,12 @@
+{
+ "module": "driver_endorsement_check",
+ "function": "evaluate_driver_endorsement_check",
+ "summary": "Evaluates whether a driver\u2019s endorsements such as hazmat, tanker, or doubles satisfy load and equipment requirements.",
+ "test_file": "test_driver_endorsement_check.py",
+ "hidden_tests": [
+  "test_invalid_residue_without_empty_tank_is_rejected",
+  "test_placarded_hazmat_requires_hazmat_endorsement",
+  "test_safety_hold_overrides_otherwise_qualified_driver"
+ ],
+ "sites": 76
+}

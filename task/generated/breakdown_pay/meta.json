@@ -1,0 +1,12 @@
+{
+ "module": "breakdown_pay",
+ "function": "calculate_breakdown_pay",
+ "summary": "Computes driver breakdown compensation from repair downtime, waiting thresholds, and daily or hourly pay caps.",
+ "test_file": "test_breakdown_pay.py",
+ "hidden_tests": [
+  "test_overnight_stipend_applies_per_midnight_crossed",
+  "test_roadside_ignores_shop_in_and_adds_premium",
+  "test_within_free_time_is_unpaid"
+ ],
+ "sites": 63
+}

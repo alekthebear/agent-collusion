@@ -1,0 +1,12 @@
+{
+ "module": "driver_assist_fee",
+ "function": "calculate_driver_assist_fee",
+ "summary": "Computes driver-assist charges from pieces, weight, time, or flat-fee rules, applying customer-specific minimums, maximums, and per-stop conditions.",
+ "test_file": "test_driver_assist_fee.py",
+ "hidden_tests": [
+  "test_flat_fee_billing_ignores_counts_and_time",
+  "test_maximum_charge_caps_large_time_based_fee",
+  "test_no_assist_required_is_free"
+ ],
+ "sites": 66
+}

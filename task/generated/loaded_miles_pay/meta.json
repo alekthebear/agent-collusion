@@ -1,0 +1,12 @@
+{
+ "module": "loaded_miles_pay",
+ "function": "calculate_loaded_miles_pay",
+ "summary": "Computes linehaul pay from loaded miles under practical, shortest, or paid-mile rules with customer or carrier mileage overrides.",
+ "test_file": "test_loaded_miles_pay.py",
+ "hidden_tests": [
+  "test_mountain_and_border_premiums_apply_with_threshold",
+  "test_practical_basis_uses_practical_miles",
+  "test_zero_selected_miles_pay_zero_without_minimum"
+ ],
+ "sites": 41
+}

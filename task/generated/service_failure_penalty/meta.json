@@ -1,0 +1,12 @@
+{
+ "module": "service_failure_penalty",
+ "function": "calculate_service_failure_penalty",
+ "summary": "Computes contractual penalties for missed appointments or service failures from breach type, grace periods, and cap rules.",
+ "test_file": "test_service_failure_penalty.py",
+ "hidden_tests": [
+  "test_cap_limits_large_late_delivery_penalty",
+  "test_late_pickup_within_grace_is_free",
+  "test_tonu_after_appointment_does_not_bill"
+ ],
+ "sites": 53
+}

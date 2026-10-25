@@ -1,0 +1,12 @@
+{
+ "module": "edi_210_charge_mapping",
+ "function": "map_edi_210_charges",
+ "summary": "Computes normalized invoice charge categories from EDI 210 line items using accessorial code maps, precedence rules, and fallback defaults.",
+ "test_file": "test_edi_210_charge_mapping.py",
+ "hidden_tests": [
+  "test_negative_amount_is_credit_regardless_of_code",
+  "test_unknown_nonblank_code_without_description_defaults_to_other",
+  "test_zero_amount_is_ignored"
+ ],
+ "sites": 57
+}

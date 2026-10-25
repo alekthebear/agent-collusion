@@ -1,0 +1,12 @@
+{
+ "module": "residential_delivery_fee",
+ "function": "calculate_residential_delivery_fee",
+ "summary": "Computes residential delivery charges using destination type, shipment mode, parcel/LTL thresholds, and customer contract tariffs.",
+ "test_file": "test_residential_delivery_fee.py",
+ "hidden_tests": [
+  "test_commercial_destination_has_no_fee",
+  "test_ltl_four_pallets_hits_extra_heavy_break",
+  "test_parcel_oversize_by_length_adds_surcharge"
+ ],
+ "sites": 80
+}

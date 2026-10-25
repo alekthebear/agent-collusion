@@ -1,0 +1,12 @@
+{
+ "module": "layover_pay",
+ "function": "calculate_layover_pay",
+ "summary": "Computes layover compensation from arrived/available timestamps, free-time thresholds, day-count rules, and contract caps, returning payable layover units and amount.",
+ "test_file": "test_layover_pay.py",
+ "hidden_tests": [
+  "test_customer_cancelled_event_never_pays",
+  "test_max_days_limit_applies_before_amount",
+  "test_same_day_reset_blocks_payment"
+ ],
+ "sites": 50
+}

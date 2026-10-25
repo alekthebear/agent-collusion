@@ -1,0 +1,12 @@
+{
+ "module": "driver_medical_due",
+ "function": "calculate_driver_medical_due",
+ "summary": "Computes CDL medical card expiration status, grace-period handling, and next due threshold for dispatch eligibility.",
+ "test_file": "test_driver_medical_due.py",
+ "hidden_tests": [
+  "test_expired_past_grace_is_fully_expired",
+  "test_expired_within_grace_is_not_dispatch_eligible",
+  "test_standard_driver_is_current_at_31_days"
+ ],
+ "sites": 41
+}

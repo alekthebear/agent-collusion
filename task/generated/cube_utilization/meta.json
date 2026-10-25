@@ -1,0 +1,12 @@
+{
+ "module": "cube_utilization",
+ "function": "calculate_cube_utilization",
+ "summary": "Computes trailer cube used, remaining capacity, and utilization percentage from shipment dimensions, stackability rules, and equipment interior dimensions.",
+ "test_file": "test_cube_utilization.py",
+ "hidden_tests": [
+  "test_negative_pieces_are_rejected",
+  "test_reserved_cube_reduces_usable_capacity",
+  "test_zero_piece_line_contributes_no_cube"
+ ],
+ "sites": 43
+}

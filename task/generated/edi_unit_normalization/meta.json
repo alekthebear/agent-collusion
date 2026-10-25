@@ -1,0 +1,12 @@
+{
+ "module": "edi_unit_normalization",
+ "function": "normalize_edi_units",
+ "summary": "Converts EDI-provided units of measure into canonical internal units with transaction-specific overrides and rounding rules.",
+ "test_file": "test_edi_unit_normalization.py",
+ "hidden_tests": [
+  "test_214_m_code_is_rejected_as_minutes_override",
+  "test_kilograms_convert_to_pounds_with_cent_rounding",
+  "test_positive_fractional_count_rounds_half_up"
+ ],
+ "sites": 70
+}

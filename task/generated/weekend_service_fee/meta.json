@@ -1,0 +1,12 @@
+{
+ "module": "weekend_service_fee",
+ "function": "calculate_weekend_service_fee",
+ "summary": "Computes weekend service surcharges based on pickup or delivery day, service commitment, and lane- or customer-specific fee schedules.",
+ "test_file": "test_weekend_service_fee.py",
+ "hidden_tests": [
+  "test_customer_schedule_overrides_lane_schedule",
+  "test_expedited_mixed_weekend_days_adds_separate_fees",
+  "test_standard_load_does_not_pay_for_saturday_pickup"
+ ],
+ "sites": 57
+}

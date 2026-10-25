@@ -1,0 +1,12 @@
+{
+ "module": "dimensional_weight",
+ "function": "calculate_dimensional_weight",
+ "summary": "Computes dimensional billed weight from shipment dimensions, divisor tables, and mode-specific rounding rules.",
+ "test_file": "test_dimensional_weight.py",
+ "hidden_tests": [
+  "test_exactly_one_cubic_foot_is_eligible_for_dimensional_rating",
+  "test_export_parcel_uses_166_divisor",
+  "test_ltl_dimensional_weight_rounds_half_pound_then_up_to_whole"
+ ],
+ "sites": 43
+}

@@ -1,0 +1,12 @@
+{
+ "module": "bounce_distance",
+ "function": "calculate_bounce_distance",
+ "summary": "Computes repositioning distance from delivery to next likely freight origin or terminal under configurable bounce-planning rules.",
+ "test_file": "test_bounce_distance.py",
+ "hidden_tests": [
+  "test_exact_floor_is_billable_bounce",
+  "test_standard_loaded_miles_pass_through_when_no_adjustments",
+  "test_urban_market_factor_rounds_to_nearest_tenth"
+ ],
+ "sites": 54
+}

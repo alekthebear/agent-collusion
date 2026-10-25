@@ -1,0 +1,12 @@
+{
+ "module": "owner_operator_fuel_share",
+ "function": "calculate_owner_operator_fuel_share",
+ "summary": "Computes owner-operator fuel surcharge share from billed FSC, contract split percentages, and inclusion or exclusion of empty-mile components.",
+ "test_file": "test_owner_operator_fuel_share.py",
+ "hidden_tests": [
+  "test_invalid_share_percent_is_rejected",
+  "test_short_move_boundary_at_fifty_miles_uses_two_fifty_retention",
+  "test_zero_total_miles_returns_zero_even_with_billed_fsc"
+ ],
+ "sites": 48
+}

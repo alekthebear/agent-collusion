@@ -1,0 +1,12 @@
+{
+ "module": "claim_liability_estimate",
+ "function": "calculate_claim_liability_estimate",
+ "summary": "Computes estimated cargo-claim liability from declared value, shipment weight, released-value limits, salvage offsets, and deductible rules.",
+ "test_file": "test_claim_liability_estimate.py",
+ "hidden_tests": [
+  "test_salvage_reduces_liability_after_valuation",
+  "test_small_claim_at_threshold_waives_deductible",
+  "test_theft_total_loss_ignores_salvage_estimate"
+ ],
+ "sites": 48
+}

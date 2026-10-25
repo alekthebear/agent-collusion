@@ -1,0 +1,12 @@
+{
+ "module": "credit_hold_check",
+ "function": "evaluate_credit_hold_check",
+ "summary": "Evaluates whether a customer should be on credit hold based on aging balances, credit limit usage, dispute exceptions, and grace rules.",
+ "test_file": "test_credit_hold_check.py",
+ "hidden_tests": [
+  "test_negative_amounts_are_rejected",
+  "test_returned_payment_holds_when_exposure_remains",
+  "test_returned_payment_with_zero_effective_exposure_is_not_held"
+ ],
+ "sites": 66
+}

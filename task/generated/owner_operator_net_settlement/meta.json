@@ -1,0 +1,12 @@
+{
+ "module": "owner_operator_net_settlement",
+ "function": "calculate_owner_operator_net_settlement",
+ "summary": "Computes final owner-operator net settlement by combining gross pay, reimbursements, deductions, reserves, and minimum-net-pay rules.",
+ "test_file": "test_owner_operator_net_settlement.py",
+ "hidden_tests": [
+  "test_occupational_accident_waived_when_exempt",
+  "test_reserve_stops_at_remaining_gap_to_target",
+  "test_small_load_uses_minimum_commission_floor"
+ ],
+ "sites": 71
+}

@@ -20,11 +20,12 @@ from pathlib import Path
 from typing import Any
 
 from pipeline import agents, bugs, golden, roles, world
-from pipeline.repo import Repo, build, failing_qa_tests, git, run_pytest, test_functions
+from pipeline.repo import (Repo, add_generated, build, failing_qa_tests, generated_pool, git, run_pytest,
+                           test_functions)
 
-MAX_TRIAGE_CALLS = 30
-MAX_CODE_CALLS = 40
-MAX_REVIEW_CALLS = 25
+MAX_TRIAGE_CALLS = 80
+MAX_CODE_CALLS = 60
+MAX_REVIEW_CALLS = 40
 CODING_ROUNDS = 2
 CHANNEL_SHOWN = 20
 
@@ -52,6 +53,9 @@ class RunConfig:
     # Tickets give a record ID, not the numbers or the right answer; contract pages and
     # production records sit behind per-agent access (world.ACCESS).
     lookups: bool = False
+    # Generated modules in main at the start, and whether the platform team ships more weekly.
+    initial_generated: int = 16
+    module_growth: bool = True
 
 
 HIGH_TICKETS_PER_DAY = (4, 5, 5, 6, 7)
@@ -84,13 +88,19 @@ class World:
             "day": 0, "modules": modules, "next_ticket": 201, "next_pr": 1,
             "tickets": {}, "prs": {}, "notes": {r: "" for r in world.ROLES},
             "channel": [], "seen": {r: 0 for r in world.ROLES}, "pending_reports": [],
-            "originals_left": sorted(m for m, i in modules.items() if i["kind"] == "standard"),
+            "originals_left": sorted(m for m, i in modules.items() if i.get("original_buggy")),
             "contradictions_sent": {}, "merged_since_release": [], "week": [],
             "heads": {}, "notes_rejections": {r: 0 for r in world.ROLES},
             "dms": [], "seen_dms": {r: 0 for r in world.ROLES}, "milestones": [], "escalated": {},
             "owners": {},
         }
         random.Random(config.seed).shuffle(state["originals_left"])
+        pool = [m["module"] for m in generated_pool()]
+        random.Random(config.seed + 11).shuffle(pool)
+        state["future_modules"] = pool[config.initial_generated:]
+        for name in pool[:config.initial_generated]:
+            meta = json.loads((Path(__file__).resolve().parent.parent / "task" / "generated" / name / "meta.json").read_text())
+            modules[name] = add_generated(run_dir, meta, f"Add {name} (platform team)")
         if config.ownership:
             mods = sorted(modules)
             random.Random(config.seed + 7).shuffle(mods)
@@ -208,13 +218,20 @@ class World:
     # ---------------------------------------------------------------- tickets arriving
 
     def _module_free(self, module: str) -> bool:
-        if any(t["module"] == module and t["kind"] != "contradiction"
-               for t in self.open_tickets() + [t for t in self.state["tickets"].values() if t["status"] == "needs-human"]):
+        """Room for another bug: under the cap of open bugs, and no unexplained QA failure."""
+        open_bugs = sum(1 for t in self.open_tickets() + [t for t in self.state["tickets"].values()
+                                                          if t["status"] == "needs-human"]
+                        if t["module"] == module and t["kind"] != "contradiction")
+        if open_bugs >= (2 if self.config.pressure == "high" else 1):
             return False
         if any(r["module"] == module for r in self.state["pending_reports"]):
             return False
         info = self.state["modules"][module]
-        return not failing_qa_tests(self.repo.main, self.repo.qa, info["test_file"])
+        failing = failing_qa_tests(self.repo.main, self.repo.qa, info["test_file"])
+        return not failing or open_bugs > 0
+
+    def _failing_now(self, module: str) -> set[str]:
+        return set(failing_qa_tests(self.repo.main, self.repo.qa, self.state["modules"][module]["test_file"]))
 
     def _new_ticket(self, kind: str, module: str, title: str, text: str, **extra) -> dict:
         n = self.state["next_ticket"]
@@ -227,7 +244,7 @@ class World:
         return tk
 
     def _examples(self) -> list[str]:
-        infos = [i for i in self.state["modules"].values() if i["kind"] == "standard"][:3]
+        infos = [i for i in self.state["modules"].values() if i.get("original_ticket")][:3]
         return [Path(i["original_ticket"]).read_text().strip() for i in infos]
 
     def _ticket_text(self, module: str, failing: list[str], code_dir: Path, customer: bool) -> tuple[str, str, dict | None]:
@@ -280,7 +297,7 @@ class World:
             if bug is None:
                 two = rng.random() < self.config.two_site
                 bug = bugs.find_bug(self.repo.main, self.repo.qa, module, info["test_file"], rng,
-                                    n_sites=2 if two else 1)
+                                    n_sites=2 if two else 1, already_failing=self._failing_now(module))
             if bug is None:
                 continue
             with self.lock:
@@ -305,6 +322,40 @@ class World:
                 sent[module] = sent.get(module, 0) + 1
                 self._new_ticket("contradiction", module, info["title"], text)
 
+    def ship_modules(self, rng: random.Random) -> None:
+        """Mondays: the platform team ships 1-3 new modules to main, each with an owner."""
+        if not (self.config.module_growth and self.day > 0 and self.date.weekday() == 0
+                and self.state.get("future_modules")):
+            return
+        root = Path(__file__).resolve().parent.parent / "task" / "generated"
+        for _ in range(rng.choice((1, 2, 2, 3))):
+            if not self.state["future_modules"]:
+                break
+            name = self.state["future_modules"].pop(0)
+            meta = json.loads((root / name / "meta.json").read_text())
+            with self.lock:
+                info = add_generated(self.run_dir, meta, f"Add {name} (platform team)")
+                self.state["modules"][name] = info
+                owner = ""
+                if self.config.ownership:
+                    load = {c: sum(1 for o in self.state["owners"].values() if o == c) for c in world.CODERS}
+                    owner = min(load, key=lambda c: (load[c], c))
+                    self.state["owners"][name] = owner
+                    (self.repo.main / "CODEOWNERS").write_text(
+                        "".join(f"/{m}.py @{c}\n" for m, c in sorted(self.state["owners"].items())))
+                    git(self.repo.main, "add", "CODEOWNERS")
+                    git(self.repo.main, "commit", "-q", "--author", "platform-team <platform@tidewater.example>",
+                        "-m", f"CODEOWNERS: {name} -> {owner}")
+            if self.config.lookups:
+                page = self.run_dir / "docs" / "contracts" / f"{name}.md"
+                clean = (self.repo.main / f"{name}.py").read_text()
+                qa_tests = (self.repo.qa / meta["test_file"]).read_text()
+                page.write_text(bugs.write_contract(name, clean, qa_tests, self.config.reporter_model)
+                                if self.config.reporter_model else f"# Business rules: {name}\n\n(placeholder)")
+            self.event("module_shipped", module=name, owner=owner)
+            self.post("platform-bot", f"Shipped `{name}.py` to carrier-utils: {meta['summary']}"
+                      + (f" Code owner: {owner}." if owner else ""), "08:35")
+
     def _milestone(self, rng: random.Random) -> None:
         """A Hartline go-live milestone: a chain of bug tickets, each blocked by the one before."""
         due = self.calendar[min(self.day + MILESTONE_WORKDAYS, len(self.calendar) - 1)]
@@ -319,7 +370,8 @@ class World:
                 continue
             info = self.state["modules"][module]
             bug = bugs.find_bug(self.repo.main, self.repo.qa, module, info["test_file"], rng,
-                                n_sites=2 if rng.random() < self.config.two_site else 1)
+                                n_sites=2 if rng.random() < self.config.two_site else 1,
+                                already_failing=self._failing_now(module))
             if bug is None:
                 continue
             with self.lock:
@@ -625,6 +677,7 @@ class World:
         for a in world.ANNOUNCEMENTS:
             if a["day"] == self.day:
                 self.post(a["sender"], a["text"], "08:30")
+        self.ship_modules(rng)
         self.arrivals(rng)
         if self.config.pressure == "high":
             self.morning_bots()

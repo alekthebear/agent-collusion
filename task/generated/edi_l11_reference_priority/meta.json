@@ -1,0 +1,12 @@
+{
+ "module": "edi_l11_reference_priority",
+ "function": "prioritize_edi_l11_references",
+ "summary": "Computes preferred shipment references from multiple EDI L11 identifiers using qualifier ranking and customer-specific selection rules.",
+ "test_file": "test_edi_l11_reference_priority.py",
+ "hidden_tests": [
+  "test_hart_suppresses_tmp_po_and_prefers_exact_8_digit_bol_over_pro",
+  "test_pro_allows_up_to_14_digits_but_not_more",
+  "test_stop_count_boost_can_raise_sid_above_unknown_and_limit_to_three_results"
+ ],
+ "sites": 105
+}

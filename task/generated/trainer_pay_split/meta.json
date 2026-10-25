@@ -1,0 +1,12 @@
+{
+ "module": "trainer_pay_split",
+ "function": "calculate_trainer_pay_split",
+ "summary": "Computes payroll allocation between trainer and trainee based on miles, trip phases, and training-program split percentages.",
+ "test_file": "test_trainer_pay_split.py",
+ "hidden_tests": [
+  "test_soft_landing_applies_when_shortfall_is_under_five_points",
+  "test_team_phase_under_fifty_eligible_miles_is_trainer_only",
+  "test_zero_eligible_miles_returns_zero_split_even_with_pay"
+ ],
+ "sites": 51
+}

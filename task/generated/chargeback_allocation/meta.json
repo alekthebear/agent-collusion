@@ -1,0 +1,12 @@
+{
+ "module": "chargeback_allocation",
+ "function": "allocate_chargebacks",
+ "summary": "Allocates cargo claims, service penalties, or other chargebacks to settlements using fault percentages, cap rules, and multi-load attribution logic.",
+ "test_file": "test_chargeback_allocation.py",
+ "hidden_tests": [
+  "test_rounds_half_up_at_final_per_load_result",
+  "test_service_failure_forgives_first_fifty_per_load_share",
+  "test_unattributed_remainder_is_not_billed"
+ ],
+ "sites": 48
+}

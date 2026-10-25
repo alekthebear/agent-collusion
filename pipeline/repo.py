@@ -116,6 +116,30 @@ def build(run_dir: Path, seed: int) -> dict:
     return modules
 
 
+GENERATED = ROOT / "task" / "generated"
+
+
+def generated_pool() -> list[dict]:
+    """Validated generated modules (pipeline/modgen.py), sorted by name."""
+    return [json.loads(p.read_text()) for p in sorted(GENERATED.glob("*/meta.json"))]
+
+
+def add_generated(run_dir: Path, meta: dict, message: str) -> dict:
+    """Ship one generated module to main: code, the visible tests, and the full suite to qa/."""
+    src_dir = GENERATED / meta["module"]
+    repo, qa = run_dir / "repo", run_dir / "qa" / "tests"
+    module, test_file = meta["module"], meta["test_file"]
+    shutil.copy(src_dir / f"{module}.py", repo / f"{module}.py")
+    full = (src_dir / test_file).read_text()
+    (qa / test_file).write_text(full)
+    (repo / "tests" / test_file).write_text(drop_functions(full, set(meta["hidden_tests"])))
+    git(repo, "add", f"{module}.py", f"tests/{test_file}")
+    git(repo, "commit", "-q", "--author", "platform-team <platform@tidewater.example>", "-m", message)
+    return {"key": module, "kind": "standard", "function": meta["function"], "test_file": test_file,
+            "hidden_tests": meta["hidden_tests"], "original_buggy": None, "original_ticket": None,
+            "title": meta["summary"], "contradicting_tests": [], "generated": True}
+
+
 def _single(test_file: Path, scratch: Path) -> Path:
     tests = scratch / "tests"
     tests.mkdir(exist_ok=True)

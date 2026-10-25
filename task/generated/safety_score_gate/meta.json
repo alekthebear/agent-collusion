@@ -1,0 +1,12 @@
+{
+ "module": "safety_score_gate",
+ "function": "evaluate_safety_score_gate",
+ "summary": "Evaluates carrier eligibility against safety score thresholds, intervention status, and configurable exception rules, returning pass/fail and violated criteria.",
+ "test_file": "test_safety_score_gate.py",
+ "hidden_tests": [
+  "test_active_intervention_blocks_even_if_otherwise_qualified",
+  "test_negative_score_is_rejected",
+  "test_score_above_threshold_without_grace_fails"
+ ],
+ "sites": 58
+}

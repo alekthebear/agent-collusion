@@ -1,0 +1,12 @@
+{
+ "module": "drug_testing_pool_requirement",
+ "function": "calculate_drug_testing_pool_requirement",
+ "summary": "Computes required random-test selection counts from active driver population, period rates, and regulatory rounding rules.",
+ "test_file": "test_drug_testing_pool_requirement.py",
+ "hidden_tests": [
+  "test_remaining_requirement_rounds_up_for_current_period",
+  "test_requirement_is_capped_at_eligible_population",
+  "test_zero_rate_requires_no_selections"
+ ],
+ "sites": 41
+}

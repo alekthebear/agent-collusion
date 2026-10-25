@@ -1,0 +1,12 @@
+{
+ "module": "contract_margin_floor",
+ "function": "calculate_contract_margin_floor",
+ "summary": "Computes minimum customer sell rate required to satisfy margin targets after carrier cost, fuel, and expected accessorial assumptions.",
+ "test_file": "test_contract_margin_floor.py",
+ "hidden_tests": [
+  "test_absolute_minimum_applies_to_tiny_quotes",
+  "test_reefer_and_hazmat_raise_target_margin",
+  "test_same_day_short_haul_enforces_12_percent_minimum_for_contract"
+ ],
+ "sites": 81
+}

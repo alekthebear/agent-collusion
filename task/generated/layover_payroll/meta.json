@@ -1,0 +1,12 @@
+{
+ "module": "layover_payroll",
+ "function": "calculate_layover_payroll",
+ "summary": "Computes driver layover payroll from qualifying layover events, 24-hour qualification rules, and flat or tiered pay schedules.",
+ "test_file": "test_layover_payroll.py",
+ "hidden_tests": [
+  "test_breakdown_rate_uses_lower_special_rate_and_caps_days",
+  "test_exactly_48_hours_pays_two_flat_days",
+  "test_tiered_schedule_applies_from_configured_day"
+ ],
+ "sites": 63
+}

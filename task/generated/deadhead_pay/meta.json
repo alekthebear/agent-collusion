@@ -1,0 +1,12 @@
+{
+ "module": "deadhead_pay",
+ "function": "calculate_deadhead_pay",
+ "summary": "Computes payable deadhead compensation from approved empty miles, free-mile thresholds, pay rate type, and contract caps.",
+ "test_file": "test_deadhead_pay.py",
+ "hidden_tests": [
+  "test_event_cap_limits_large_payout_and_none_removes_cap",
+  "test_flat_amount_wins_when_threshold_met_but_mileage_is_lower",
+  "test_flat_threshold_uses_greater_of_mileage_or_flat_amount"
+ ],
+ "sites": 48
+}

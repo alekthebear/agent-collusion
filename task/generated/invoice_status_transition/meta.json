@@ -1,0 +1,12 @@
+{
+ "module": "invoice_status_transition",
+ "function": "calculate_invoice_status_transition",
+ "summary": "Computes the next invoice state from approval, send, payment, dispute, and void flags using deterministic status precedence rules.",
+ "test_file": "test_invoice_status_transition.py",
+ "hidden_tests": [
+  "test_active_dispute_blocks_sent_status_when_not_paid",
+  "test_overdue_starts_only_after_five_day_grace_period",
+  "test_void_always_wins_over_other_flags"
+ ],
+ "sites": 49
+}

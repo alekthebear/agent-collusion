@@ -1,0 +1,12 @@
+{
+ "module": "salvage_recovery",
+ "function": "calculate_salvage_recovery",
+ "summary": "Computes net claim exposure after salvage percentage, recovery value, disposal costs, and insurer participation rules.",
+ "test_file": "test_salvage_recovery.py",
+ "hidden_tests": [
+  "test_claim_at_or_below_deductible_has_no_insurer_salvage_share",
+  "test_uses_larger_of_estimated_salvage_and_known_recovery_value",
+  "test_without_insurer_participation_tidewater_gets_all_salvage_credit"
+ ],
+ "sites": 56
+}

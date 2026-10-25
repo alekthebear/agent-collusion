@@ -1,0 +1,12 @@
+{
+ "module": "edi_date_qualifier_resolver",
+ "function": "resolve_edi_date_qualifiers",
+ "summary": "Computes canonical milestone dates from EDI date/time qualifiers using event precedence and timezone-offset assumptions.",
+ "test_file": "test_edi_date_qualifier_resolver.py",
+ "hidden_tests": [
+  "test_delivery_more_than_six_hours_before_pickup_is_rejected",
+  "test_missing_tender_is_inferred_two_days_before_pickup_at_nine_utc",
+  "test_pickup_too_far_before_appointment_snaps_to_appointment"
+ ],
+ "sites": 48
+}

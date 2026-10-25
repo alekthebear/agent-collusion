@@ -1,0 +1,12 @@
+{
+ "module": "edi_214_status_mapping",
+ "function": "map_edi_214_status",
+ "summary": "Maps raw EDI 214 event codes into canonical tracking statuses using code tables, exception precedence, and milestone business rules.",
+ "test_file": "test_edi_214_status_mapping.py",
+ "hidden_tests": [
+  "test_arrival_delivery_code_on_intermediate_stop_is_generic_stop_arrival",
+  "test_final_stop_arrival_on_site_uses_rounded_distance_threshold",
+  "test_unsigned_delivery_maps_to_pending_pod"
+ ],
+ "sites": 66
+}

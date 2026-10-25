@@ -1,0 +1,12 @@
+{
+ "module": "chainup_requirement",
+ "function": "calculate_chainup_requirement",
+ "summary": "Computes whether chains are required on a route from elevation, season, weather flags, and state chain-law rules.",
+ "test_file": "test_chainup_requirement.py",
+ "hidden_tests": [
+  "test_shoulder_month_snow_uses_higher_threshold",
+  "test_winter_freezing_rain_below_threshold_is_not_required",
+  "test_winter_snow_requires_chains_at_threshold"
+ ],
+ "sites": 58
+}

@@ -1,0 +1,12 @@
+{
+ "module": "edi_n1_role_resolver",
+ "function": "resolve_edi_n1_roles",
+ "summary": "Computes canonical business-party roles from EDI N1 qualifiers using transaction-type-specific precedence rules.",
+ "test_file": "test_edi_n1_role_resolver.py",
+ "hidden_tests": [
+  "test_210_billing_prefers_bt_over_re",
+  "test_214_z7_does_not_set_shipper_for_later_stop",
+  "test_duplicate_qualifier_uses_earliest_loop_position"
+ ],
+ "sites": 47
+}

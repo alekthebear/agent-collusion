@@ -1,0 +1,12 @@
+{
+ "module": "washout_fee",
+ "function": "calculate_washout_fee",
+ "summary": "Computes trailer washout reimbursement from commodity contamination class, required wash level, receipt limits, and contract pass-through policies.",
+ "test_file": "test_washout_fee.py",
+ "hidden_tests": [
+  "test_customer_cap_limits_allowed_amount_before_deductible",
+  "test_dry_freight_without_operational_requirement_is_not_reimbursed",
+  "test_hazmat_premium_can_be_disallowed_by_contract"
+ ],
+ "sites": 51
+}

@@ -1,0 +1,12 @@
+{
+ "module": "pallet_weight_allowance",
+ "function": "calculate_pallet_weight_allowance",
+ "summary": "Computes net freight weight from gross weight, pallet count, pallet tare schedules, and commodity-specific allowance caps.",
+ "test_file": "test_pallet_weight_allowance.py",
+ "hidden_tests": [
+  "test_allowance_cannot_reduce_net_below_one_pound",
+  "test_mixed_style_requires_average_tare_within_range",
+  "test_plastic_tare_rounds_half_up_to_whole_pound"
+ ],
+ "sites": 55
+}

@@ -1,0 +1,12 @@
+{
+ "module": "cross_border_brokerage_fee",
+ "function": "calculate_cross_border_brokerage_fee",
+ "summary": "Computes brokerage-related charges from border crossing type, entry count, commodity complexity, and tariff or pass-through rules.",
+ "test_file": "test_cross_border_brokerage_fee.py",
+ "hidden_tests": [
+  "test_complex_commodity_adds_flat_review_fee",
+  "test_formal_high_value_surcharge_applies_only_above_threshold",
+  "test_section_301_adds_tariff_review_fee"
+ ],
+ "sites": 65
+}

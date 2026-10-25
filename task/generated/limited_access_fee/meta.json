@@ -1,0 +1,12 @@
+{
+ "module": "limited_access_fee",
+ "function": "calculate_limited_access_fee",
+ "summary": "Computes limited-access surcharges from destination category mappings, stop type, and tariff rules including one-time-per-stop application.",
+ "test_file": "test_limited_access_fee.py",
+ "hidden_tests": [
+  "test_non_limited_category_is_free",
+  "test_remote_add_on_applies_only_when_base_fee_applies",
+  "test_residential_category_does_not_bill_limited_access"
+ ],
+ "sites": 41
+}

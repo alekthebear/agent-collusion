@@ -1,0 +1,12 @@
+{
+ "module": "reserve_release",
+ "function": "calculate_reserve_release",
+ "summary": "Computes releasable reserve amounts from aging thresholds, claim holds, and minimum-balance retention rules.",
+ "test_file": "test_reserve_release.py",
+ "hidden_tests": [
+  "test_exactly_30_days_releases_half_of_bucket_subject_to_floor",
+  "test_mixed_buckets_and_rounding_produce_exact_cents",
+  "test_younger_than_30_days_does_not_release"
+ ],
+ "sites": 57
+}

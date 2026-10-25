@@ -1,0 +1,12 @@
+{
+ "module": "bad_debt_reserve",
+ "function": "calculate_bad_debt_reserve",
+ "summary": "Computes expected credit-loss reserve from receivable aging buckets, customer risk classes, and recovery-rate assumptions.",
+ "test_file": "test_bad_debt_reserve.py",
+ "hidden_tests": [
+  "test_31st_day_moves_to_next_bucket",
+  "test_future_dated_invoice_is_treated_as_current",
+  "test_invalid_recovery_rate_is_rejected"
+ ],
+ "sites": 70
+}

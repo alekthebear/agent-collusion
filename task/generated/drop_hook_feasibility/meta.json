@@ -1,0 +1,12 @@
+{
+ "module": "drop_hook_feasibility",
+ "function": "evaluate_drop_hook_feasibility",
+ "summary": "Evaluates whether a load can be executed as drop-and-hook from trailer availability, yard inventory assumptions, and customer equipment rules.",
+ "test_file": "test_drop_hook_feasibility.py",
+ "hidden_tests": [
+  "test_high_utilization_over_limit_blocks_even_with_inventory",
+  "test_reefer_weight_above_lower_limit_is_rejected",
+  "test_weight_boundary_allows_exact_dry_limit"
+ ],
+ "sites": 71
+}

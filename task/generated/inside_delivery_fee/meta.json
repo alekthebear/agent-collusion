@@ -1,0 +1,12 @@
+{
+ "module": "inside_delivery_fee",
+ "function": "calculate_inside_delivery_fee",
+ "summary": "Computes inside-delivery accessorials from service level, floor count, elevator availability, piece count, and minimum charge rules.",
+ "test_file": "test_inside_delivery_fee.py",
+ "hidden_tests": [
+  "test_piece_surcharge_starts_after_included_count",
+  "test_threshold_base_is_raised_to_minimum_charge",
+  "test_threshold_large_piece_count_adds_heavy_handling_bump"
+ ],
+ "sites": 54
+}

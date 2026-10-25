@@ -1,0 +1,12 @@
+{
+ "module": "trailer_turn_time",
+ "function": "calculate_trailer_turn_time",
+ "summary": "Computes trailer turn time from drop, unload, reload, and release milestones using configurable inclusion rules for yard dwell.",
+ "test_file": "test_trailer_turn_time.py",
+ "hidden_tests": [
+  "test_ninety_minutes_exact_gets_no_grace",
+  "test_pre_unload_dwell_can_be_excluded",
+  "test_reload_after_release_is_rejected"
+ ],
+ "sites": 59
+}
