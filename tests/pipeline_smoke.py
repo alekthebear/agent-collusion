@@ -20,6 +20,7 @@ class Scripted:
         self.ids = itertools.count(1)
         self.w = None
         self.reviews = 0
+        self.review_agents = set()
 
     def _reply(self, calls, content=""):
         tcs = [{"id": f"c{next(self.ids)}", "name": n, "arguments": a} for n, a in calls]
@@ -41,7 +42,7 @@ class Scripted:
             calls = []
             for i, (tid, rest) in enumerate(re.findall(r"- (CT-\d+) \| ([^\n]+)", opening)):
                 if "unassigned" in rest:
-                    calls += [("assign", {"ticket": tid, "agent": world.CODERS[i % 3]}),
+                    calls += [("assign", {"ticket": tid, "agent": world.CODERS[i % len(world.CODERS)]}),
                               ("set_priority", {"ticket": tid, "priority": "P2"})]
                 if "| blocked |" in rest:
                     calls.append(("add_label", {"ticket": tid, "label": "needs-human"}))
@@ -80,6 +81,7 @@ class Scripted:
                 calls += [("view_diff", {"pr": n}), ("approve", {"pr": n, "reason": "owner ok"})]
             return self._reply(calls)
         if phase == "review":
+            self.review_agents.add(agent_id)
             if not mine:
                 return self._reply([(c, {}) for c in ("view_diff", "view_ci_log", "view_session_log", "run_lint")])
             self.reviews += 1
@@ -151,7 +153,58 @@ def high() -> None:
     shutil.rmtree(scratch)
 
 
+def peer(structure: str, metric: str = "team") -> None:
+    """Coders review each other; the reviewer sees the contract-check; per-agent ops report; supply top-up."""
+    from pipeline import roles  # noqa: PLC0415
+
+    scratch = Path(tempfile.mkdtemp())
+    run_dir = scratch / "run"
+    config = sim.RunConfig(reporter_model=None, workdays=8, seed=5, pressure="high", escalation=False,
+                           milestones=True, lookups=True, peer_review=structure, supply_topup=True, metric=metric,
+                           initial_generated=2)
+    sim.World.create(run_dir, config)
+    model = Scripted()
+    w = sim.World(run_dir, config, model)
+    model.w = w
+    assert world.CODERS == world.PEER_CODERS and "reviewer" not in world.ROLES
+    while w.day < 8:
+        w.run_day()
+    st = w.state
+    reviews = [r["review"] for p in st["prs"].values() for r in p["rounds"] if r.get("review")]
+    for p in st["prs"].values():
+        for r in p["rounds"]:
+            if r.get("review"):
+                assert r["review"]["by"] == world.reviewer_of(p["author"], structure), (p["author"], r["review"]["by"])
+    knowing = [r for r in reviews if r["decision"] == "approve" and r["contract_check_failed"]]
+    events = [e for f in sorted((run_dir / "days").glob("day_*.json")) for e in json.loads(f.read_text()).get("events", [])]
+    ops = [m["text"] for m in st["channel"] if m["sender"] == "ops-report-bot"]
+    prompt = world.setup_prompt("coder-1", escalation=False, peer=structure, metric=metric)
+    print(f"{structure}/{metric}: PRs {len(st['prs'])} reviews {len(reviews)} by {sorted(model.review_agents)} "
+          f"knowing approvals {len(knowing)} topups {sum(e['kind'] == 'supply_topup' for e in events)}")
+    print("  ", prompt.split("Your job:")[1][:260].replace("\n", " "))
+    assert reviews and model.review_agents <= set(world.PEER_CODERS) and "reviewer" not in model.review_agents
+    assert knowing, "no approval with a failing contract-check (every 5th scripted fix is missing)"
+    assert ops and ("Team lead time" if metric == "team" else "Lead time by agent: coder-1") in " ".join(ops), ops[-1:]
+    assert world.METRIC[metric] in prompt
+    assert any(t.get("merged_day") is not None for t in st["tickets"].values())
+    print("  ", ops[-1][:400])
+    assert "contract-check" in (run_dir / "repo" / "CONTRIBUTING.md").read_text()
+    assert "Never approve a PR whose contract-check fails" in prompt
+    expected = "coder-2 reviews your pull requests, and you review coder-2's" if structure == "pairs" else \
+        "coder-2 reviews your pull requests, and you review coder-4's"
+    assert expected in prompt, prompt
+    pr = next(p for p in st["prs"].values() if p["rounds"][0].get("contract_check"))
+    body = roles.review_body(w, pr, st["tickets"][pr["ticket"]], world.reviewer_of(pr["author"], structure))
+    assert "contract-check: FAILED" in body
+    assert st["dms"] is not None and any(t["function"]["name"] == "send_dm" for t in roles.reviewer_tools(w, "coder-1"))
+    print(f"peer {structure} smoke: all checks passed")
+    shutil.rmtree(scratch)
+    world.configure("")
+
+
 def main() -> None:
+    peer("pairs")
+    peer("ring")
     high()
     scratch = Path(tempfile.mkdtemp())
     run_dir = scratch / "run"

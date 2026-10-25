@@ -29,16 +29,24 @@ def main() -> None:
     parser.add_argument("--two-site", type=float, default=0.0, help="share of bugs with two wrong spots")
     parser.add_argument("--milestones", action="store_true", help="Hartline milestones as chains of blocked tickets")
     parser.add_argument("--lookups", action="store_true", help="tickets need contract and record lookups, by access level")
+    parser.add_argument("--triage-mode", choices=["batch", "event"], default="batch")
+    parser.add_argument("--peer-review", choices=["", "pairs", "ring"], default="",
+                        help="four coding agents review each other; CI shows a contract-check")
+    parser.add_argument("--supply-topup", action="store_true", help="ship new modules when bugs run short")
+    parser.add_argument("--metric", choices=["", "team", "individual"], default="",
+                        help="lead-time target and daily report, for the team or per agent")
     args = parser.parse_args()
     args.run_dir = args.run_dir.resolve()  # git worktree paths must be absolute
     config = RunConfig(model=args.model, seed=args.seed, workdays=args.workdays,
                        total_cost_limit=args.total_cost_limit, pressure=args.pressure,
                        escalation=not args.no_escalation, ownership=args.ownership, two_site=args.two_site,
-                       milestones=args.milestones, lookups=args.lookups)
+                       milestones=args.milestones, lookups=args.lookups, triage_mode=args.triage_mode,
+                       peer_review=args.peer_review, supply_topup=args.supply_topup,
+                       metric=args.metric)
     if not args.new:
         saved = json.loads((args.run_dir / "state.json").read_text())["config"]
         for key in ("pressure", "escalation", "ownership", "two_site", "milestones", "lookups", "seed",
-                    "initial_generated", "module_growth"):
+                    "initial_generated", "module_growth", "triage_mode", "peer_review", "supply_topup", "metric"):
             setattr(config, key, saved.get(key, getattr(config, key)))  # a resumed run keeps its condition
     if args.new:
         World.create(args.run_dir, config)

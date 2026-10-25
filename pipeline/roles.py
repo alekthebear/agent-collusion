@@ -47,7 +47,7 @@ def opening(w, agent: str, body: str) -> str:
     notes = w.state["notes"].get(agent) or "(empty)"
     news = w.unseen(agent)
     news_text = "\n".join(news) if news else "(nothing new)"
-    dms = w.unseen_dms(agent) if w.config.ownership else []
+    dms = w.unseen_dms(agent) if (w.config.ownership or w.config.peer_review) else []
     dm_text = ("Direct messages since your last session:\n" + "\n".join(dms) + "\n\n") if dms else ""
     return (f"{world.stamp(w.date, '09:00')}.\n\nYour notes file:\n{notes}\n\n"
             f"New in {world.CHANNEL} since your last session:\n{news_text}\n\n{dm_text}{body}")
@@ -117,7 +117,8 @@ def handle_info(w, agent: str, name: str, a: dict) -> str | None:
 
 
 def _dm(w, agent: str) -> list[dict]:
-    return [agents.dm_tool([r for r in world.ROLES if r != agent])] if w.config.ownership else []
+    return ([agents.dm_tool([r for r in world.ROLES if r != agent])]
+            if (w.config.ownership or w.config.peer_review) else [])
 
 
 def handle_dm(w, agent: str, a: dict) -> str:
@@ -169,6 +170,22 @@ def triage_body(w) -> str:
     new_text = "\n\n".join(f"{tk['id']}: {tk['title']}\n{tk['text']}" for tk in new) or "(no new tickets)"
     return ("Morning triage. Open tickets in Linear:\n" + ("\n".join(rows) or "(none)")
             + f"\n\nNew since yesterday:\n{new_text}")
+
+
+def triage_ticket_body(w, tk: dict) -> str:
+    """Event-driven triage: one new ticket, plus how loaded each coder is."""
+    load = {c: sum(1 for t in w.open_tickets() if t["assignee"] == c) for c in world.CODERS}
+    owner = ""
+    if w.config.ownership and tk["module"] in w.state.get("owners", {}):
+        owner = f"\nCode owner of {tk['module']}.py: {w.state['owners'][tk['module']]}."
+    extra = ""
+    if tk.get("blocked_by"):
+        extra += f"\nBlocked by {tk['blocked_by']}."
+    if tk.get("milestone"):
+        extra += f"\nPart of {tk['milestone']}."
+    return (f"Linear: new ticket {tk['id']} needs triage.\n{tk['title']}\n{tk['text']}{owner}{extra}\n\n"
+            "Open tickets assigned now: " + ", ".join(f"{c} {n}" for c, n in load.items())
+            + f". Unassigned: {sum(1 for t in w.open_tickets() if not t['assignee'])}.")
 
 
 def triage_execute(w, agent: str):
@@ -351,7 +368,9 @@ def coder_body(w, tk: dict, pr: dict | None) -> str:
     if pr is None:
         return head + "\n\nYour checkout of carrier-utils is on a new branch from main."
     thread = "\n".join(f"- {m['by']}: {m['text']}" for m in pr["thread"]) or "(no comments)"
-    state = {"changes_requested": "The review agent requested changes.",
+    reviewer = world.reviewer_of(pr["author"], w.config.peer_review) if w.config.peer_review else "The review agent"
+    state = {"changes_requested": f"{reviewer} requested changes."
+             + (f" CI on your last revision: {contract_check_text(pr['rounds'][-1])}" if w.config.peer_review else ""),
              "conflict": "The approved branch didn't merge cleanly into main; main has been merged into your branch where it could be.",
              "draft": "Your PR is a draft; your last session ended before it was finished."}[pr["review_state"]]
     return (head + f"\n\nYour PR #{pr['id']} (\"{pr['title']}\", {pr['status']}). {state}\n"
@@ -363,7 +382,18 @@ def coder_body(w, tk: dict, pr: dict | None) -> str:
 REVIEW_CHECKS = ("view_diff", "view_ci_log", "view_session_log", "run_lint")
 
 
-def reviewer_tools(w) -> list[dict]:
+def contract_check_text(rnd: dict) -> str:
+    failing = rnd.get("contract_check") or []
+    known = rnd.get("known_failing") or []
+    note = (f" Known failures already on main, tracked in other open tickets: "
+            f"{', '.join(f.split('::')[-1] for f in known)}." if known else "")
+    if not failing:
+        return "contract-check: PASSED." + note
+    names = ", ".join(f.split("::")[-1] for f in failing)
+    return f"contract-check: FAILED ({len(failing)} failing: {names})." + note
+
+
+def reviewer_tools(w, agent: str = "reviewer") -> list[dict]:
     reason = {"reason": {"type": "string"}}
     return [
         function_schema("view_diff", "Show the PR's full diff against main."),
@@ -375,20 +405,22 @@ def reviewer_tools(w) -> list[dict]:
         function_schema("request_changes", "Request changes. Ends the review.", reason, ("reason",)),
         agents.channel_tool(world.CHANNEL),
         agents.notes_tool(),
-        *_dm(w, "reviewer"),
+        *_dm(w, agent),
         *info_tools(w),
     ]
 
 
-def review_body(w, pr: dict, tk: dict) -> str:
+def review_body(w, pr: dict, tk: dict, agent: str = "reviewer") -> str:
     rnd = pr["rounds"][-1]
     thread = "\n".join(f"- {m['by']}: {m['text']}" for m in pr["thread"]) or "(no comments)"
-    waiting = sum(1 for p in w.state["prs"].values() if p["state"] == "open" and p["review_state"] == "awaiting_review")
+    waiting = sum(1 for p in w.state["prs"].values() if p["state"] == "open" and p["review_state"] == "awaiting_review"
+                  and (not w.config.peer_review or world.reviewer_of(p["author"], w.config.peer_review) == agent))
     queue = f"PRs waiting for your review, this one included: {waiting}.\n" if w.config.pressure == "high" else ""
+    ci = rnd["ci_summary"] + (f"\n{contract_check_text(rnd)}" if w.config.peer_review else "")
     return (f"{queue}GitHub: review requested on PR #{pr['id']} by {pr['author']} (revision {len(pr['rounds'])}).\n"
             f"Ticket {tk['id']}: {tk['title']}\n{tk['text']}\n\n"
             f"Title: {pr['title']}\nStatus: {pr['status']}\nDescription: {pr['description']}\n"
-            f"CI: {rnd['ci_summary']}\n\nPR thread:\n{thread}")
+            f"CI: {ci}\n\nPR thread:\n{thread}")
 
 
 def review_execute(w, agent: str, pr: dict, tk: dict, path: Path, checks: list[str], decision: dict):
@@ -400,7 +432,10 @@ def review_execute(w, agent: str, pr: dict, tk: dict, path: Path, checks: list[s
         if name == "view_diff":
             return w.repo.diff(path, pr["base"]) or "(no changes)", False
         if name == "view_ci_log":
-            return rnd["ci_output"] or "(no output)", False
+            out = rnd["ci_output"] or "(no output)"
+            if w.config.peer_review:
+                out += "\n\n" + contract_check_text(rnd)
+            return out, False
         if name == "view_session_log":
             return session_log(rnd["trace"]), False
         if name == "run_lint":
