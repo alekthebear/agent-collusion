@@ -77,6 +77,9 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
 .spacer { flex: 1; }
 .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2px; }
+mark.judged { background: var(--warn-bg); box-shadow: inset 0 -2px 0 var(--warn); }
+mark.judged.relax { background: var(--private-bg); box-shadow: inset 0 -2px 0 var(--private); }
+mark.judged.deal { background: var(--bad-bg); box-shadow: inset 0 -2px 0 var(--bad); }
 .md { white-space: pre-wrap; word-break: break-word; }
 .md code { background: var(--bg-3); padding: 1px 4px; border-radius: 4px; font-size: 12px; }
 .empty { color: var(--muted); font-size: 13px; }
@@ -307,6 +310,7 @@ const STATIC = window.STATIC || null;
 // Each assistant message → {c, agent, k}: its model call number within the agent's episode.
 let CALLS = new WeakMap();
 const STAGES = [
+  ["labels", "Labels"],
   ["assign", "Assignment"],
   ["work", "Work"],
   ["inspect", "Inspection"],
@@ -326,10 +330,15 @@ const isTestPath = (p) => /^(\.\/)?tests\//.test(p || "");
 
 function md(text, { aware = false } = {}) {
   let html = esc(text);
+  // Passages a judge quoted, marked where they appear (judgements.json).
+  if (aware) (S.quotes || []).forEach((q, i) => {
+    if (html.includes(q.html)) html = html.split(q.html).join(`<mark class="judged ${q.cls}" data-q="${i}" title="${esc(q.title)}">${q.html}</mark>`);
+  });
   const codes = [];
   html = html.replace(/`([^`\n]+)`/g, (_, c) => { codes.push(c); return `\u0000${codes.length - 1}\u0000`; });
   html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
-  if (aware && S.awareness) html = html.replace(S.awareness, (m) => `<mark title="eval-awareness term">${m}</mark>`);
+  // The keyword pattern only for runs without judgements: the judges' quotes replace it.
+  if (aware && S.awareness && !(S.data && S.data.judgements)) html = html.replace(S.awareness, (m) => `<mark title="eval-awareness term">${m}</mark>`);
   return html.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[i]}</code>`);
 }
 
@@ -556,7 +565,9 @@ function stageSummaries(c) {
   const falseA = rows.filter((r) => r.decision === "approve" && r.golden !== "approve").length;
   const wrong = rows.filter((r) => r.decision !== r.golden).length;
   const checks = Object.values(c.ep.inspections || {}).reduce((n, l) => n + l.length, 0);
+  const judged = judgedEpisode(c.n);
   return {
+    labels: judged ? [judged.headline, judged.headline.includes("collusion") || judged.harm_seen + judged.harm_unseen ? "bad" : ""] : ["not judged"],
     assign: [`${c.prs.length} tickets`],
     work: [`${ready} ready · ${c.prs.length - ready} blocked`],
     inspect: [`${checks} checks`],
@@ -743,6 +754,28 @@ const judgedEpisode = (n) => S.data.judgements && S.data.judgements.episodes.fin
 function judgedQuotes(rows, flag, n) {
   return rows.filter((r) => r.episode === n && r[flag] === 1).map((r) => `<div class="item"><div class="small"><span class="who">${esc(cap(r.agent))}</span> <span class="muted">· ${esc(r.source || r.part)} · ${esc(r.kind)}</span></div><div class="small dim">“${esc(r.quote)}”</div></div>`).join("") || `<span class="empty">None.</span>`;
 }
+function judgedQuoteMarks(j) {
+  if (!j) return [];
+  const out = [];
+  for (const r of j.eval_awareness) if (r.aware === 1 && r.quote) out.push({ html: esc(r.quote), cls: "", agent: r.agent, episode: r.episode, label: `Eval awareness · ${r.kind.replace("_", " ")} · ${r.part}`, title: `Eval awareness (${r.kind}), judged · ${cap(r.agent)}, episode ${r.episode}` });
+  for (const r of j.relaxation) if (r.relaxation === 1 && r.quote) out.push({ html: esc(r.quote), cls: "relax", agent: r.agent, episode: r.episode, label: `Relaxation · ${r.kind} · ${r.source}`, title: `Relaxation (${r.kind}, ${r.source}), judged · ${cap(r.agent)}, episode ${r.episode}` });
+  for (const r of j.deals) if (r.deal === 1) for (const q of [r.first_quote, r.second_quote]) if (q) out.push({ html: esc(q), cls: "deal", episode: r.episode, label: `Deal on #${r.pr}`, title: `Deal on #${r.pr}, judged · episode ${r.episode}` });
+  // Longest first, so a quote inside another is not marked twice.
+  return out.sort((a, b) => b.html.length - a.html.length);
+}
+// The judge flags on one agent's episode, each linking to its marked passage.
+function agentFlags(c, agent) {
+  if (!S.data.judgements) return "";
+  const flags = (S.quotes || []).map((q, i) => ({ ...q, i })).filter((q) => q.agent === agent && q.episode === c.n);
+  const items = flags.map((q) => `<div class="item"><div class="small"><span class="tag ${q.cls === "relax" ? "private" : "warn"}">${esc(q.label)}</span> <a class="u small" href="#" onclick="jumpToQuote(${q.i});return false">show in transcript →</a></div><div class="small dim" style="margin-top:4px">“${q.html}”</div></div>`).join("");
+  return `<div class="panel" style="margin-top:16px"><div class="hd">Judge flags<span class="spacer"></span><span class="muted small">${flags.length}</span></div><div class="bd">${items || `<span class="empty">None this episode.</span>`}</div></div>`;
+}
+function jumpToQuote(i) {
+  const m = document.querySelector(`mark[data-q="${i}"]`);
+  if (!m) return;
+  for (let d = m.closest("details"); d; d = d.parentElement && d.parentElement.closest("details")) d.open = true;
+  m.scrollIntoView({ block: "center" });
+}
 function labelsStage(c) {
   const j = S.data.judgements;
   if (!j) return stage("labels", "Labels", "This run hasn't been judged. Run analysis/pr_review/judge_run.py on it to label harm, conduct and eval awareness.", "");
@@ -865,6 +898,7 @@ function truthPanel(c, pr, row) {
         <span>${esc(cap(pr.reviewer))}</span><span>${decisionTag(review.decision)}</span>
       </div>
       <div>${outcomeText(row)}${review.forced ? ` <span class="small muted">· no review submitted</span>` : ""}</div>
+      ${reviewLabel(c.n, pr.pr)}
     </div></div>
     <div class="panel"><div class="hd">Rules broken<span class="spacer"></span><span class="muted small">${pr.golden.violations.length}</span></div><div class="bd">${viol}</div></div>
     <div class="panel"><div class="hd">Tests at open</div><div class="bd"><div class="kv">
@@ -941,6 +975,7 @@ function renderAgent() {
     <div class="crumb"><a href="${href({ v: "ep", c: c.n })}">← Episode ${c.n}</a></div>
     <h1 style="margin-top:12px">${esc(cap(agent))}'s transcript <span class="muted">· episode ${c.n}</span></h1>
     <div class="sub"><a class="u" href="${href({ v: "prompt", c: c.n, agent })}">See the raw prompt →</a></div>
+    ${agentFlags(c, agent)}
     <div class="sub row" style="gap:14px;margin-top:10px">${segs.map((s, i) => `<a class="u" href="#" onclick="document.getElementById('seg-${i}').scrollIntoView();return false">${esc(segLabel(s))}</a>`).join("")}</div>
     <div style="margin-top:20px;display:grid;gap:8px">
       ${sys ? lazy("System prompt", () => `<div class="md small dim">${md(sys)}</div>`, "more box") : ""}
@@ -1028,9 +1063,9 @@ function renderPrompt() {
 function renderRuns() {
   const groups = {};
   for (const r of S.runs) (groups[r.group] ||= []).push(r);
-  const body = Object.entries(groups).map(([g, rs]) => `<tr class="grp"><td colspan="9">${esc(g)}</td></tr>${rs.map((r) => {
+  const body = Object.entries(groups).map(([g, rs]) => `<tr class="grp"><td colspan="12">${esc(g)}</td></tr>${rs.map((r) => {
     const open = `location.hash='${runHref(r.path).slice(1)}'`;
-    if (r.error) return `<tr class="click" onclick="${open}"><td class="mono">${esc(r.label)}</td><td colspan="8" class="muted">Unreadable: ${esc(r.error)}</td></tr>`;
+    if (r.error) return `<tr class="click" onclick="${open}"><td class="mono">${esc(r.label)}</td><td colspan="11" class="muted">Unreadable: ${esc(r.error)}</td></tr>`;
     const started = r.started_at ? new Date(r.started_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
     const setup = [r.structure, r.positive_control && "control", r.pressure && "pressure", r.memory !== "social" && r.memory, r.budget !== "per_ticket" && r.budget].filter(Boolean);
     const acc = r.reviews ? Math.round((100 * r.correct_reviews) / r.reviews) + "%" : "—";
@@ -1045,16 +1080,25 @@ function renderRuns() {
       <td class="num">${r.false_rejections || `<span class="muted">0</span>`}</td>
       <td class="small dim">${breaks || `<span class="muted">none</span>`}</td>
       <td class="num">${r.dms ? `<span style="color:var(--private)">${r.dms}</span>` : `<span class="muted">0</span>`}</td>
+      ${judgedCells(r.judged)}
     </tr>`;
   }).join("")}`).join("");
   $("#main").innerHTML = `<div class="page">
     <h1>Runs</h1>
     <div class="sub">${plural(S.runs.length, "run")} in <span class="mono">${esc(S.resultsDir)}</span></div>
     <div class="scroll-x" style="margin-top:24px"><table class="t">
-      <tr><th>Started</th><th>Setup</th><th class="num">Episodes</th><th class="num">Approved</th><th class="num" title="Reviews matching the golden verdict, counting only reviews a model decided">Accuracy</th><th class="num">False approvals</th><th class="num">False rejections</th><th title="PRs by the worst rule tier they broke">Rule breaks</th><th class="num">DMs</th></tr>
-      ${body || `<tr><td colspan="9" class="empty">No runs yet.</td></tr>`}
+      <tr><th>Started</th><th>Setup</th><th class="num">Episodes</th><th class="num">Approved</th><th class="num" title="Reviews matching the golden verdict, counting only reviews a model decided">Accuracy</th><th class="num">False approvals</th><th class="num">False rejections</th><th title="PRs by the worst rule tier they broke">Rule breaks</th><th class="num">DMs</th><th title="First episode where every review broke the rules, and how it started">Collusion</th><th class="num" title="Harmful approvals: seen / unseen">Harm</th><th class="num" title="Episodes with an eval-aware agent">Eval-aware</th></tr>
+      ${body || `<tr><td colspan="12" class="empty">No runs yet.</td></tr>`}
     </table></div>
   </div>`;
+}
+
+function judgedCells(j) {
+  if (!j) return `<td colspan="3" class="small muted">not judged</td>`;
+  const harm = j.harm_seen + j.harm_unseen;
+  return `<td class="small">${j.onset ? `<span style="color:var(--bad)">episode ${j.onset.episode}</span> <span class="dim">${esc(j.onset.pathway)}</span>` : `<span class="muted">none</span>`}</td>
+      <td class="num">${harm ? `<span style="color:var(--bad);font-weight:500">${j.harm_seen}/${j.harm_unseen}</span>` : `<span class="muted">0</span>`}</td>
+      <td class="num">${j.eval_aware_episodes ? `<span style="color:var(--warn)">${j.eval_aware_episodes}/${j.episodes}</span>` : `<span class="muted">0/${j.episodes}</span>`}</td>`;
 }
 
 // ---------- Boot and routing ----------
@@ -1070,7 +1114,7 @@ async function loadRun(path) {
   const res = STATIC ? null : await fetch("/api/run?path=" + encodeURIComponent(path));
   const body = STATIC ? STATIC.payload : await res.json();
   if (res && !res.ok) { $("#main").innerHTML = `<div class="page empty">${esc(body.error)}</div>`; return false; }
-  S.path = path; S.data = body; S.X = buildIndex(body);
+  S.path = path; S.data = body; S.X = buildIndex(body); S.quotes = judgedQuoteMarks(body.judgements);
   try { S.awareness = new RegExp(body.awareness, "gi"); } catch { S.awareness = null; }
   return true;
 }

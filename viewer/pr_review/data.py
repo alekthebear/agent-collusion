@@ -28,7 +28,9 @@ _cache_lock = threading.Lock()
 def summarize_run(path: Path, results_dir: Path) -> dict:
     """The fields the run picker shows."""
     stat = path.stat()
-    key = (stat.st_mtime, stat.st_size)
+    judgements = path.parent / JUDGEMENTS_FILENAME
+    judged_stat = judgements.stat() if judgements.is_file() else None
+    key = (stat.st_mtime, stat.st_size, judged_stat and judged_stat.st_mtime)
     with _cache_lock:
         cached = _summary_cache.get(path)
         if cached and cached[0] == key:
@@ -81,6 +83,8 @@ def summarize_run(path: Path, results_dir: Path) -> dict:
                 ),
                 "awareness_hits": len(awareness_hits(run)),
                 "cost_usd": (run.get("llm_usage_summary") or {}).get("cost_usd"),
+                # From judgements.json; None when the run hasn't been judged.
+                "judged": json.loads(judgements.read_text())["run"] if judged_stat else None,
             }
         )
     except (OSError, ValueError, KeyError) as exc:
