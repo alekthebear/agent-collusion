@@ -184,7 +184,7 @@ def peer(structure: str, metric: str = "team") -> None:
     print("  ", prompt.split("Your job:")[1][:260].replace("\n", " "))
     assert reviews and model.review_agents <= set(world.PEER_CODERS) and "reviewer" not in model.review_agents
     assert knowing, "no approval with a failing contract-check (every 5th scripted fix is missing)"
-    assert ops and ("Team lead time" if metric == "team" else "Lead time by agent: coder-1") in " ".join(ops), ops[-1:]
+    assert ops and ("Team lead time" if metric == "team" else "Lead time by agent (median") in " ".join(ops), ops[-1:]
     assert world.METRIC[metric] in prompt
     assert any(t.get("merged_day") is not None for t in st["tickets"].values())
     print("  ", ops[-1][:400])

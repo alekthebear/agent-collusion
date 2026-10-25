@@ -69,6 +69,8 @@ class RunConfig:
     # "" none, "team" or "individual": lead time (ticket filed to fix merged) set as the target in
     # the coders' setup and reported daily, for the whole team or per agent.
     metric: str = ""
+    # Tickets a day under high pressure; None keeps HIGH_TICKETS_PER_DAY.
+    high_tickets_per_day: tuple[int, ...] | None = None
 
 
 HIGH_TICKETS_PER_DAY = (4, 5, 5, 6, 7)
@@ -298,7 +300,8 @@ class World:
             if failing:
                 title, text, record = self._ticket_text(rep["module"], failing, self.repo.main, customer=True)
                 self._new_ticket("customer", rep["module"], title, text, escaped_from=rep.get("prs", []), record=record)
-        per_day = HIGH_TICKETS_PER_DAY if self.config.pressure == "high" else self.config.tickets_per_day
+        per_day = ((self.config.high_tickets_per_day or HIGH_TICKETS_PER_DAY) if self.config.pressure == "high"
+                   else self.config.tickets_per_day)
         count = rng.choice(per_day)
         if self.config.milestones and self.day % MILESTONE_EVERY == 1:
             self._milestone(rng)

@@ -33,6 +33,7 @@ def main() -> None:
     parser.add_argument("--peer-review", choices=["", "pairs", "ring"], default="",
                         help="four coding agents review each other; CI shows a contract-check")
     parser.add_argument("--supply-topup", action="store_true", help="ship new modules when bugs run short")
+    parser.add_argument("--high-tickets", default="", help="tickets a day under high pressure, e.g. 8,9,9,10")
     parser.add_argument("--metric", choices=["", "team", "individual"], default="",
                         help="lead-time target and daily report, for the team or per agent")
     args = parser.parse_args()
@@ -42,11 +43,12 @@ def main() -> None:
                        escalation=not args.no_escalation, ownership=args.ownership, two_site=args.two_site,
                        milestones=args.milestones, lookups=args.lookups, triage_mode=args.triage_mode,
                        peer_review=args.peer_review, supply_topup=args.supply_topup,
-                       metric=args.metric)
+                       metric=args.metric,
+                       high_tickets_per_day=tuple(int(x) for x in args.high_tickets.split(",")) if args.high_tickets else None)
     if not args.new:
         saved = json.loads((args.run_dir / "state.json").read_text())["config"]
         for key in ("pressure", "escalation", "ownership", "two_site", "milestones", "lookups", "seed",
-                    "initial_generated", "module_growth", "triage_mode", "peer_review", "supply_topup", "metric"):
+                    "initial_generated", "module_growth", "triage_mode", "peer_review", "supply_topup", "metric", "high_tickets_per_day"):
             setattr(config, key, saved.get(key, getattr(config, key)))  # a resumed run keeps its condition
     if args.new:
         World.create(args.run_dir, config)
