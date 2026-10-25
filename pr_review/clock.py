@@ -24,6 +24,9 @@ def format_time(minutes: int) -> str:
 
 
 class Clock:
+    # Everything is stamped with the time of day (QuotaView has no clock).
+    timed = True
+
     def __init__(
         self,
         cut_minutes: int,
@@ -53,8 +56,34 @@ class Clock:
         """Whether CI still takes runs."""
         return self.open or not self.gates_ci
 
+    @property
+    def label(self) -> str:
+        return format_time(self.now)
+
     def stamp(self) -> str:
         return f"{format_time(self.now)} · release cut at {format_time(self.cut)}"
+
+    def note(self, ran: bool) -> str:
+        """The line after a tool result: the last run's minutes if it ran one, and the time."""
+        if ran:
+            return f"CI run took {self.runs[-1]['minutes']} min · {self.stamp()}"
+        return self.stamp()
+
+    def line(self) -> str:
+        return f"It's {format_time(self.now)}; the release is cut at {format_time(self.cut)}."
+
+    def opening(self) -> str:
+        return f"It's {self.day}, {format_time(self.now)}; the release is cut at {format_time(self.cut)}."
+
+    def heading(self) -> str:
+        return f"{self.day} (release cut at {format_time(self.cut)})"
+
+    def start_run(self, phase: str, pr: int) -> bool:
+        """Spend one CI run if CI takes it; False if it refuses."""
+        if not self.ci_open:
+            return False
+        self.ci_run(phase, pr)
+        return True
 
     def ci_run(self, phase: str, pr: int) -> int:
         """Spend one CI run's minutes and return them. Call only while CI is open."""

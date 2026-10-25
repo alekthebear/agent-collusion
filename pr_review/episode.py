@@ -17,6 +17,7 @@ from pr_review import confederate, prompts
 from pr_review.build_tasks import TASK_DIR
 from pr_review.channels import Channels, format_message
 from pr_review.clock import Clock, format_time
+from pr_review.quota import Quota
 from pr_review.config import Config
 from pr_review.golden import APPROVE, DECISIONS, REQUEST_CHANGES, evaluate
 from pr_review.llm import Reply, Responder, forced
@@ -91,6 +92,9 @@ class Episode:
         # tools indexes tool_sets, which keeps each distinct tool list once. Scripted
         # turns make no call, so they have no entry.
         self.requests: dict[str, list[dict[str, Any]]] = {agent_id: [] for agent_id in agents}
+        # Reasoning a provider returned that isn't replayed, by agent and message index
+        # in the episode's transcript; see Reply.reasoning.
+        self.recorded_reasoning: dict[str, dict[int, str]] = {agent_id: {} for agent_id in agents}
         self.tool_sets: list[list[dict[str, Any]]] = []
         self._tool_set_ids: dict[str, int] = {}
         self._tool_set_lock = threading.Lock()
@@ -105,15 +109,20 @@ class Episode:
         self.favor_episode = self.number <= config.favor_episodes
         # With budget ci: minutes to the release cut, and each agent's clock, kept
         # from its work into its inspection.
-        self.ci = config.budget == "ci"
-        self.release_cut = config.release_cut(number) if self.ci else None
+        # Test runs go through CI: on each agent's clock (budget ci), or on the team's
+        # quota (budget quota), whose views stand in for the clocks.
+        self.ci = config.on_ci
+        timed = config.budget == "ci"
+        self.release_cut = config.release_cut(number) if timed else None
+        self.quota = Quota(config.quota_runs(number), number) if config.budget == "quota" else None
         # A merge-gated cut: CI always runs, and only approvals before the cut ship.
-        self.gates_merges = self.ci and config.cut_gates in ("merges", "reviews")
+        self.gates_merges = timed and config.cut_gates in ("merges", "reviews")
         # Reviews close at the cut too: one not submitted by then holds its PR back.
-        self.closes_reviews = self.ci and config.cut_gates == "reviews"
+        self.closes_reviews = timed and config.cut_gates == "reviews"
         # Synced review: one shared time to open review and talk, then reviews submitted
         # during inspection. Talk order is drawn per episode, so no one always leads.
-        self.synced = self.ci and config.review_flow == "synced"
+        # The quota always runs this way, and its reviewers inspect in the talk order.
+        self.synced = (timed and config.review_flow == "synced") or self.quota is not None
         self.talk_order = list(structure.agent_ids)
         if self.synced:
             random.Random(f"{config.seed}:talk:{number}").shuffle(self.talk_order)
@@ -122,7 +131,7 @@ class Episode:
         self.submitted: dict[str, dict[int, dict[str, Any]]] = {}
         # Reviewers who tried to submit after reviews closed at the cut.
         self.refused: set[str] = set()
-        self.clocks: dict[str, Clock] = {}
+        self.clocks: dict[str, Any] = {}
 
     # Helpers
 
@@ -147,10 +156,13 @@ class Episode:
             self.cut_offs.append({"agent": agent.agent_id, "phase": phase, "chars": len(content)})
             return reply
         agent.messages.append(reply.message)
+        index = len(agent.messages) - 1 - self._history_start[agent.agent_id]
+        if reply.reasoning:
+            self.recorded_reasoning[agent.agent_id][index] = reply.reasoning
         sent = reply.request or {"tools": tools, "tool_choice": tool_choice}
         self.requests[agent.agent_id].append(
             {
-                "message": len(agent.messages) - 1 - self._history_start[agent.agent_id],
+                "message": index,
                 "tools": self._tool_set_id(sent["tools"]),
                 "tool_choice": sent["tool_choice"],
             }
@@ -233,14 +245,18 @@ class Episode:
             self._work_session(agent, session)
 
     def _work_on_clock(self, agent: Agent, prs: list[PullRequest]) -> None:
-        """Every ticket in turn on one clock; the call cap is hidden."""
-        clock = Clock(
-            self.release_cut,
-            self.config.ci_range,
-            self.config.seed,
-            self.number,
-            agent.agent_id,
-            gates_ci=self.config.cut_gates == "ci",
+        """Every ticket in turn on one clock, or the team's quota; the call cap is hidden."""
+        clock = (
+            self.quota.view(agent.agent_id)
+            if self.quota
+            else Clock(
+                self.release_cut,
+                self.config.ci_range,
+                self.config.seed,
+                self.number,
+                agent.agent_id,
+                gates_ci=self.config.cut_gates == "ci",
+            )
         )
         self.clocks[agent.agent_id] = clock
         tickets = [pr.ticket for pr in prs]
@@ -294,11 +310,12 @@ class Episode:
 
     def open_reviews(self) -> None:
         """Synced review: every clock moves to when the last PR opened, and every
-        reviewer sees its PRs at that shared time."""
-        start = max(clock.now for clock in self.clocks.values())
-        for clock in self.clocks.values():
-            clock.now = start
-        self.review_start = format_time(start)
+        reviewer sees its PRs at that shared time. The quota has no time to sync."""
+        if not self.quota:
+            start = max(clock.now for clock in self.clocks.values())
+            for clock in self.clocks.values():
+                clock.now = start
+            self.review_start = format_time(start)
         for agent_id, agent in self.agents.items():
             agent.messages.append(
                 {
@@ -310,6 +327,11 @@ class Episode:
             )
 
     def inspect(self) -> None:
+        if self.quota:
+            # In turn, so the runs left go to whoever reruns first, the same way every time.
+            for agent_id in self.talk_order:
+                self._inspect_agent(self.agents[agent_id])
+            return
         self._parallel(self._inspect_agent)
 
     def _inspect_agent(self, agent: Agent) -> None:
@@ -524,7 +546,7 @@ class Episode:
                 "decision": arguments["decision"],
                 "reason": str(arguments.get("reason", "")),
             }
-            if not clock:
+            if not clock or not clock.timed:
                 return f"Review of PR #{number} submitted."
             # Talk takes no time, so a verdict lands when the reviewer's checks ended.
             submitted[number].update(at=format_time(clock.now), late=not clock.open)
@@ -612,6 +634,7 @@ class Episode:
                 pr.tests_at_open.passed,
                 missed=reviews[pr.number]["decision"] == APPROVE
                 and not self._ships(reviews[pr.number]),
+                verb="merged" if self.quota else "shipped",
             )
             for pr in self.prs
         ]
@@ -665,8 +688,14 @@ class Episode:
     def reflect(self) -> None:
         def reflect_agent(agent: Agent) -> None:
             agent.messages.append({"role": "user", "content": prompts.REFLECTION_MESSAGE})
-            reply = self._ask(agent, "reflect", self.channels.schemas(agent.agent_id), "none")
+            tools = self.channels.schemas(agent.agent_id)
+            reply = self._ask(agent, "reflect", tools, "none")
             note = "" if reply.cut_off else reply.message.get("content") or ""
+            if not note and not reply.cut_off:
+                # It tried a tool instead: ask once more for the text.
+                agent.messages.append({"role": "user", "content": prompts.REFLECTION_RETRY})
+                reply = self._ask(agent, "reflect", tools, "none")
+                note = "" if reply.cut_off else reply.message.get("content") or ""
             self.reflections[agent.agent_id] = note
 
         self._parallel(reflect_agent)
@@ -675,8 +704,7 @@ class Episode:
         """What social memory keeps of this episode for one agent."""
         heading = f"## Cycle {self.number}"
         if self.ci:
-            clock = self.clocks[agent_id]
-            heading += f", {clock.day} (release cut at {format_time(clock.cut)})"
+            heading += f", {self.clocks[agent_id].heading()}"
         lines = [heading]
         status = self.status_for(agent_id)
         if status:
@@ -687,7 +715,7 @@ class Episode:
             verb = "approved" if review["decision"] == APPROVE else "requested changes"
             opened = (
                 f"({pr.ticket.ticket_id}): opened as {pr.status} at {pr.opened_at}"
-                if self.ci
+                if self.ci and not self.quota
                 else f"({pr.ticket.ticket_id}, time-box {pr.ticket.budget}): opened as {pr.status}"
             )
             lines.append(
@@ -735,6 +763,16 @@ class Episode:
         self.reflect()
         return self.record()
 
+    def _transcript(self, agent_id: str) -> list[dict[str, Any]]:
+        """The episode's messages, with recorded-only reasoning filled in as
+        reasoning_content and marked reasoning_source: recorded, so readers treat it
+        like replayed reasoning while the record says it never went back to the model."""
+        transcript = deepcopy(self.agents[agent_id].messages[self._history_start[agent_id] :])
+        for index, text in self.recorded_reasoning[agent_id].items():
+            transcript[index]["reasoning_content"] = text
+            transcript[index]["reasoning_source"] = "recorded"
+        return transcript
+
     def record(self) -> dict[str, Any]:
         prs = []
         for pr in self.prs:
@@ -775,6 +813,7 @@ class Episode:
         return {
             "episode": self.number,
             "release_cut": self.release_cut,
+            "ci_quota": self.quota.record() if self.quota else None,
             "review_start": self.review_start,
             "talk_order": self.talk_order,
             "clocks": {agent_id: clock.record() for agent_id, clock in self.clocks.items()},
@@ -790,8 +829,7 @@ class Episode:
             "feedback": self.feedback,
             "reflections": self.reflections,
             "transcripts": {
-                agent_id: deepcopy(agent.messages[self._history_start[agent_id] :])
-                for agent_id, agent in self.agents.items()
+                agent_id: self._transcript(agent_id) for agent_id in self.agents
             },
             "requests": self.requests,
             "tool_sets": self.tool_sets,

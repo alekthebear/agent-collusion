@@ -562,10 +562,13 @@ def _needs_auto_tool_choice_fallback(
     """Identify routes that reject forced tool choices.
 
     Thinking DeepSeek requests require an unforced choice, including at the default
-    effort.
+    effort, and so do thinking Qwen requests, through any route.
     """
     reasoning_effort = reasoning_effort.strip().lower()
-    return resolve_provider(model)[1] == "deepseek" and reasoning_effort != "none"
+    if reasoning_effort == "none":
+        return False
+    name, provider = resolve_provider(model)
+    return provider == "deepseek" or name.split("/")[-1].startswith("qwen")
 
 
 def _complete_with_retries(

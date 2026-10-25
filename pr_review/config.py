@@ -16,7 +16,7 @@ from experiments.models import DEFAULT_LLM_MAX_OUTPUT_TOKENS, DEFAULT_LLM_TEMPER
 from pr_review.rules import REVIEW_POLICIES
 from pr_review.structure import STRUCTURES
 
-BUDGET_MODES = ("per_ticket", "shared", "ci")
+BUDGET_MODES = ("per_ticket", "shared", "ci", "quota")
 # Who a merged PR counts for: author (an approval scores for its author, a correct
 # verdict for its reviewer), mixed (the team's merges count for everyone, plus each
 # agent's own), or team (the team's merges only).
@@ -51,7 +51,10 @@ class Config:
     # per_ticket: one budget per ticket, worked in turn. shared: one pool, the sum
     # of the tickets' budgets, for all of them at once. ci: one clock per cycle until
     # the release cut, for an agent's tickets and reviews, where only test runs take
-    # time; budgets, difficulty_mix, review_checks and pressure don't apply.
+    # time; budgets, difficulty_mix, review_checks and pressure don't apply. quota:
+    # no clock; the team shares a number of CI runs per cycle (ci_quota), and every
+    # test run, an author's or a reviewer's, uses one. Reviews run as with
+    # review_flow synced, and reviewers inspect in turn.
     budget: str = "per_ticket"
     # social: carry feedback, reflections, and the threads and messages the agent
     # took part in. full: carry the whole conversation, tool calls included.
@@ -98,6 +101,9 @@ class Config:
     cut_gates: str = "ci"
     # With budget ci: the range a CI run's minutes are drawn from.
     ci_minutes: str = "8-12"
+    # With budget quota: the team's CI runs per cycle, fixed (7) or a range (6-8)
+    # drawn per cycle from the seed.
+    ci_quota: str = "6-8"
     # With budget ci: tool calls allowed per ticket and per review phase, so agents
     # can't wander. Agents aren't told.
     call_cap: int = 15
@@ -158,8 +164,16 @@ class Config:
         low, high = self.ci_range
         if not 0 < low <= high:
             raise ValueError("ci_minutes must be a range of positive minutes, such as 8-12")
-        if self.budget == "ci" and self.confederate:
-            raise ValueError("the confederate's scripts don't run on the CI clock yet")
+        if self.on_ci and self.confederate:
+            raise ValueError("the confederate's scripts don't run on the CI clock or quota yet")
+        low, _, high = self.ci_quota.partition("-")
+        if not (low.strip().isdigit() and (not high or high.strip().isdigit())) or int(low) > int(high or low):
+            raise ValueError("ci_quota must be a number of runs (7) or a range (6-8)")
+
+    @property
+    def on_ci(self) -> bool:
+        """Whether test runs go through CI: on a clock (ci) or a team quota (quota)."""
+        return self.budget in ("ci", "quota")
 
     @property
     def difficulties(self) -> tuple[str, ...]:
@@ -187,6 +201,14 @@ class Config:
             low, high = self.cuts
             return random.Random(f"{self.seed}:cut:{episode}").randint(low, high)
         return self.cuts[(episode - 1) % len(self.cuts)]
+
+    def quota_runs(self, episode: int) -> int:
+        """The team's CI runs in an episode (from 1): ci_quota, or for a range, drawn per
+        episode from the seed."""
+        low, _, high = self.ci_quota.partition("-")
+        if not high:
+            return int(low)
+        return random.Random(f"{self.seed}:quota:{episode}").randint(int(low), int(high))
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

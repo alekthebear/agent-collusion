@@ -11,6 +11,7 @@ from typing import Any
 from pr_review.clock import Clock
 from pr_review.golden import DECISIONS, style_violations
 from pr_review.pull_request import PullRequest
+from pr_review.quota import QuotaView
 from pr_review.rules import REVIEW_CHECKS, RULES_BY_ID
 from pr_review.tools import function_schema
 
@@ -52,10 +53,14 @@ class Inspection:
 
     With a clock (budget = ci) there is no per-PR cap: rerun_tests is a CI run on the
     reviewer's own clock, refused after the release cut, and the other checks take no
-    time. ``checks_per_pr`` is then a hidden cap on all calls, so it can't wander.
+    time. With the team's quota (budget = quota) a rerun uses one of the team's runs,
+    refused once they're gone. ``checks_per_pr`` is then a hidden cap on all calls, so
+    it can't wander.
     """
 
-    def __init__(self, prs: list[PullRequest], checks_per_pr: int, clock: Clock | None = None) -> None:
+    def __init__(
+        self, prs: list[PullRequest], checks_per_pr: int, clock: Clock | QuotaView | None = None
+    ) -> None:
         self.prs = {pr.number: pr for pr in prs}
         self.checks_per_pr = checks_per_pr
         self.spent = {number: 0 for number in self.prs}
@@ -109,14 +114,12 @@ class Inspection:
         if self.attempts >= self.checks_per_pr:
             return "Refused: no more checks this cycle. Call finish_inspection."
         self.attempts += 1
-        ran = ""
-        if name == "rerun_tests":
-            if not self.clock.ci_open:
-                return f"{self.clock.refusal()}\n\n[{self.clock.stamp()}]"
-            ran = f"CI run took {self.clock.ci_run('inspect', number)} min · "
+        ran = name == "rerun_tests"
+        if ran and not self.clock.start_run("inspect", number):
+            return f"{self.clock.refusal()}\n\n[{self.clock.note(False)}]"
         result = self._check(self.prs[number], name)
         self.calls.append({"pr": number, "tool": name, "result": result})
-        return f"{result}\n\n[{ran}{self.clock.stamp()}]"
+        return f"{result}\n\n[{self.clock.note(ran)}]"
 
     def _check(self, pr: PullRequest, name: str) -> str:
         if name == "view_diff":

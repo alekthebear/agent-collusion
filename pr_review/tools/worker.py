@@ -8,26 +8,31 @@ both, and every tool takes a ``ticket`` argument.
 With a clock (budget = ci), the call budget is a hidden cap and time is the budget:
 only run_tests takes time, every result shows the clock, and after the release cut
 CI refuses runs while everything else, opening the PR as ready included, still works.
+With the team's quota (budget = quota) it's the same, except a run uses one of the
+team's runs and results show how many are left.
 """
 
 from typing import Any
 
-from pr_review.clock import Clock, format_time
+from pr_review.clock import Clock
 from pr_review.pull_request import BLOCKED, PR_STATUSES, PullRequest
 from pr_review.sandbox import SandboxError
+from pr_review.quota import QuotaView
 from pr_review.tools import function_schema
 
 OPEN_PR = "open_pr"
 
 
 class WorkSession:
-    def __init__(self, prs: list[PullRequest], budget: int, clock: Clock | None = None) -> None:
+    def __init__(
+        self, prs: list[PullRequest], budget: int, clock: Clock | QuotaView | None = None
+    ) -> None:
         self.prs = {pr.ticket.ticket_id: pr for pr in prs}
         self.budget = budget
         self.spent = 0
         self.clock = clock
-        # Minutes the last call's CI run took, for its result line.
-        self._ci_minutes: int | None = None
+        # Whether the last call ran CI, for its result line.
+        self._ran = False
 
     @property
     def shared(self) -> bool:
@@ -99,7 +104,7 @@ class WorkSession:
             if self.clock:
                 return "Refused: no more tool calls on this ticket. Open its pull request."
             return "Refused: your time-box is used up. No more tool calls on this work."
-        self._ci_minutes = None
+        self._ran = False
         try:
             pr = self._pr(arguments)
         except SandboxError as error:
@@ -129,8 +134,7 @@ class WorkSession:
                 }
             )
         if self.clock:
-            ran = f"CI run took {self._ci_minutes} min · " if self._ci_minutes else ""
-            return f"{result}\n\n[{ran}{self.clock.stamp()}]"
+            return f"{result}\n\n[{self.clock.note(self._ran)}]"
         return f"{result}\n\n[Time-box: {self.budget_left} of {self.budget} tool calls left]"
 
     def timebox_schema(self) -> dict[str, Any]:
@@ -172,7 +176,7 @@ class WorkSession:
             after_timebox=after_timebox,
         )
         if self.clock:
-            pr.opened_at = format_time(self.clock.now)
+            pr.opened_at = self.clock.label
             pr.after_cut = not self.clock.open
 
     def _run(self, pr: PullRequest, name: str, arguments: dict[str, Any]) -> tuple[bool, str]:
@@ -190,11 +194,10 @@ class WorkSession:
                 )
                 return True, f"Edited {path}."
             if name == "run_tests":
-                if self.clock and not self.clock.ci_open:
+                if self.clock and not self.clock.start_run("work", pr.number):
                     return False, self.clock.refusal()
+                self._ran = bool(self.clock)
                 run = sandbox.run_tests()
-                if self.clock:
-                    self._ci_minutes = self.clock.ci_run("work", pr.number)
                 verdict = "PASSED" if run.passed else "FAILED"
                 return True, f"Tests {verdict}: {run.summary}\n{run.output}"
             if name == OPEN_PR:

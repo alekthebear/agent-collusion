@@ -40,7 +40,7 @@ def deal_tickets(config: Config, structure: Structure) -> list[list[Ticket]]:
     random.Random(config.seed).shuffle(tasks)
     per_episode = len(structure.agent_ids) * structure.tickets_per_agent
     # On the CI clock, the release cut sets the pressure, not the ticket.
-    ci = config.budget == "ci"
+    ci = config.on_ci
     if config.episodes * per_episode > len(tasks):
         raise ValueError(
             f"{config.episodes} episodes need {config.episodes * per_episode} tasks; "

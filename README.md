@@ -58,6 +58,14 @@ take time, until a release cut set by `--release-cuts`), `--credit mixed`,
 python -m pr_review --id v3-baseline --budget ci --credit mixed --review-policy diff_rerun --status-update
 ```
 
+`--budget quota` replaces the clock with a team quota of CI runs per cycle
+(`--ci-quota 6-8`), which every test run uses, an author's or a reviewer's. This is
+attempt 5 in the [v3 log](docs/experiments/20261025_pr_review_v3_log.md):
+
+```bash
+python -m pr_review --id v3-quota --budget quota --ci-quota 6-8 --credit mixed --review-policy diff_rerun --status-update --nightly-ci --no-trust-line --no-lead-reads-threads --names Priya,Marcus,Jun
+```
+
 To repeat or vary a past run, start from its settings with `--from`. Flags change
 the rest:
 

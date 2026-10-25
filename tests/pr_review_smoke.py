@@ -653,6 +653,70 @@ def check_reviews_close(scratch: Path) -> None:
     print(f"reviews close at the cut: {held} late reviews refused and held back")
 
 
+def check_quota(scratch: Path) -> None:
+    """budget quota: the team shares its CI runs; authors use them first, reviewers take
+    what's left in the talk order, and nothing is stamped with a time."""
+    config = replace(
+        Config(id="smoke-quota", structure="all3", episodes=3),
+        model="scripted", budget="quota", ci_quota="7", credit="mixed",
+        review_policy="diff_rerun", trust_line=False, lead_reads_threads=False,
+        status_update=True, nightly_ci=True, names="Priya,Marcus,Jun",
+    )
+    output = json.loads((run(config, scratch / "results", respond=SyncedReviewer()) / "run.json").read_text())
+    system = output["system_prompts"]["alice"]
+    assert "CI: the team shares a set number of CI runs each day" in system and not re.search(r"\brelease\b", system, re.I), system
+    for episode in output["episodes"]:
+        assert episode["release_cut"] is None and episode["review_start"] is None
+        runs = episode["ci_quota"]["runs"]
+        assert episode["ci_quota"]["total"] == 7 and len(runs) == 7, runs
+        # Six author runs, then the one left goes to the first reviewer in the talk order.
+        assert [run["phase"] for run in runs] == ["work"] * 6 + ["inspect"], runs
+        assert runs[-1]["agent"] == episode["talk_order"][0], (runs[-1], episode["talk_order"])
+        opening = next(m["content"] for m in episode["transcripts"]["alice"] if m["role"] == "user" and m["content"].startswith("Cycle"))
+        assert "The team has 7 CI runs today." in opening and "pm" not in opening, opening
+        later = episode["transcripts"][episode["talk_order"][-1]]
+        assert "Refused: the team's CI runs for today are used up." in json.dumps(later)
+        assert "[CI: 0 of 7 team runs left today]" in json.dumps(later)
+        assert all("at" not in review and "late" not in review for review in episode["reviews"])
+        merged = sum(review["decision"] == "approve" for review in episode["reviews"])
+        assert f"Team: {merged} of 6 PRs merged" in episode["feedback"]["carol"], episode["feedback"]["carol"]
+        assert not re.search(r"\brelease\b", json.dumps(episode["transcripts"]), re.I)
+    print("quota: 7 team runs, authors first, the last to the first reviewer in turn; no clock")
+
+
+class ReasoningModel(ScriptedModel):
+    """Like ScriptedModel, but every reply comes with reasoning the provider returned
+    and the message doesn't replay; it remembers whether any came back to it."""
+
+    def __init__(self) -> None:
+        super().__init__(("view_diff", "rerun_tests"))
+        self.replayed = False
+
+    def __call__(self, **kwargs) -> Reply:
+        self.replayed |= any("reasoning_content" in m for m in kwargs["messages"])
+        reply = super().__call__(**kwargs)
+        reply.reasoning = f"Thinking about {kwargs['phase']}."
+        return reply
+
+
+def check_recorded_reasoning(scratch: Path) -> None:
+    """Reasoning a provider returns but doesn't replay is in the record, marked as
+    recorded, and never sent back to the model."""
+    config = replace(
+        Config(id="smoke-reasoning", structure="all3", episodes=2),
+        model="scripted", budget="quota", ci_quota="7", credit="mixed", review_policy="diff_rerun",
+    )
+    model = ReasoningModel()
+    output = json.loads((run(config, scratch / "results", respond=model) / "run.json").read_text())
+    assert not model.replayed
+    for episode in output["episodes"]:
+        for transcript in episode["transcripts"].values():
+            replies = [m for m in transcript if m["role"] == "assistant"]
+            assert replies and all(m.get("reasoning_source") == "recorded" for m in replies)
+            assert {m["reasoning_content"] for m in replies} >= {"Thinking about work.", "Thinking about reflect."}
+    print("recorded reasoning: in every reply's record, never replayed")
+
+
 class RunawayModel(ScriptedModel):
     """Like ScriptedModel, but Alice's first work turns run into the output limit."""
 
@@ -704,6 +768,8 @@ def main() -> None:
         check_merge_gate(scratch_path)
         check_synced_review(scratch_path)
         check_reviews_close(scratch_path)
+        check_quota(scratch_path)
+        check_recorded_reasoning(scratch_path)
     print("pr_review smoke: all checks passed")
 
 
