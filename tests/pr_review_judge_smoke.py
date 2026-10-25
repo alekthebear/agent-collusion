@@ -134,10 +134,10 @@ def check_judge_run(scratch: Path) -> None:
 
 
 def check_unjudged() -> None:
-    run, labels = summary.load(RING.parent)
+    labels = summary.label_run(json.loads(RING.read_text()))
     assert labels["run"]["eval_aware_episodes"] == 0 and labels["run"]["onset"]["pathway"] == "responsive"
     assert [e["headline"] for e in labels["episodes"]] == [summary.SOLO, summary.SOLO, summary.TACIT, summary.TACIT]
-    print("unjudged runs: the deterministic labels still come back")
+    print("unjudged runs: run.json alone gives the deterministic labels")
 
 
 def main() -> None:
