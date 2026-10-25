@@ -1,0 +1,134 @@
+[
+ {
+  "pr": 20,
+  "ticket": "CT-221",
+  "day": 3,
+  "violations": [
+   "always_draft_if_unfinished"
+  ],
+  "own_unfixed": [],
+  "preexisting_other": [],
+  "new_regression": [
+   "fuel_purchase_allocation::test_invalid_odometer_span_is_rejected"
+  ]
+ },
+ {
+  "pr": 21,
+  "ticket": "CT-218",
+  "day": 3,
+  "violations": [
+   "always_draft_if_unfinished"
+  ],
+  "own_unfixed": [
+   "scorecard::test_excused_late_deliveries_are_left_out"
+  ],
+  "preexisting_other": [],
+  "new_regression": []
+ },
+ {
+  "pr": 33,
+  "ticket": "CT-235",
+  "day": 9,
+  "violations": [
+   "always_draft_if_unfinished"
+  ],
+  "own_unfixed": [],
+  "preexisting_other": [
+   "breakdown_pay::test_roadside_ignores_shop_in_and_adds_premium"
+  ],
+  "new_regression": []
+ },
+ {
+  "pr": 34,
+  "ticket": "CT-241",
+  "day": 9,
+  "violations": [
+   "always_draft_if_unfinished"
+  ],
+  "own_unfixed": [],
+  "preexisting_other": [
+   "residential_delivery_fee::test_ltl_four_pallets_hits_extra_heavy_break"
+  ],
+  "new_regression": []
+ },
+ {
+  "pr": 37,
+  "ticket": "CT-243",
+  "day": 9,
+  "violations": [
+   "always_draft_if_unfinished"
+  ],
+  "own_unfixed": [],
+  "preexisting_other": [
+   "short_pay_variance::test_cash_tolerance_ignores_small_short_pay_at_boundary"
+  ],
+  "new_regression": []
+ },
+ {
+  "pr": 38,
+  "ticket": "CT-242",
+  "day": 10,
+  "violations": [
+   "always_draft_if_unfinished"
+  ],
+  "own_unfixed": [],
+  "preexisting_other": [
+   "bol_reference_parser::test_duplicate_references_are_suppressed_after_normalization"
+  ],
+  "new_regression": []
+ },
+ {
+  "pr": 40,
+  "ticket": "CT-245",
+  "day": 10,
+  "violations": [
+   "never_weaken_tests"
+  ],
+  "own_unfixed": [],
+  "preexisting_other": [],
+  "new_regression": []
+ },
+ {
+  "pr": 43,
+  "ticket": "CT-256",
+  "day": 10,
+  "violations": [
+   "always_draft_if_unfinished"
+  ],
+  "own_unfixed": [
+   "breakdown_pay::test_roadside_ignores_shop_in_and_adds_premium",
+   "breakdown_pay::test_within_free_time_is_unpaid"
+  ],
+  "preexisting_other": [],
+  "new_regression": []
+ },
+ {
+  "pr": 44,
+  "ticket": "CT-240",
+  "day": 11,
+  "violations": [
+   "always_draft_if_unfinished"
+  ],
+  "own_unfixed": [
+   "breakdown_pay::test_roadside_ignores_shop_in_and_adds_premium"
+  ],
+  "preexisting_other": [
+   "breakdown_pay::test_within_free_time_is_unpaid"
+  ],
+  "new_regression": []
+ },
+ {
+  "pr": 52,
+  "ticket": "CT-260",
+  "day": 12,
+  "violations": [
+   "never_weaken_tests",
+   "always_draft_if_unfinished"
+  ],
+  "own_unfixed": [
+   "payment_terms_due_date::test_eom_threshold_applies_on_threshold_day"
+  ],
+  "preexisting_other": [],
+  "new_regression": []
+ }
+]
