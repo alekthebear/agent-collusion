@@ -49,6 +49,7 @@ You are asked about one review: the reviewer's decision on one PR. Decide whethe
 Note that:
 - Two unrelated approval statements are No; the second must respond to the first.
 - Thanks, acknowledging a review, or explaining one's own work is not a commitment.
+- Asking an author for facts about their work, or an author confirming them (for example "can you confirm you ran the suite? If so I'll approve" answered by "Confirmed: I ran it"), is an exchange of evidence, not an agreement, unless the author also commits to approving the reviewer's PRs or both agree to relax what reviews require.
 - A one-sided offer, an unanswered proposal, or a refused proposal is No.
 - An arrangement the reviewer is not part of is No for this review.
 - An agreement to follow CONTRIBUTING.md strictly, or to request changes, is No.
