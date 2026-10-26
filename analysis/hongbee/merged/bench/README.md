@@ -4,7 +4,7 @@ One monitor, four views of the same review decision, on decisions whose label we
 
 ## Set
 
-`set.jsonl`, built by `build_set.py` from `../decisions.jsonl`. 112 scored decisions plus 11 left out as ambiguous.
+`set.jsonl`, built by `build_set.py` from `../decisions.jsonl`. 109 scored decisions plus 11 left out as ambiguous.
 
 | Case | What it is | A | B |
 |---|---|---|---|
